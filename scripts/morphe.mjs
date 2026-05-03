@@ -711,6 +711,11 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
   mkdirSync(moduleDir, { recursive: true });
 
   const packageNames = apps.map((app) => app.packageName);
+  const entries = apps.map((app) => ({
+    ...app,
+    stagedApkName: `${app.id}.apk`,
+    fallbackSystemPath: rootSystemPathFor(app.rootApkPath),
+  }));
   writeFileSync(join(moduleDir, "module.prop"), [
     `id=${id}`,
     `name=${name}`,
@@ -721,24 +726,14 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     "",
   ].join("\n"));
 
-  writeFileSync(join(moduleDir, "customize.sh"), [
-    "#!/system/bin/sh",
-    "ui_print \"Installing $MODNAME\"",
-    "ui_print \"Compatible with Magisk, KernelSU, KernelSU Next, and APatch module installers.\"",
-    "ui_print \"Detaching included apps from Play Store update ownership on boot.\"",
-    "ui_print \"If Android keeps loading a user-installed update, uninstall updates for that app and reboot.\"",
-    "",
-  ].join("\n"));
+  writeFileSync(join(moduleDir, "customize.sh"), rootCustomizeScript(entries));
 
   writeFileSync(join(moduleDir, "post-fs-data.sh"), rootLifecycleScript(packageNames, "post-fs-data"));
+  writeFileSync(join(moduleDir, "post-mount.sh"), rootLifecycleScript(packageNames, "post-mount"));
   writeFileSync(join(moduleDir, "service.sh"), rootLifecycleScript(packageNames, "service"));
   writeFileSync(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames));
   writeFileSync(join(moduleDir, "system.prop"), [
     "# Module intentionally keeps system properties unchanged.",
-    "",
-  ].join("\n"));
-  writeFileSync(join(moduleDir, "replace"), [
-    ...apps.map((app) => `/${dirname(app.rootApkPath).replaceAll("\\", "/")}`),
     "",
   ].join("\n"));
 
@@ -746,19 +741,93 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     `# ${name}`,
     "",
     "Install this ZIP with Magisk, KernelSU, KernelSU Next, or APatch, then reboot.",
+    "During installation, the module detects each app's current system path and places the patched APK into the matching systemless system partition path.",
     "The module re-applies Play Store detach commands at boot and removes user-installed update overlays while keeping app data.",
     "This is designed to keep the mounted root APK active even if Play Store tries to update the package.",
     "",
     "Included apps:",
-    ...apps.map((app) => `- ${app.label}: ${app.packageName} -> /${app.rootApkPath}`),
+    ...entries.map((app) => `- ${app.label}: ${app.packageName} -> ${app.fallbackSystemPath} fallback`),
     "",
   ].join("\n"));
 
-  for (const app of apps) {
-    const destination = join(moduleDir, app.rootApkPath);
+  for (const app of entries) {
+    const destination = join(moduleDir, "common", "apks", app.stagedApkName);
     mkdirSync(dirname(destination), { recursive: true });
     copyFileSync(app.output, destination);
   }
+}
+
+function rootCustomizeScript(apps) {
+  const appLines = apps.map((app) => [
+    app.packageName,
+    app.label,
+    app.stagedApkName,
+    app.fallbackSystemPath,
+  ].join("|"));
+
+  return [
+    "#!/system/bin/sh",
+    "",
+    "command -v ui_print >/dev/null 2>&1 || ui_print() { echo \"$@\"; }",
+    "command -v abort >/dev/null 2>&1 || abort() { ui_print \"! $*\"; exit 1; }",
+    "",
+    "ui_print \"Installing $MODNAME\"",
+    "ui_print \"Compatible with Magisk, KernelSU, KernelSU Next, and APatch module installers.\"",
+    "ui_print \"Using original package names and device-specific system app paths.\"",
+    "ui_print \"No legacy replace file is used.\"",
+    "",
+    "APP_LIST=$(cat <<'EOF_APP_LIST'",
+    ...appLines,
+    "EOF_APP_LIST",
+    ")",
+    "",
+    "module_system_path() {",
+    "  local path=\"$1\"",
+    "  case \"$path\" in",
+    "    /system/*) printf '%s/system/%s\\n' \"$MODPATH\" \"${path#/system/}\" ;;",
+    "    /product/*) printf '%s/system/product/%s\\n' \"$MODPATH\" \"${path#/product/}\" ;;",
+    "    /system_ext/*) printf '%s/system/system_ext/%s\\n' \"$MODPATH\" \"${path#/system_ext/}\" ;;",
+    "    /vendor/*) printf '%s/system/vendor/%s\\n' \"$MODPATH\" \"${path#/vendor/}\" ;;",
+    "    *) return 1 ;;",
+    "  esac",
+    "}",
+    "",
+    "detect_system_apk_path() {",
+    "  local pkg=\"$1\"",
+    "  local path",
+    "  path=\"$(pm path \"$pkg\" 2>/dev/null | sed -n 's/^package://p' | grep -E '^/(system|product|system_ext|vendor)/.*\\.apk$' | head -n 1)\"",
+    "  [ -n \"$path\" ] && printf '%s\\n' \"$path\"",
+    "}",
+    "",
+    "install_root_apk() {",
+    "  local pkg=\"$1\" label=\"$2\" apk_name=\"$3\" fallback_path=\"$4\"",
+    "  local source_apk target_path target_apk target_dir",
+    "  source_apk=\"$MODPATH/common/apks/$apk_name\"",
+    "  [ -f \"$source_apk\" ] || abort \"Missing staged APK for $label: $source_apk\"",
+    "",
+    "  target_path=\"$(detect_system_apk_path \"$pkg\")\"",
+    "  [ -n \"$target_path\" ] || target_path=\"$fallback_path\"",
+    "  target_apk=\"$(module_system_path \"$target_path\")\" || abort \"Unsupported system path for $label: $target_path\"",
+    "  target_dir=\"${target_apk%/*}\"",
+    "",
+    "  rm -rf \"$target_dir\"",
+    "  mkdir -p \"$target_dir\"",
+    "  cp -f \"$source_apk\" \"$target_apk\"",
+    "  chmod 0755 \"$target_dir\"",
+    "  chmod 0644 \"$target_apk\"",
+    "  ui_print \"- $label: $target_path\"",
+    "}",
+    "",
+    "while IFS='|' read -r pkg label apk_name fallback_path; do",
+    "  [ -n \"$pkg\" ] || continue",
+    "  install_root_apk \"$pkg\" \"$label\" \"$apk_name\" \"$fallback_path\"",
+    "done <<EOF_INSTALL_APPS",
+    "$APP_LIST",
+    "EOF_INSTALL_APPS",
+    "",
+    "rm -rf \"$MODPATH/common\"",
+    "",
+  ].join("\n");
 }
 
 function rootLifecycleScript(packageNames, stage) {
@@ -837,6 +906,15 @@ function rootUninstallScript(packageNames) {
     "done",
     "",
   ].join("\n");
+}
+
+function rootSystemPathFor(modulePath) {
+  const normalized = modulePath.replaceAll("\\", "/");
+  if (normalized.startsWith("system/product/")) return `/${normalized.slice("system/".length)}`;
+  if (normalized.startsWith("system/system_ext/")) return `/${normalized.slice("system/".length)}`;
+  if (normalized.startsWith("system/vendor/")) return `/${normalized.slice("system/".length)}`;
+  if (normalized.startsWith("system/")) return `/${normalized}`;
+  return `/${normalized}`;
 }
 
 function createZip(sourceDir, destination) {
