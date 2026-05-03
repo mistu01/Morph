@@ -210,9 +210,11 @@ async function build() {
 
     appendSigningArgs(args);
 
-    if (existsSync(app.options)) {
+    if (existsSync(app.options) && (!rootBuild || truthy(env("ROOT_ALLOW_OPTIONS_FILE")))) {
       args.push("--options-file", app.options);
       if (truthy(env("MORPHE_OPTIONS_UPDATE"))) args.push("--options-update");
+    } else if (rootBuild && existsSync(app.options)) {
+      console.log(`${app.label}: ignoring ${relative(app.options)} for root build so Morphe default patches stay enabled.`);
     }
 
     args.push(...patchArgs, app.input);
@@ -642,58 +644,42 @@ function patchArgsFor(app) {
     console.log(`${app.label}: adding --force because latest APK fallback is being used.`);
     args.push("--force");
   }
+  if (rootBuild) args.push(...(app.rootPatchArgs || []));
   return args;
 }
 
 async function ensurePatchOptions(app) {
   if (rootBuild) {
-    await ensureRootOptions(app);
+    await ensureRootPatchArgs(app);
     return;
   }
   await ensurePackageNameOptions(app);
 }
 
-async function ensureRootOptions(app) {
+async function ensureRootPatchArgs(app) {
   const patchesList = await fetchPatchesList();
-  const existingBundles = await readJson(app.options);
-  const existingBundle = Array.isArray(existingBundles) ? existingBundles[0] : null;
-  const patchEntries = {};
+  const args = [];
+  const disabled = [];
+  const enabled = [];
 
   for (const patch of patchesList?.patches || []) {
     if (!patch?.name || !patchCompatibleWithApp(patch, app)) continue;
 
-    const existingEntry = findPatchEntry(existingBundle, patch.name);
     const patchKey = patch.name.toLowerCase();
-    const enabled = rootEnabledPatches.has(patchKey)
-      ? true
-      : rootDisabledPatches.has(patchKey)
-        ? false
-        : existingEntry?.enabled ?? Boolean(patch.use);
-
-    patchEntries[patch.name] = {
-      enabled,
-      options: mergePatchOptions(patch, existingEntry),
-    };
+    if (rootDisabledPatches.has(patchKey)) {
+      args.push("--disable", patch.name);
+      disabled.push(patch.name);
+    } else if (rootEnabledPatches.has(patchKey)) {
+      args.push("--enable", patch.name);
+      enabled.push(patch.name);
+    }
   }
 
-  const now = new Date().toISOString();
-  await writeJson(app.options, [{
-    meta: {
-      created_at: existingBundle?.meta?.created_at || now,
-      updated_at: now,
-      source: `root-safe morphe-patches ${patchesList?.version || env("MORPHE_PATCHES_VERSION") || "latest"}`,
-    },
-    patches: patchEntries,
-  }]);
-
-  const disabled = Object.keys(patchEntries)
-    .filter((name) => rootDisabledPatches.has(name.toLowerCase()) && patchEntries[name].enabled === false);
-  const enabled = Object.keys(patchEntries)
-    .filter((name) => rootEnabledPatches.has(name.toLowerCase()) && patchEntries[name].enabled === true);
+  app.rootPatchArgs = args;
 
   console.log(`${app.label}: root build keeps original package ${app.packageName}.`);
-  if (disabled.length) console.log(`${app.label}: root-disabled patches: ${disabled.join(", ")}.`);
-  if (enabled.length) console.log(`${app.label}: root-enabled patches: ${enabled.join(", ")}.`);
+  if (disabled.length) console.log(`${app.label}: root patch args disable: ${disabled.join(", ")}.`);
+  if (enabled.length) console.log(`${app.label}: root patch args enable: ${enabled.join(", ")}.`);
 }
 
 async function ensurePackageNameOptions(app) {
@@ -1872,6 +1858,7 @@ Environment:
   REDDIT_PATCHED_PACKAGE_NAME
                               Optional; only works if the selected patch bundle supports it.
   ROOT_BUILD                  Set to 1 for root module builds that keep original package names.
+  ROOT_ALLOW_OPTIONS_FILE     Set to 1 to pass root build options files. Defaults to off.
   ROOT_MODULE_VERSION         Optional module version label. Defaults to current UTC date.
   ROOT_MODULE_VERSION_CODE    Optional numeric module versionCode.
   AUTO_UPDATE_APKS           Set to 1 to refresh existing APK downloads during build.
