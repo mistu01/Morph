@@ -28,7 +28,7 @@ on:
         description: "Pass --continue-on-error so compatible patches can still be applied if one patch fails"
         required: true
         type: boolean
-        default: true
+        default: false
       create_release:
         description: "Create a GitHub Release and attach Magisk/KernelSU/KernelSU Next/APatch module ZIPs"
         required: true

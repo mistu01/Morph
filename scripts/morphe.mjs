@@ -28,6 +28,15 @@ const paths = {
   rootModules: fromRoot("output/root-modules"),
 };
 const packageNamePatch = "Change package name";
+const rootDisabledPatches = new Set([
+  "change package name",
+  "gmscore support",
+  "custom branding",
+  "custom branding name for reddit",
+]);
+const rootEnabledPatches = new Set([
+  "disable play store updates",
+]);
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
 const rootBuild = truthy(env("ROOT_BUILD"));
 
@@ -177,7 +186,7 @@ async function build() {
 
   for (const app of selectedApps()) {
     await ensureInput(app);
-    await ensurePackageNameOptions(app);
+    await ensurePatchOptions(app);
     const patchArgs = patchArgsFor(app);
     const temporaryFilesPath = fromRoot(`.cache/tmp/${app.id}`);
     mkdirSync(dirname(app.output), { recursive: true });
@@ -210,7 +219,23 @@ async function build() {
 
     console.log(`\n==> Building ${app.label}`);
     run("java", args);
+    if (rootBuild) await assertRootPackageName(app);
   }
+}
+
+async function assertRootPackageName(app) {
+  const result = await readJson(app.result);
+  const packageName = result?.packageName;
+  if (!packageName) {
+    console.warn(`${app.label}: could not verify package name because ${relative(app.result)} is missing packageName.`);
+    return;
+  }
+
+  if (packageName !== app.packageName) {
+    throw new Error(`${app.label}: root APK package name is ${packageName}, expected original package ${app.packageName}. Check root patch options.`);
+  }
+
+  console.log(`${app.label}: verified root APK package name ${packageName}.`);
 }
 
 async function packageRootModules() {
@@ -290,7 +315,7 @@ async function createOptions() {
       "--filter-package-name",
       app.packageName,
     ]);
-    await ensurePackageNameOptions(app);
+    await ensurePatchOptions(app);
   }
 }
 
@@ -443,9 +468,14 @@ function compatibleVersionsFor(app, patchesList) {
   const versions = new Set();
 
   for (const patch of patchesList?.patches || []) {
-    const compatible = patch?.compatiblePackages?.[app.packageName];
-    if (!Array.isArray(compatible)) continue;
-    for (const version of compatible) versions.add(String(version));
+    for (const entry of compatiblePackageEntriesFor(patch, app)) {
+      const targets = Array.isArray(entry?.targets)
+        ? entry.targets.map((target) => target?.version).filter(Boolean)
+        : Array.isArray(entry)
+          ? entry
+          : [];
+      for (const version of targets) versions.add(String(version));
+    }
   }
 
   return [...versions].sort(compareVersions).reverse();
@@ -608,11 +638,59 @@ function patchArgsFor(app) {
   return args;
 }
 
-async function ensurePackageNameOptions(app) {
+async function ensurePatchOptions(app) {
   if (rootBuild) {
-    console.log(`${app.label}: root build keeps the original package name ${app.packageName}`);
+    await ensureRootOptions(app);
     return;
   }
+  await ensurePackageNameOptions(app);
+}
+
+async function ensureRootOptions(app) {
+  const patchesList = await fetchPatchesList();
+  const existingBundles = await readJson(app.options);
+  const existingBundle = Array.isArray(existingBundles) ? existingBundles[0] : null;
+  const patchEntries = {};
+
+  for (const patch of patchesList?.patches || []) {
+    if (!patch?.name || !patchCompatibleWithApp(patch, app)) continue;
+
+    const existingEntry = findPatchEntry(existingBundle, patch.name);
+    const patchKey = patch.name.toLowerCase();
+    const enabled = rootEnabledPatches.has(patchKey)
+      ? true
+      : rootDisabledPatches.has(patchKey)
+        ? false
+        : existingEntry?.enabled ?? Boolean(patch.use);
+
+    patchEntries[patch.name] = {
+      enabled,
+      options: mergePatchOptions(patch, existingEntry),
+    };
+  }
+
+  const now = new Date().toISOString();
+  await writeJson(app.options, [{
+    meta: {
+      created_at: existingBundle?.meta?.created_at || now,
+      updated_at: now,
+      source: `root-safe morphe-patches ${patchesList?.version || env("MORPHE_PATCHES_VERSION") || "latest"}`,
+      root_package_name: app.packageName,
+    },
+    patches: patchEntries,
+  }]);
+
+  const disabled = Object.keys(patchEntries)
+    .filter((name) => rootDisabledPatches.has(name.toLowerCase()) && patchEntries[name].enabled === false);
+  const enabled = Object.keys(patchEntries)
+    .filter((name) => rootEnabledPatches.has(name.toLowerCase()) && patchEntries[name].enabled === true);
+
+  console.log(`${app.label}: root build keeps original package ${app.packageName}.`);
+  if (disabled.length) console.log(`${app.label}: root-disabled patches: ${disabled.join(", ")}.`);
+  if (enabled.length) console.log(`${app.label}: root-enabled patches: ${enabled.join(", ")}.`);
+}
+
+async function ensurePackageNameOptions(app) {
   if (!app.patchedPackageName) return;
   if (!packageNamePattern.test(app.patchedPackageName)) {
     throw new Error(`${app.label}: invalid patched package name "${app.patchedPackageName}".`);
@@ -662,7 +740,22 @@ async function ensurePackageNameOptions(app) {
 
 function patchCompatibleWithApp(patch, app) {
   if (!patch.compatiblePackages) return true;
-  return Object.prototype.hasOwnProperty.call(patch.compatiblePackages, app.packageName);
+  return compatiblePackageEntriesFor(patch, app).length > 0;
+}
+
+function compatiblePackageEntriesFor(patch, app) {
+  const compatible = patch?.compatiblePackages;
+  if (!compatible) return [];
+
+  if (Array.isArray(compatible)) {
+    return compatible.filter((entry) => entry?.packageName === app.packageName);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(compatible, app.packageName)) {
+    return [compatible[app.packageName]];
+  }
+
+  return [];
 }
 
 function findPatchEntry(bundle, patchName) {
@@ -806,6 +899,8 @@ function rootCustomizeScript(apps) {
     "  cp -f \"$source_apk\" \"$target_apk\"",
     "  chmod 0755 \"$target_dir\"",
     "  chmod 0644 \"$target_apk\"",
+    "  chcon u:object_r:system_file:s0 \"$target_dir\" \"$target_apk\" >/dev/null 2>&1 || true",
+    "  restorecon -R \"$target_dir\" >/dev/null 2>&1 || true",
     "  ui_print \"- App: $label\"",
     "  ui_print \"  Package: $pkg\"",
     "  ui_print \"  Source: $apk_name\"",
