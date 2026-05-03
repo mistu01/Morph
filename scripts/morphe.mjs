@@ -253,6 +253,9 @@ async function packageRootModules() {
     if (!usableFile(app.output)) {
       throw new Error(`${app.label}: expected patched APK at ${relative(app.output)}. Run the root build first.`);
     }
+    if (!usableFile(app.input) || extname(app.input).toLowerCase() !== ".apk") {
+      throw new Error(`${app.label}: root modules need the original stock APK at ${relative(app.input)} so the package can be registered before bind mounting.`);
+    }
 
     const moduleDir = join(stagingRoot, app.id);
     createRootModule(moduleDir, {
@@ -274,9 +277,13 @@ async function packageRootModules() {
     generatedAt: new Date().toISOString(),
     rootBuild: true,
     compatibleRootManagers: ["Magisk", "KernelSU", "KernelSU Next", "APatch"],
-    antiAutoUpdate: {
+    installStrategy: {
+      registerOriginalPackage: true,
+      bindMountPatchedBaseApk: true,
+      persistentPatchedApkDir: "/data/adb/mistu-root",
+    },
+    playStoreDetach: {
       unregisterPlayStoreInstaller: true,
-      removeUserUpdateOverlayKeepingData: true,
       playStoreDatabaseDetach: "best-effort when sqlite3 is available",
     },
     modules: packaged.map((file) => relative(file)),
@@ -788,7 +795,8 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
   const packageNames = apps.map((app) => app.packageName);
   const entries = apps.map((app) => ({
     ...app,
-    stagedApkName: `${app.id}.apk`,
+    stagedPatchedApkName: `${app.id}-patched.apk`,
+    stagedStockApkName: `${app.id}-stock.apk`,
     fallbackSystemPath: rootSystemPathFor(app.rootApkPath),
   }));
   writeFileSync(join(moduleDir, "module.prop"), [
@@ -803,9 +811,8 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
 
   writeFileSync(join(moduleDir, "customize.sh"), rootCustomizeScript(entries));
 
-  writeFileSync(join(moduleDir, "post-fs-data.sh"), rootLifecycleScript(packageNames, "post-fs-data"));
-  writeFileSync(join(moduleDir, "post-mount.sh"), rootLifecycleScript(packageNames, "post-mount"));
-  writeFileSync(join(moduleDir, "service.sh"), rootLifecycleScript(packageNames, "service"));
+  writeFileSync(join(moduleDir, "post-mount.sh"), rootLifecycleScript(entries, "post-mount"));
+  writeFileSync(join(moduleDir, "service.sh"), rootLifecycleScript(entries, "service"));
   writeFileSync(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames));
   writeFileSync(join(moduleDir, "system.prop"), [
     "# Module intentionally keeps system properties unchanged.",
@@ -816,19 +823,22 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     `# ${name}`,
     "",
     "Install this ZIP with Magisk, KernelSU, KernelSU Next, or APatch, then reboot.",
-    "During installation, the module detects each app's current system path and places the patched APK into the matching systemless system partition path.",
-    "The module re-applies Play Store detach commands at boot and removes user-installed update overlays while keeping app data.",
-    "This is designed to keep the mounted root APK active even if Play Store tries to update the package.",
+    "During installation, the module registers the original package using the stock APK, then bind-mounts the patched APK over the package base APK.",
+    "The module re-applies the bind mount and Play Store detach commands at boot.",
+    "This keeps the launcher entry tied to the original package while running the patched APK.",
     "",
     "Included apps:",
-    ...entries.map((app) => `- ${app.label}: ${app.packageName} -> ${app.fallbackSystemPath} fallback`),
+    ...entries.map((app) => `- ${app.label}: ${app.packageName}`),
     "",
   ].join("\n"));
 
   for (const app of entries) {
-    const destination = join(moduleDir, "common", "apks", app.stagedApkName);
-    mkdirSync(dirname(destination), { recursive: true });
-    copyFileSync(app.output, destination);
+    const patchedDestination = join(moduleDir, "common", "patched", app.stagedPatchedApkName);
+    const stockDestination = join(moduleDir, "common", "stock", app.stagedStockApkName);
+    mkdirSync(dirname(patchedDestination), { recursive: true });
+    mkdirSync(dirname(stockDestination), { recursive: true });
+    copyFileSync(app.output, patchedDestination);
+    copyFileSync(app.input, stockDestination);
   }
 }
 
@@ -836,7 +846,8 @@ function rootCustomizeScript(apps) {
   const appLines = apps.map((app) => [
     app.packageName,
     app.label,
-    app.stagedApkName,
+    app.stagedPatchedApkName,
+    app.stagedStockApkName,
     app.fallbackSystemPath,
   ].join("|"));
 
@@ -854,8 +865,8 @@ function rootCustomizeScript(apps) {
     "ui_print \"\"",
     "ui_print \"- Root managers: Magisk, KernelSU, KernelSU Next, APatch\"",
     "ui_print \"- Package mode: original package names\"",
-    "ui_print \"- Install mode: device-detected system app path\"",
-    "ui_print \"- Play Store: detach and block user update overlays\"",
+    "ui_print \"- Install mode: stock package registration + patched base.apk bind mount\"",
+    "ui_print \"- Play Store: detach installer/database ownership\"",
     "ui_print \"- Legacy replace file: not used\"",
     "ui_print \"\"",
     "",
@@ -864,51 +875,80 @@ function rootCustomizeScript(apps) {
     "EOF_APP_LIST",
     ")",
     "",
-    "module_system_path() {",
-    "  local path=\"$1\"",
-    "  case \"$path\" in",
-    "    /system/*) printf '%s/system/%s\\n' \"$MODPATH\" \"${path#/system/}\" ;;",
-    "    /product/*) printf '%s/system/product/%s\\n' \"$MODPATH\" \"${path#/product/}\" ;;",
-    "    /system_ext/*) printf '%s/system/system_ext/%s\\n' \"$MODPATH\" \"${path#/system_ext/}\" ;;",
-    "    /vendor/*) printf '%s/system/vendor/%s\\n' \"$MODPATH\" \"${path#/vendor/}\" ;;",
-    "    *) return 1 ;;",
-    "  esac",
+    "DATA_DIR=/data/adb/mistu-root/${MODPATH##*/}",
+    "mkdir -p \"$DATA_DIR\"",
+    "",
+    "pm_base_path() {",
+    "  pm path \"$1\" 2>/dev/null | sed -n 's/^package://p' | grep '/base\\.apk$' | head -n 1",
     "}",
     "",
-    "detect_system_apk_path() {",
-    "  local pkg=\"$1\"",
-    "  local path",
-    "  path=\"$(pm path \"$pkg\" 2>/dev/null | sed -n 's/^package://p' | grep -E '^/(system|product|system_ext|vendor)/.*\\.apk$' | head -n 1)\"",
-    "  [ -n \"$path\" ] && printf '%s\\n' \"$path\"",
+    "set_pm_installer() {",
+    "  cmd package set-installer \"$1\" com.android.shell >/dev/null 2>&1 || true",
+    "  pm set-installer \"$1\" com.android.shell >/dev/null 2>&1 || true",
+    "}",
+    "",
+    "enable_package() {",
+    "  cmd package install-existing --user 0 \"$1\" >/dev/null 2>&1 || true",
+    "  pm enable \"$1\" >/dev/null 2>&1 || true",
+    "  cmd package unsuspend \"$1\" >/dev/null 2>&1 || true",
+    "}",
+    "",
+    "install_stock_package() {",
+    "  local pkg=\"$1\" label=\"$2\" stock_apk=\"$3\"",
+    "  local size session out",
+    "  [ -f \"$stock_apk\" ] || abort \"Missing stock APK for $label: $stock_apk\"",
+    "  if [ -n \"$(pm_base_path \"$pkg\")\" ]; then",
+    "    enable_package \"$pkg\"",
+    "    return 0",
+    "  fi",
+    "  ui_print \"  Registering original package with stock APK\"",
+    "  size=\"$(wc -c < \"$stock_apk\")\"",
+    "  out=\"$(pm install-create --user 0 -i com.android.vending -r -S \"$size\" 2>&1)\" || { ui_print \"$out\"; abort \"install-create failed for $label\"; }",
+    "  session=\"${out#*[}\"",
+    "  session=\"${session%]*}\"",
+    "  out=\"$(pm install-write -S \"$size\" \"$session\" base.apk \"$stock_apk\" 2>&1)\" || { pm install-abandon \"$session\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-write failed for $label\"; }",
+    "  out=\"$(pm install-commit \"$session\" 2>&1)\" || { ui_print \"$out\"; abort \"install-commit failed for $label\"; }",
+    "  enable_package \"$pkg\"",
+    "}",
+    "",
+    "mount_bind_global() {",
+    "  local source=\"$1\" target=\"$2\" out",
+    "  if su -M -c true >/dev/null 2>&1; then",
+    "    out=\"$(su -M -c \"mount -o bind '$source' '$target'\" 2>&1)\" || { ui_print \"$out\"; return 1; }",
+    "  elif command -v nsenter >/dev/null 2>&1; then",
+    "    out=\"$(nsenter -t 1 -m mount -o bind \"$source\" \"$target\" 2>&1)\" || { ui_print \"$out\"; return 1; }",
+    "  else",
+    "    out=\"$(mount -o bind \"$source\" \"$target\" 2>&1)\" || { ui_print \"$out\"; return 1; }",
+    "  fi",
     "}",
     "",
     "install_root_apk() {",
-    "  local pkg=\"$1\" label=\"$2\" apk_name=\"$3\" fallback_path=\"$4\"",
-    "  local source_apk target_path target_apk target_dir",
-    "  source_apk=\"$MODPATH/common/apks/$apk_name\"",
-    "  [ -f \"$source_apk\" ] || abort \"Missing staged APK for $label: $source_apk\"",
+    "  local pkg=\"$1\" label=\"$2\" patched_name=\"$3\" stock_name=\"$4\" fallback_path=\"$5\"",
+    "  local patched_apk stock_apk persistent_apk target_path",
+    "  patched_apk=\"$MODPATH/common/patched/$patched_name\"",
+    "  stock_apk=\"$MODPATH/common/stock/$stock_name\"",
+    "  persistent_apk=\"$DATA_DIR/$pkg.apk\"",
+    "  [ -f \"$patched_apk\" ] || abort \"Missing patched APK for $label: $patched_apk\"",
     "",
-    "  target_path=\"$(detect_system_apk_path \"$pkg\")\"",
-    "  [ -n \"$target_path\" ] || target_path=\"$fallback_path\"",
-    "  target_apk=\"$(module_system_path \"$target_path\")\" || abort \"Unsupported system path for $label: $target_path\"",
-    "  target_dir=\"${target_apk%/*}\"",
-    "",
-    "  rm -rf \"$target_dir\"",
-    "  mkdir -p \"$target_dir\"",
-    "  cp -f \"$source_apk\" \"$target_apk\"",
-    "  chmod 0755 \"$target_dir\"",
-    "  chmod 0644 \"$target_apk\"",
-    "  chcon u:object_r:system_file:s0 \"$target_dir\" \"$target_apk\" >/dev/null 2>&1 || true",
-    "  restorecon -R \"$target_dir\" >/dev/null 2>&1 || true",
     "  ui_print \"- App: $label\"",
     "  ui_print \"  Package: $pkg\"",
-    "  ui_print \"  Source: $apk_name\"",
-    "  ui_print \"  Target: $target_path\"",
+    "  install_stock_package \"$pkg\" \"$label\" \"$stock_apk\"",
+    "  target_path=\"$(pm_base_path \"$pkg\")\"",
+    "  [ -n \"$target_path\" ] || abort \"Package path not found after stock registration for $label\"",
+    "  cp -f \"$patched_apk\" \"$persistent_apk\"",
+    "  chmod 0644 \"$persistent_apk\"",
+    "  chcon u:object_r:apk_data_file:s0 \"$persistent_apk\" >/dev/null 2>&1 || true",
+    "  mount_bind_global \"$persistent_apk\" \"$target_path\" || abort \"Bind mount failed for $label\"",
+    "  set_pm_installer \"$pkg\"",
+    "  am force-stop \"$pkg\" >/dev/null 2>&1 || true",
+    "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
+    "  ui_print \"  Stock base: $target_path\"",
+    "  ui_print \"  Patched base: $persistent_apk\"",
     "}",
     "",
-    "while IFS='|' read -r pkg label apk_name fallback_path; do",
+    "while IFS='|' read -r pkg label patched_name stock_name fallback_path; do",
     "  [ -n \"$pkg\" ] || continue",
-    "  install_root_apk \"$pkg\" \"$label\" \"$apk_name\" \"$fallback_path\"",
+    "  install_root_apk \"$pkg\" \"$label\" \"$patched_name\" \"$stock_name\" \"$fallback_path\"",
     "done <<EOF_INSTALL_APPS",
     "$APP_LIST",
     "EOF_INSTALL_APPS",
@@ -922,8 +962,11 @@ function rootCustomizeScript(apps) {
   ].join("\n");
 }
 
-function rootLifecycleScript(packageNames, stage) {
-  const packageList = packageNames.join(" ");
+function rootLifecycleScript(apps, stage) {
+  const appLines = apps.map((app) => [
+    app.packageName,
+    app.label,
+  ].join("|"));
   const waitForBoot = stage === "service"
     ? [
         "boot_wait() {",
@@ -944,8 +987,12 @@ function rootLifecycleScript(packageNames, stage) {
     "",
     "MODDIR=${0%/*}",
     "LOG=\"$MODDIR/root-module.log\"",
-    `PACKAGES="${packageList}"`,
+    "DATA_DIR=/data/adb/mistu-root/${MODDIR##*/}",
     "PLAY_STORE=com.android.vending",
+    "APP_LIST=$(cat <<'EOF_APP_LIST'",
+    ...appLines,
+    "EOF_APP_LIST",
+    ")",
     "",
     "log() {",
     "  echo \"$(date '+%Y-%m-%d %H:%M:%S') [$1] $2\" >> \"$LOG\"",
@@ -953,21 +1000,43 @@ function rootLifecycleScript(packageNames, stage) {
     "",
     ...waitForBoot,
     "",
-    "detach_package() {",
-    "  local pkg=\"$1\"",
-    "  pm uninstall -k --user 0 \"$pkg\" >/dev/null 2>&1 || true",
+    "pm_base_path() {",
+    "  pm path \"$1\" 2>/dev/null | sed -n 's/^package://p' | grep '/base\\.apk$' | head -n 1",
+    "}",
+    "",
+    "mount_bind_global() {",
+    "  local source=\"$1\" target=\"$2\"",
+    "  if su -M -c true >/dev/null 2>&1; then",
+    "    su -M -c \"mount -o bind '$source' '$target'\" >/dev/null 2>&1 && return 0",
+    "  fi",
+    "  if command -v nsenter >/dev/null 2>&1; then",
+    "    nsenter -t 1 -m mount -o bind \"$source\" \"$target\" >/dev/null 2>&1 && return 0",
+    "  fi",
+    "  mount -o bind \"$source\" \"$target\" >/dev/null 2>&1",
+    "}",
+    "",
+    "apply_package() {",
+    "  local pkg=\"$1\" label=\"$2\" patched_apk target_path",
+    "  patched_apk=\"$DATA_DIR/$pkg.apk\"",
+    "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label patched APK missing at $patched_apk\"; return 0; }",
     "  cmd package install-existing \"$pkg\" >/dev/null 2>&1 || true",
+    "  pm enable \"$pkg\" >/dev/null 2>&1 || true",
+    "  cmd package unsuspend \"$pkg\" >/dev/null 2>&1 || true",
+    "  target_path=\"$(pm_base_path \"$pkg\")\"",
+    "  [ -n \"$target_path\" ] || { log \"warn\" \"$label package path not found\"; return 0; }",
+    "  mount_bind_global \"$patched_apk\" \"$target_path\" || log \"warn\" \"$label bind mount failed for $target_path\"",
     "  cmd package set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
     "  pm set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
-    "  cmd package compile -r bg-dexopt \"$pkg\" >/dev/null 2>&1 || true",
+    "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
     "}",
     "",
     "detach_play_store_db() {",
     "  command -v sqlite3 >/dev/null 2>&1 || return 0",
     "  [ -d /data/data/$PLAY_STORE/databases ] || return 0",
     "",
-    "  local pkg db",
-    "  for pkg in $PACKAGES; do",
+    "  local pkg label db",
+    "  while IFS='|' read -r pkg label; do",
+    "    [ -n \"$pkg\" ] || continue",
     "    for db in /data/data/$PLAY_STORE/databases/*.db; do",
     "      [ -f \"$db\" ] || continue",
     "      sqlite3 \"$db\" \"DELETE FROM ownership WHERE doc_id='$pkg' OR package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
@@ -976,14 +1045,19 @@ function rootLifecycleScript(packageNames, stage) {
     "      sqlite3 \"$db\" \"UPDATE localappstate SET auto_update=0 WHERE package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
     "      sqlite3 \"$db\" \"UPDATE local_app_state SET auto_update=0 WHERE package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
     "    done",
-    "  done",
+    "  done <<EOF_DETACH_APPS",
+    "$APP_LIST",
+    "EOF_DETACH_APPS",
     "}",
     "",
-    "for pkg in $PACKAGES; do",
-    "  detach_package \"$pkg\"",
-    "done",
+    "while IFS='|' read -r pkg label; do",
+    "  [ -n \"$pkg\" ] || continue",
+    "  apply_package \"$pkg\" \"$label\"",
+    "done <<EOF_APPLY_APPS",
+    "$APP_LIST",
+    "EOF_APPLY_APPS",
     "detach_play_store_db",
-    "log \"ok\" \"Applied root module package registration and Play Store detach for: $PACKAGES\"",
+    "log \"ok\" \"Applied root module bind mounts and Play Store detach.\"",
     "",
   ].join("\n");
 }
@@ -991,11 +1065,14 @@ function rootLifecycleScript(packageNames, stage) {
 function rootUninstallScript(packageNames) {
   return [
     "#!/system/bin/sh",
+    "MODDIR=${0%/*}",
+    "DATA_DIR=/data/adb/mistu-root/${MODDIR##*/}",
     `PACKAGES="${packageNames.join(" ")}"`,
     "for pkg in $PACKAGES; do",
     "  cmd package set-installer \"$pkg\" com.android.vending >/dev/null 2>&1 || true",
     "  pm set-installer \"$pkg\" com.android.vending >/dev/null 2>&1 || true",
     "done",
+    "rm -rf \"$DATA_DIR\"",
     "",
   ].join("\n");
 }
@@ -1012,6 +1089,18 @@ function rootSystemPathFor(modulePath) {
 function createZip(sourceDir, destination) {
   rmSync(destination, { force: true });
   mkdirSync(dirname(destination), { recursive: true });
+  const zip = spawnSync("zip", ["-v"], { stdio: "ignore" });
+  if (!zip.error && zip.status === 0) {
+    const result = spawnSync("zip", ["-r", "-9", destination, "."], {
+      cwd: sourceDir,
+      env: process.env,
+      stdio: "inherit",
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) throw new Error(`zip exited with status ${result.status}`);
+    return;
+  }
+
   run("jar", ["--create", "--file", destination, "-C", sourceDir, "."]);
 }
 
@@ -1022,7 +1111,7 @@ function releaseVersionName() {
 function releaseVersionCode() {
   const explicit = env("ROOT_MODULE_VERSION_CODE");
   if (explicit) return explicit;
-  return new Date().toISOString().replace(/\D/g, "").slice(0, 12);
+  return String(Math.floor(Date.now() / 1000));
 }
 
 async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
