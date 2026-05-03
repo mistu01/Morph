@@ -179,6 +179,10 @@ async function build() {
     await ensureInput(app);
     await ensurePackageNameOptions(app);
     const patchArgs = patchArgsFor(app);
+    const temporaryFilesPath = fromRoot(`.cache/tmp/${app.id}`);
+    mkdirSync(dirname(app.output), { recursive: true });
+    mkdirSync(dirname(app.result), { recursive: true });
+    mkdirSync(temporaryFilesPath, { recursive: true });
 
     const args = [
       "-jar",
@@ -191,7 +195,7 @@ async function build() {
       "--result-file",
       app.result,
       "--temporary-files-path",
-      fromRoot(`.cache/tmp/${app.id}`),
+      temporaryFilesPath,
       "--purge",
     ];
 
