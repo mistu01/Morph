@@ -257,7 +257,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$RELEASE_TAG" \
-            output/root-modules/*.zip \
+            output/root-modules/*-root-module.zip \
             output/root-modules/root-modules.json \
             output/root/*-result.json \
             --title "$RELEASE_NAME" \
@@ -269,7 +269,7 @@ jobs:
         with:
           name: root-modules
           path: |
-            output/root-modules/*.zip
+            output/root-modules/*-root-module.zip
             output/root-modules/root-modules.json
             output/root/*.apk
             output/root/*-result.json

@@ -245,23 +245,6 @@ async function packageRootModules() {
     console.log(`${app.label}: root module written to ${relative(zip)}`);
   }
 
-  if (apps.length > 1) {
-    const combinedDir = join(stagingRoot, "combined");
-    createRootModule(combinedDir, {
-      id: "mistu_root_apps",
-      name: "Mistu Root Apps",
-      version,
-      versionCode,
-      description: "Root app module bundle by mistu. Installs patched APKs with original package names and detaches Play Store updates.",
-      apps,
-    });
-
-    const zip = join(paths.rootModules, "mistu-root-apps-module.zip");
-    createZip(combinedDir, zip);
-    packaged.push(zip);
-    console.log(`Combined root module written to ${relative(zip)}`);
-  }
-
   await writeJson(join(paths.rootModules, "root-modules.json"), {
     generatedAt: new Date().toISOString(),
     rootBuild: true,
@@ -721,7 +704,7 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     `name=${name}`,
     `version=${version}`,
     `versionCode=${versionCode}`,
-    "author=mistu",
+    "author=Mistu",
     `description=${description}`,
     "",
   ].join("\n"));
