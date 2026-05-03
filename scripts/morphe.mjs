@@ -809,11 +809,12 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     "",
   ].join("\n"));
 
-  writeFileSync(join(moduleDir, "customize.sh"), rootCustomizeScript(entries));
+  writeTextFile(join(moduleDir, "customize.sh"), rootCustomizeScript(entries), 0o755);
 
-  writeFileSync(join(moduleDir, "post-mount.sh"), rootLifecycleScript(entries, "post-mount"));
-  writeFileSync(join(moduleDir, "service.sh"), rootLifecycleScript(entries, "service"));
-  writeFileSync(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames));
+  writeTextFile(join(moduleDir, "post-mount.sh"), rootLifecycleScript(entries, "post-mount"), 0o755);
+  writeTextFile(join(moduleDir, "service.sh"), rootLifecycleScript(entries, "service"), 0o755);
+  writeTextFile(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames), 0o755);
+  writeMagiskInstaller(moduleDir);
   writeFileSync(join(moduleDir, "system.prop"), [
     "# Module intentionally keeps system properties unchanged.",
     "",
@@ -878,8 +879,25 @@ function rootCustomizeScript(apps) {
     "DATA_DIR=/data/adb/mistu-root/${MODPATH##*/}",
     "mkdir -p \"$DATA_DIR\"",
     "",
+    "pmex() {",
+    "  local out",
+    "  out=\"$(pm \"$@\" 2>&1 </dev/null)\"",
+    "  local status=$?",
+    "  printf '%s\\n' \"$out\"",
+    "  return $status",
+    "}",
+    "",
     "pm_base_path() {",
     "  pm path \"$1\" 2>/dev/null | sed -n 's/^package://p' | grep '/base\\.apk$' | head -n 1",
+    "}",
+    "",
+    "uninstall_system_updates_if_needed() {",
+    "  local pkg=\"$1\" flags",
+    "  flags=\"$(dumpsys package \"$pkg\" 2>/dev/null | grep -m1 'pkgFlags=')\"",
+    "  if printf '%s\\n' \"$flags\" | grep -Fq UPDATED_SYSTEM_APP; then",
+    "    ui_print \"  Removing Play Store system update overlay\"",
+    "    pmex uninstall-system-updates \"$pkg\" >/dev/null 2>&1 || true",
+    "  fi",
     "}",
     "",
     "set_pm_installer() {",
@@ -895,19 +913,26 @@ function rootCustomizeScript(apps) {
     "",
     "install_stock_package() {",
     "  local pkg=\"$1\" label=\"$2\" stock_apk=\"$3\"",
-    "  local size session out",
+    "  local size session out verify_adb package_verifier",
     "  [ -f \"$stock_apk\" ] || abort \"Missing stock APK for $label: $stock_apk\"",
+    "  uninstall_system_updates_if_needed \"$pkg\"",
     "  if [ -n \"$(pm_base_path \"$pkg\")\" ]; then",
     "    enable_package \"$pkg\"",
     "    return 0",
     "  fi",
     "  ui_print \"  Registering original package with stock APK\"",
     "  size=\"$(wc -c < \"$stock_apk\")\"",
-    "  out=\"$(pm install-create --user 0 -i com.android.vending -r -S \"$size\" 2>&1)\" || { ui_print \"$out\"; abort \"install-create failed for $label\"; }",
+    "  verify_adb=\"$(settings get global verifier_verify_adb_installs 2>/dev/null)\"",
+    "  package_verifier=\"$(settings get global package_verifier_enable 2>/dev/null)\"",
+    "  settings put global verifier_verify_adb_installs 0 >/dev/null 2>&1 || true",
+    "  settings put global package_verifier_enable 0 >/dev/null 2>&1 || true",
+    "  out=\"$(pm install-create --user 0 -i com.android.vending -r -S \"$size\" 2>&1)\" || { settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-create failed for $label\"; }",
     "  session=\"${out#*[}\"",
     "  session=\"${session%]*}\"",
-    "  out=\"$(pm install-write -S \"$size\" \"$session\" base.apk \"$stock_apk\" 2>&1)\" || { pm install-abandon \"$session\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-write failed for $label\"; }",
-    "  out=\"$(pm install-commit \"$session\" 2>&1)\" || { ui_print \"$out\"; abort \"install-commit failed for $label\"; }",
+    "  out=\"$(pm install-write -S \"$size\" \"$session\" base.apk \"$stock_apk\" 2>&1)\" || { pm install-abandon \"$session\" >/dev/null 2>&1 || true; settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-write failed for $label\"; }",
+    "  out=\"$(pm install-commit \"$session\" 2>&1)\" || { settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-commit failed for $label\"; }",
+    "  settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true",
+    "  settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true",
     "  enable_package \"$pkg\"",
     "}",
     "",
@@ -988,6 +1013,7 @@ function rootLifecycleScript(apps, stage) {
     "MODDIR=${0%/*}",
     "LOG=\"$MODDIR/root-module.log\"",
     "DATA_DIR=/data/adb/mistu-root/${MODDIR##*/}",
+    "ORIG_PROP=\"$MODDIR/module.prop.orig\"",
     "PLAY_STORE=com.android.vending",
     "APP_LIST=$(cat <<'EOF_APP_LIST'",
     ...appLines,
@@ -996,6 +1022,15 @@ function rootLifecycleScript(apps, stage) {
     "",
     "log() {",
     "  echo \"$(date '+%Y-%m-%d %H:%M:%S') [$1] $2\" >> \"$LOG\"",
+    "}",
+    "",
+    "set_description_status() {",
+    "  local status=\"$1\"",
+    "  [ -f \"$ORIG_PROP\" ] || cp \"$MODDIR/module.prop\" \"$ORIG_PROP\" >/dev/null 2>&1 || true",
+    "  [ -f \"$ORIG_PROP\" ] && cp \"$ORIG_PROP\" \"$MODDIR/module.prop\" >/dev/null 2>&1 || true",
+    "  if [ -f \"$MODDIR/module.prop\" ]; then",
+    "    sed -i \"s/^description=.*/description=$status/\" \"$MODDIR/module.prop\" >/dev/null 2>&1 || true",
+    "  fi",
     "}",
     "",
     ...waitForBoot,
@@ -1018,13 +1053,17 @@ function rootLifecycleScript(apps, stage) {
     "apply_package() {",
     "  local pkg=\"$1\" label=\"$2\" patched_apk target_path",
     "  patched_apk=\"$DATA_DIR/$pkg.apk\"",
-    "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label patched APK missing at $patched_apk\"; return 0; }",
+    "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label patched APK missing at $patched_apk\"; set_description_status \"Needs reinstall: $label patched APK missing\"; return 0; }",
     "  cmd package install-existing \"$pkg\" >/dev/null 2>&1 || true",
     "  pm enable \"$pkg\" >/dev/null 2>&1 || true",
     "  cmd package unsuspend \"$pkg\" >/dev/null 2>&1 || true",
     "  target_path=\"$(pm_base_path \"$pkg\")\"",
-    "  [ -n \"$target_path\" ] || { log \"warn\" \"$label package path not found\"; return 0; }",
-    "  mount_bind_global \"$patched_apk\" \"$target_path\" || log \"warn\" \"$label bind mount failed for $target_path\"",
+    "  [ -n \"$target_path\" ] || { log \"warn\" \"$label package path not found\"; set_description_status \"Needs reinstall: $label package path not found\"; return 0; }",
+    "  if ! mount_bind_global \"$patched_apk\" \"$target_path\"; then",
+    "    log \"warn\" \"$label bind mount failed for $target_path\"",
+    "    set_description_status \"Needs reinstall: $label bind mount failed\"",
+    "    return 0",
+    "  fi",
     "  cmd package set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
     "  pm set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
     "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
@@ -1057,6 +1096,7 @@ function rootLifecycleScript(apps, stage) {
     "$APP_LIST",
     "EOF_APPLY_APPS",
     "detach_play_store_db",
+    "set_description_status \"Active: patched APK bind-mounted over original package\"",
     "log \"ok\" \"Applied root module bind mounts and Play Store detach.\"",
     "",
   ].join("\n");
@@ -1084,6 +1124,42 @@ function rootSystemPathFor(modulePath) {
   if (normalized.startsWith("system/vendor/")) return `/${normalized.slice("system/".length)}`;
   if (normalized.startsWith("system/")) return `/${normalized}`;
   return `/${normalized}`;
+}
+
+function writeTextFile(file, content, mode = 0o644) {
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, content, { mode });
+  chmodSync(file, mode);
+}
+
+function writeMagiskInstaller(moduleDir) {
+  const metaInf = join(moduleDir, "META-INF", "com", "google", "android");
+  writeTextFile(join(metaInf, "updater-script"), "#MAGISK\n", 0o644);
+  writeTextFile(join(metaInf, "update-binary"), [
+    "#!/sbin/sh",
+    "",
+    "umask 022",
+    "ui_print() { echo \"$1\"; }",
+    "",
+    "OUTFD=$2",
+    "ZIPFILE=$3",
+    "",
+    "mount /data 2>/dev/null",
+    "if [ ! -f /data/adb/magisk/util_functions.sh ]; then",
+    "  ui_print \"Magisk v25.2+ installer environment was not found.\"",
+    "  exit 1",
+    "fi",
+    "",
+    ". /data/adb/magisk/util_functions.sh",
+    "if [ \"$MAGISK_VER_CODE\" -lt 25200 ]; then",
+    "  ui_print \"Please install Magisk v25.2 or newer.\"",
+    "  exit 1",
+    "fi",
+    "",
+    "install_module",
+    "exit 0",
+    "",
+  ].join("\n"), 0o755);
 }
 
 function createZip(sourceDir, destination) {
