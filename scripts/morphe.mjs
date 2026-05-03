@@ -675,7 +675,6 @@ async function ensureRootOptions(app) {
       created_at: existingBundle?.meta?.created_at || now,
       updated_at: now,
       source: `root-safe morphe-patches ${patchesList?.version || env("MORPHE_PATCHES_VERSION") || "latest"}`,
-      root_package_name: app.packageName,
     },
     patches: patchEntries,
   }]);
