@@ -8,6 +8,7 @@
     "build": "node scripts/morphe.mjs build",
     "download": "node scripts/morphe.mjs download",
     "options": "node scripts/morphe.mjs options",
+    "root-modules": "node scripts/morphe.mjs root-modules",
     "tools": "node scripts/morphe.mjs tools",
     "versions": "node scripts/morphe.mjs versions"
   },

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
+import { chmodSync, copyFileSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -25,9 +25,11 @@ const paths = {
   apkpure: fromRoot(".cache/apkpure"),
   input: fromRoot("input"),
   output: fromRoot("output"),
+  rootModules: fromRoot("output/root-modules"),
 };
 const packageNamePatch = "Change package name";
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
+const rootBuild = truthy(env("ROOT_BUILD"));
 
 const appConfigs = {
   youtube: {
@@ -46,9 +48,12 @@ const appConfigs = {
     requestedVersion: env("YOUTUBE_APK_VERSION"),
     input: envPath("YOUTUBE_APK", "input/youtube.apk"),
     url: env("YOUTUBE_APK_URL"),
-    output: envPath("YOUTUBE_OUT", "output/youtube-patched.apk"),
-    options: envPath("YOUTUBE_OPTIONS", "config/youtube-options.json"),
-    result: envPath("YOUTUBE_RESULT", "output/youtube-result.json"),
+    output: envPath("YOUTUBE_OUT", rootBuild ? "output/root/youtube-root.apk" : "output/youtube-patched.apk"),
+    options: envPath("YOUTUBE_OPTIONS", rootBuild ? "config/root/youtube-options.json" : "config/youtube-options.json"),
+    result: envPath("YOUTUBE_RESULT", rootBuild ? "output/root/youtube-result.json" : "output/youtube-result.json"),
+    rootModuleId: "mistu_youtube_root",
+    rootModuleName: "Mistu YouTube Root",
+    rootApkPath: "system/product/app/YouTube/YouTube.apk",
   },
   "youtube-music": {
     id: "youtube-music",
@@ -66,9 +71,12 @@ const appConfigs = {
     requestedVersion: env("YOUTUBE_MUSIC_APK_VERSION"),
     input: envPath("YOUTUBE_MUSIC_APK", "input/youtube-music.apk"),
     url: env("YOUTUBE_MUSIC_APK_URL"),
-    output: envPath("YOUTUBE_MUSIC_OUT", "output/youtube-music-patched.apk"),
-    options: envPath("YOUTUBE_MUSIC_OPTIONS", "config/youtube-music-options.json"),
-    result: envPath("YOUTUBE_MUSIC_RESULT", "output/youtube-music-result.json"),
+    output: envPath("YOUTUBE_MUSIC_OUT", rootBuild ? "output/root/youtube-music-root.apk" : "output/youtube-music-patched.apk"),
+    options: envPath("YOUTUBE_MUSIC_OPTIONS", rootBuild ? "config/root/youtube-music-options.json" : "config/youtube-music-options.json"),
+    result: envPath("YOUTUBE_MUSIC_RESULT", rootBuild ? "output/root/youtube-music-result.json" : "output/youtube-music-result.json"),
+    rootModuleId: "mistu_youtube_music_root",
+    rootModuleName: "Mistu YouTube Music Root",
+    rootApkPath: "system/product/app/YouTubeMusic/YouTubeMusic.apk",
   },
   reddit: {
     id: "reddit",
@@ -87,9 +95,12 @@ const appConfigs = {
     requestedVersion: env("REDDIT_APK_VERSION"),
     input: envPath("REDDIT_APK", "input/reddit.apk"),
     url: env("REDDIT_APK_URL"),
-    output: envPath("REDDIT_OUT", "output/reddit-patched.apk"),
-    options: envPath("REDDIT_OPTIONS", "config/reddit-options.json"),
-    result: envPath("REDDIT_RESULT", "output/reddit-result.json"),
+    output: envPath("REDDIT_OUT", rootBuild ? "output/root/reddit-root.apk" : "output/reddit-patched.apk"),
+    options: envPath("REDDIT_OPTIONS", rootBuild ? "config/root/reddit-options.json" : "config/reddit-options.json"),
+    result: envPath("REDDIT_RESULT", rootBuild ? "output/root/reddit-result.json" : "output/reddit-result.json"),
+    rootModuleId: "mistu_reddit_root",
+    rootModuleName: "Mistu Reddit Root",
+    rootApkPath: "system/app/Reddit/Reddit.apk",
   },
 };
 
@@ -142,6 +153,9 @@ async function main() {
     case "release-notes":
       await printReleaseNotes();
       break;
+    case "root-modules":
+      await packageRootModules();
+      break;
     case "clean":
       clean();
       break;
@@ -193,6 +207,75 @@ async function build() {
     console.log(`\n==> Building ${app.label}`);
     run("java", args);
   }
+}
+
+async function packageRootModules() {
+  checkJava();
+  const apps = selectedApps();
+  const stagingRoot = fromRoot(".cache/root-modules");
+  const versionCode = releaseVersionCode();
+  const version = releaseVersionName();
+
+  rmSync(stagingRoot, { recursive: true, force: true });
+  mkdirSync(paths.rootModules, { recursive: true });
+
+  const packaged = [];
+  for (const app of apps) {
+    if (!usableFile(app.output)) {
+      throw new Error(`${app.label}: expected patched APK at ${relative(app.output)}. Run the root build first.`);
+    }
+
+    const moduleDir = join(stagingRoot, app.id);
+    createRootModule(moduleDir, {
+      id: app.rootModuleId,
+      name: app.rootModuleName,
+      version,
+      versionCode,
+      description: `${app.label} root variant for Magisk, KernelSU, and APatch. Reboot after installation.`,
+      apps: [app],
+    });
+
+    const zip = join(paths.rootModules, `${app.id}-root-module.zip`);
+    createZip(moduleDir, zip);
+    packaged.push(zip);
+    console.log(`${app.label}: root module written to ${relative(zip)}`);
+  }
+
+  if (apps.length > 1) {
+    const combinedDir = join(stagingRoot, "combined");
+    createRootModule(combinedDir, {
+      id: "mistu_root_apps",
+      name: "Mistu Root Apps",
+      version,
+      versionCode,
+      description: "Root variants for Magisk, KernelSU, and APatch. Reboot after installation.",
+      apps,
+    });
+
+    const zip = join(paths.rootModules, "mistu-root-apps-module.zip");
+    createZip(combinedDir, zip);
+    packaged.push(zip);
+    console.log(`Combined root module written to ${relative(zip)}`);
+  }
+
+  await writeJson(join(paths.rootModules, "root-modules.json"), {
+    generatedAt: new Date().toISOString(),
+    rootBuild: true,
+    compatibleRootManagers: ["Magisk", "KernelSU", "KernelSU Next", "APatch"],
+    antiAutoUpdate: {
+      unregisterPlayStoreInstaller: true,
+      removeUserUpdateOverlayKeepingData: true,
+      playStoreDatabaseDetach: "best-effort when sqlite3 is available",
+    },
+    modules: packaged.map((file) => relative(file)),
+    targets: apps.map((app) => ({
+      id: app.id,
+      label: app.label,
+      packageName: app.packageName,
+      modulePath: app.rootApkPath,
+      apk: relative(app.output),
+    })),
+  });
 }
 
 async function downloadApks({ force = false } = {}) {
@@ -388,7 +471,7 @@ async function printReleaseNotes() {
   const patchArgs = parseJsonArrayEnv("MORPHE_EXTRA_ARGS_JSON");
   const lines = [];
 
-  lines.push("Automated patched APK build.");
+  lines.push(rootBuild ? "Automated root module build." : "Automated patched APK build.");
   lines.push("");
   lines.push("## Build Summary");
   lines.push("");
@@ -396,7 +479,11 @@ async function printReleaseNotes() {
   lines.push(`- Morphe CLI: ${cliMeta?.tag || env("MORPHE_CLI_VERSION") || "latest"}`);
   lines.push(`- Morphe patches: ${patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest"}`);
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
+  lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
   lines.push(`- Patch args: ${patchArgs.length ? patchArgs.join(" ") : "none"}`);
+  if (rootBuild) {
+    lines.push("- Root modules: Magisk, KernelSU, and APatch compatible module ZIPs are attached.");
+  }
   lines.push("");
 
   for (const app of apps) {
@@ -404,7 +491,7 @@ async function printReleaseNotes() {
     const apkMeta = await readApkMetadata(app);
     const apkVersion = result?.packageVersion || apkMeta?.version || "unknown";
     const sourcePackageName = result?.packageName || app.packageName;
-    const packageName = app.patchedPackageName || sourcePackageName;
+    const packageName = rootBuild ? app.packageName : app.patchedPackageName || sourcePackageName;
     const applied = patchesFrom(result?.appliedPatches);
     const failed = failedPatchesFrom(result?.failedPatches);
     const stepFailures = stepFailuresFrom(result?.patchingSteps);
@@ -417,6 +504,7 @@ async function printReleaseNotes() {
     lines.push(`- APK version: ${apkVersion}`);
     lines.push(`- Package: ${packageName}`);
     if (sourcePackageName !== packageName) lines.push(`- Source package: ${sourcePackageName}`);
+    if (rootBuild) lines.push(`- Module install path: /${app.rootApkPath}`);
     if (apkMeta?.filename) lines.push(`- Source APK: ${apkMeta.filename}${apkMeta.size ? ` (${apkMeta.size})` : ""}`);
     if (apkMeta?.source) lines.push(`- APK source: ${apkMeta.source}`);
     if (apkMeta?.desiredVersion) lines.push(`- Requested APK version: ${apkMeta.desiredVersion}`);
@@ -534,6 +622,10 @@ function patchArgsFor(app) {
 }
 
 async function ensurePackageNameOptions(app) {
+  if (rootBuild) {
+    console.log(`${app.label}: root build keeps the original package name ${app.packageName}`);
+    return;
+  }
   if (!app.patchedPackageName) return;
   if (!packageNamePattern.test(app.patchedPackageName)) {
     throw new Error(`${app.label}: invalid patched package name "${app.patchedPackageName}".`);
@@ -608,6 +700,155 @@ function mergePatchOptions(patch, existingEntry) {
     ...defaults,
     ...(existingEntry?.options || {}),
   };
+}
+
+function createRootModule(moduleDir, { id, name, version, versionCode, description, apps }) {
+  rmSync(moduleDir, { recursive: true, force: true });
+  mkdirSync(moduleDir, { recursive: true });
+
+  const packageNames = apps.map((app) => app.packageName);
+  writeFileSync(join(moduleDir, "module.prop"), [
+    `id=${id}`,
+    `name=${name}`,
+    `version=${version}`,
+    `versionCode=${versionCode}`,
+    "author=Mistu",
+    `description=${description}`,
+    "",
+  ].join("\n"));
+
+  writeFileSync(join(moduleDir, "customize.sh"), [
+    "#!/system/bin/sh",
+    "ui_print \"Installing $MODNAME\"",
+    "ui_print \"Compatible with Magisk, KernelSU, KernelSU Next, and APatch module installers.\"",
+    "ui_print \"Detaching included apps from Play Store update ownership on boot.\"",
+    "ui_print \"If Android keeps loading a user-installed update, uninstall updates for that app and reboot.\"",
+    "",
+  ].join("\n"));
+
+  writeFileSync(join(moduleDir, "post-fs-data.sh"), rootLifecycleScript(packageNames, "post-fs-data"));
+  writeFileSync(join(moduleDir, "service.sh"), rootLifecycleScript(packageNames, "service"));
+  writeFileSync(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames));
+  writeFileSync(join(moduleDir, "system.prop"), [
+    "# Module intentionally keeps system properties unchanged.",
+    "",
+  ].join("\n"));
+  writeFileSync(join(moduleDir, "replace"), [
+    ...apps.map((app) => `/${dirname(app.rootApkPath).replaceAll("\\", "/")}`),
+    "",
+  ].join("\n"));
+
+  writeFileSync(join(moduleDir, "README.md"), [
+    `# ${name}`,
+    "",
+    "Install this ZIP with Magisk, KernelSU, KernelSU Next, or APatch, then reboot.",
+    "The module re-applies Play Store detach commands at boot and removes user-installed update overlays while keeping app data.",
+    "This is designed to keep the mounted root APK active even if Play Store tries to update the package.",
+    "",
+    "Included apps:",
+    ...apps.map((app) => `- ${app.label}: ${app.packageName} -> /${app.rootApkPath}`),
+    "",
+  ].join("\n"));
+
+  for (const app of apps) {
+    const destination = join(moduleDir, app.rootApkPath);
+    mkdirSync(dirname(destination), { recursive: true });
+    copyFileSync(app.output, destination);
+  }
+}
+
+function rootLifecycleScript(packageNames, stage) {
+  const packageList = packageNames.join(" ");
+  const waitForBoot = stage === "service"
+    ? [
+        "boot_wait() {",
+        "  local boot_completed",
+        "  for _ in $(seq 1 60); do",
+        "    boot_completed=\"$(getprop sys.boot_completed 2>/dev/null)\"",
+        "    [ \"$boot_completed\" = \"1\" ] && return 0",
+        "    sleep 2",
+        "  done",
+        "}",
+        "",
+        "boot_wait",
+      ]
+    : [];
+
+  return [
+    "#!/system/bin/sh",
+    "",
+    "MODDIR=${0%/*}",
+    "LOG=\"$MODDIR/root-module.log\"",
+    `PACKAGES="${packageList}"`,
+    "PLAY_STORE=com.android.vending",
+    "",
+    "log() {",
+    "  echo \"$(date '+%Y-%m-%d %H:%M:%S') [$1] $2\" >> \"$LOG\"",
+    "}",
+    "",
+    ...waitForBoot,
+    "",
+    "detach_package() {",
+    "  local pkg=\"$1\"",
+    "  pm uninstall -k --user 0 \"$pkg\" >/dev/null 2>&1 || true",
+    "  cmd package install-existing \"$pkg\" >/dev/null 2>&1 || true",
+    "  cmd package set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
+    "  pm set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
+    "  cmd package compile -r bg-dexopt \"$pkg\" >/dev/null 2>&1 || true",
+    "}",
+    "",
+    "detach_play_store_db() {",
+    "  command -v sqlite3 >/dev/null 2>&1 || return 0",
+    "  [ -d /data/data/$PLAY_STORE/databases ] || return 0",
+    "",
+    "  local pkg db",
+    "  for pkg in $PACKAGES; do",
+    "    for db in /data/data/$PLAY_STORE/databases/*.db; do",
+    "      [ -f \"$db\" ] || continue",
+    "      sqlite3 \"$db\" \"DELETE FROM ownership WHERE doc_id='$pkg' OR package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
+    "      sqlite3 \"$db\" \"DELETE FROM auto_update WHERE doc_id='$pkg' OR package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
+    "      sqlite3 \"$db\" \"DELETE FROM appstate WHERE package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
+    "      sqlite3 \"$db\" \"UPDATE localappstate SET auto_update=0 WHERE package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
+    "      sqlite3 \"$db\" \"UPDATE local_app_state SET auto_update=0 WHERE package_name='$pkg' OR packageName='$pkg';\" >/dev/null 2>&1 || true",
+    "    done",
+    "  done",
+    "}",
+    "",
+    "for pkg in $PACKAGES; do",
+    "  detach_package \"$pkg\"",
+    "done",
+    "detach_play_store_db",
+    "log \"ok\" \"Applied root module package registration and Play Store detach for: $PACKAGES\"",
+    "",
+  ].join("\n");
+}
+
+function rootUninstallScript(packageNames) {
+  return [
+    "#!/system/bin/sh",
+    `PACKAGES="${packageNames.join(" ")}"`,
+    "for pkg in $PACKAGES; do",
+    "  cmd package set-installer \"$pkg\" com.android.vending >/dev/null 2>&1 || true",
+    "  pm set-installer \"$pkg\" com.android.vending >/dev/null 2>&1 || true",
+    "done",
+    "",
+  ].join("\n");
+}
+
+function createZip(sourceDir, destination) {
+  rmSync(destination, { force: true });
+  mkdirSync(dirname(destination), { recursive: true });
+  run("jar", ["--create", "--file", destination, "-C", sourceDir, "."]);
+}
+
+function releaseVersionName() {
+  return env("ROOT_MODULE_VERSION") || new Date().toISOString().slice(0, 10);
+}
+
+function releaseVersionCode() {
+  const explicit = env("ROOT_MODULE_VERSION_CODE");
+  if (explicit) return explicit;
+  return new Date().toISOString().replace(/\D/g, "").slice(0, 12);
 }
 
 async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
@@ -1258,6 +1499,7 @@ function printHelp() {
   node scripts/morphe.mjs tools [--refresh-tools]
   node scripts/morphe.mjs versions
   node scripts/morphe.mjs release-notes
+  node scripts/morphe.mjs root-modules
   node scripts/morphe.mjs clean
 
 Environment:
@@ -1290,6 +1532,9 @@ Environment:
                               Defaults to com.mistu.android.youtube.music.
   REDDIT_PATCHED_PACKAGE_NAME
                               Optional; only works if the selected patch bundle supports it.
+  ROOT_BUILD                  Set to 1 for root module builds that keep original package names.
+  ROOT_MODULE_VERSION         Optional module version label. Defaults to current UTC date.
+  ROOT_MODULE_VERSION_CODE    Optional numeric module versionCode.
   AUTO_UPDATE_APKS           Set to 1 to refresh existing APK downloads during build.
   PYTHON_BIN                 Python executable for the APKPure downloader. Defaults to python.
   KEYSTORE_FILE              Optional signing keystore path.
