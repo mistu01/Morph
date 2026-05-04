@@ -63,27 +63,6 @@ jobs:
             echo "Triggered standard APK build for ${channel} Morphe patches ${patches_tag}."
           }
 
-          trigger_root_build() {
-            local channel="$1"
-            local patches_tag="$2"
-
-            gh workflow run build-root-modules.yml \
-              --repo "$GITHUB_REPOSITORY" \
-              --ref "${GITHUB_REF_NAME}" \
-              -f targets="youtube,youtube-music" \
-              -f cli_version="latest" \
-              -f patches_type="${channel}" \
-              -f patches_version="${patches_tag}" \
-              -f apk_version_source="recommended" \
-              -f force_patch="true" \
-              -f continue_on_error="false" \
-              -f create_release="true" \
-              -f upload_artifact="true"
-
-            triggered="1"
-            echo "Triggered root module build for ${channel} Morphe patches ${patches_tag}."
-          }
-
           check_channel() {
             local channel="$1"
             local patches_tag="$2"
@@ -99,12 +78,6 @@ jobs:
             echo "Existing standard APK release for ${patches_tag}: ${standard_release:-none}"
             if [ -z "$standard_release" ]; then
               trigger_standard_build "$channel" "$patches_tag"
-            fi
-
-            root_release="$(find_existing_release "$patches_tag" "root module" || true)"
-            echo "Existing root module release for ${patches_tag}: ${root_release:-none}"
-            if [ -z "$root_release" ]; then
-              trigger_root_build "$channel" "$patches_tag"
             fi
           }
 
