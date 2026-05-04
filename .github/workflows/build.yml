@@ -215,13 +215,35 @@ jobs:
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          GH_TOKEN: ${{ github.token }}
+          PATCHES_VERSION: ${{ inputs.patches_version }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
           tag="build-${release_stamp}-${GITHUB_RUN_NUMBER}"
+          release_prerelease_flag=""
+
+          case "${PATCHES_VERSION,,}" in
+            dev|pre|preview|prerelease|pre-release)
+              release_prerelease_flag="--prerelease"
+              ;;
+            stable|latest)
+              release_prerelease_flag=""
+              ;;
+            *)
+              patches_tag="$PATCHES_VERSION"
+              if [[ "$patches_tag" != v* ]]; then
+                patches_tag="v${patches_tag}"
+              fi
+              if [ "$(gh api "repos/MorpheApp/morphe-patches/releases/tags/${patches_tag}" --jq '.prerelease' 2>/dev/null || echo false)" = "true" ]; then
+                release_prerelease_flag="--prerelease"
+              fi
+              ;;
+          esac
 
           echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=Morph patched APKs ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
 
           node scripts/morphe.mjs release-notes > release-notes.md
 
@@ -230,9 +252,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          release_args=()
+          if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then
+            release_args+=("$RELEASE_PRERELEASE_FLAG")
+          fi
+
           gh release create "$RELEASE_TAG" \
             output/*.apk \
             output/*-result.json \
+            "${release_args[@]}" \
             --title "$RELEASE_NAME" \
             --notes-file release-notes.md
 
