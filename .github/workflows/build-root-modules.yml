@@ -11,10 +11,20 @@ on:
         description: "Morphe CLI tag, or latest"
         required: true
         default: "latest"
-      patches_version:
-        description: "Morphe patches: stable, dev, latest, or an explicit tag"
+      patches_type:
+        description: "Morphe patch type"
         required: true
+        type: choice
         default: "stable"
+        options:
+          - stable
+          - dev
+          - pre
+          - latest
+      patches_version:
+        description: "Optional Morphe patches tag. Overrides patch type when set."
+        required: false
+        default: ""
       apk_version_source:
         description: "APK version source: recommended, latest, or an explicit version"
         required: true
@@ -74,7 +84,7 @@ jobs:
       - name: Download Morphe tools
         env:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
-          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version || inputs.patches_type }}
         run: node scripts/morphe.mjs tools
 
       - name: Restore optional signing keystore
@@ -199,7 +209,7 @@ jobs:
           ROOT_BUILD: "1"
           BUILD_TARGETS: ${{ inputs.targets }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
-          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version || inputs.patches_type }}
           APK_SOURCE: apkmirror,apkpure
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
@@ -236,7 +246,7 @@ jobs:
           ROOT_BUILD: "1"
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
           GH_TOKEN: ${{ github.token }}
-          PATCHES_VERSION: ${{ inputs.patches_version }}
+          PATCHES_VERSION: ${{ inputs.patches_version || inputs.patches_type }}
           YOUTUBE_OUT: output/root/youtube-root.apk
           YOUTUBE_RESULT: output/root/youtube-result.json
           YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk

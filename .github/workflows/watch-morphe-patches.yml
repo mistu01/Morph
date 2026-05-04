@@ -72,6 +72,7 @@ jobs:
               --ref "${GITHUB_REF_NAME}" \
               -f targets="youtube,youtube-music" \
               -f cli_version="latest" \
+              -f patches_type="${channel}" \
               -f patches_version="${patches_tag}" \
               -f apk_version_source="recommended" \
               -f force_patch="true" \
