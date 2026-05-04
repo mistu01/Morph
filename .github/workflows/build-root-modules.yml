@@ -295,8 +295,6 @@ jobs:
 
           gh release create "$RELEASE_TAG" \
             output/root-modules/*-root-module.zip \
-            output/root-modules/root-modules.json \
-            output/root/*-result.json \
             "${release_args[@]}" \
             --title "$RELEASE_NAME" \
             --notes-file release-notes.md

@@ -259,7 +259,6 @@ jobs:
 
           gh release create "$RELEASE_TAG" \
             output/*.apk \
-            output/*-result.json \
             "${release_args[@]}" \
             --title "$RELEASE_NAME" \
             --notes-file release-notes.md
