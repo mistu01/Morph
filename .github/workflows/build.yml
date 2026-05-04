@@ -12,9 +12,9 @@ on:
         required: true
         default: "latest"
       patches_version:
-        description: "Morphe patches tag, or latest"
+        description: "Morphe patches: stable, dev, latest, or an explicit tag"
         required: true
-        default: "latest"
+        default: "stable"
       apk_version_source:
         description: "APK version source: recommended, latest, or an explicit version"
         required: true

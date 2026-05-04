@@ -127,6 +127,7 @@ const releaseAssets = {
     assetPattern: /^patches-.+\.mpp$/,
     output: fromRoot(".cache/tools/patches.mpp"),
     meta: fromRoot(".cache/tools/patches.json"),
+    prereleaseKeyword: true,
   },
 };
 
@@ -345,10 +346,9 @@ async function downloadReleaseAsset(config, force) {
   }
 
   const version = env(config.versionEnv) || "latest";
-  const releaseUrl = version === "latest"
-    ? `https://api.github.com/repos/${config.repo}/releases/latest`
-    : `https://api.github.com/repos/${config.repo}/releases/tags/${normalizeTag(version)}`;
-  const release = await githubJson(releaseUrl);
+  const release = await githubReleaseForVersion(config.repo, version, {
+    prereleaseKeyword: Boolean(config.prereleaseKeyword),
+  });
   const asset = release.assets.find((item) => config.assetPattern.test(item.name));
 
   if (!asset) {
@@ -401,6 +401,25 @@ async function ensureApkeep(force = false) {
   return apkeepTool.output;
 }
 
+async function githubReleaseForVersion(repo, version = "latest", { prereleaseKeyword = false } = {}) {
+  const normalized = String(version || "latest").toLowerCase();
+
+  if (normalized === "latest" || normalized === "stable") {
+    return githubJson(`https://api.github.com/repos/${repo}/releases/latest`);
+  }
+
+  if (prereleaseKeyword && ["dev", "pre", "preview", "prerelease", "pre-release"].includes(normalized)) {
+    const releases = await githubJson(`https://api.github.com/repos/${repo}/releases?per_page=100`);
+    const release = releases.find((item) => !item.draft && item.prerelease);
+    if (!release) {
+      throw new Error(`No prerelease found for ${repo}`);
+    }
+    return release;
+  }
+
+  return githubJson(`https://api.github.com/repos/${repo}/releases/tags/${normalizeTag(version)}`);
+}
+
 async function fetchPatchesList() {
   patchesListPromise ||= (async () => {
     const tag = await selectedPatchReleaseTag();
@@ -411,24 +430,27 @@ async function fetchPatchesList() {
 
 async function selectedPatchReleaseTag() {
   const version = env("MORPHE_PATCHES_VERSION") || "latest";
-  if (version !== "latest") return normalizeTag(version);
 
   selectedPatchReleaseTagPromise ||= (async () => {
-    const release = await githubJson("https://api.github.com/repos/MorpheApp/morphe-patches/releases/latest");
+    const release = await githubReleaseForVersion("MorpheApp/morphe-patches", version, {
+      prereleaseKeyword: true,
+    });
     return release.tag_name;
   })();
   return selectedPatchReleaseTagPromise;
 }
 
 async function printVersions() {
-  const [cliRelease, patchesRelease, patchesList] = await Promise.all([
+  const [cliRelease, patchesRelease, patchesDevRelease, patchesList] = await Promise.all([
     githubJson("https://api.github.com/repos/MorpheApp/morphe-cli/releases/latest"),
-    githubJson("https://api.github.com/repos/MorpheApp/morphe-patches/releases/latest"),
+    githubReleaseForVersion("MorpheApp/morphe-patches", "stable"),
+    githubReleaseForVersion("MorpheApp/morphe-patches", "dev", { prereleaseKeyword: true }),
     fetchPatchesList(),
   ]);
 
   console.log(`Morphe CLI latest: ${cliRelease.tag_name}`);
-  console.log(`Morphe patches latest: ${patchesRelease.tag_name}`);
+  console.log(`Morphe patches stable: ${patchesRelease.tag_name}`);
+  console.log(`Morphe patches dev: ${patchesDevRelease.tag_name}`);
   console.log(`Patch list version: ${patchesList.version}`);
 
   for (const app of Object.values(appConfigs)) {
@@ -442,10 +464,9 @@ async function printVersions() {
 
   const packages = new Map();
   for (const patch of patchesList.patches) {
-    if (!patch.compatiblePackages) continue;
-    for (const [packageName, versions] of Object.entries(patch.compatiblePackages)) {
+    for (const [packageName, entry] of allCompatiblePackageEntriesFor(patch)) {
       if (!packages.has(packageName)) packages.set(packageName, new Set());
-      for (const version of versions ?? []) packages.get(packageName).add(version);
+      for (const version of compatibleVersionsFromEntry(entry)) packages.get(packageName).add(version);
     }
   }
 
@@ -478,12 +499,7 @@ function compatibleVersionsFor(app, patchesList) {
 
   for (const patch of patchesList?.patches || []) {
     for (const entry of compatiblePackageEntriesFor(patch, app)) {
-      const targets = Array.isArray(entry?.targets)
-        ? entry.targets.map((target) => target?.version).filter(Boolean)
-        : Array.isArray(entry)
-          ? entry
-          : [];
-      for (const version of targets) versions.add(String(version));
+      for (const version of compatibleVersionsFromEntry(entry)) versions.add(String(version));
     }
   }
 
@@ -745,6 +761,31 @@ function compatiblePackageEntriesFor(patch, app) {
 
   if (Object.prototype.hasOwnProperty.call(compatible, app.packageName)) {
     return [compatible[app.packageName]];
+  }
+
+  return [];
+}
+
+function allCompatiblePackageEntriesFor(patch) {
+  const compatible = patch?.compatiblePackages;
+  if (!compatible) return [];
+
+  if (Array.isArray(compatible)) {
+    return compatible
+      .filter((entry) => entry?.packageName)
+      .map((entry) => [entry.packageName, entry]);
+  }
+
+  return Object.entries(compatible);
+}
+
+function compatibleVersionsFromEntry(entry) {
+  if (Array.isArray(entry?.targets)) {
+    return entry.targets.map((target) => target?.version).filter(Boolean);
+  }
+
+  if (Array.isArray(entry)) {
+    return entry.filter(Boolean);
   }
 
   return [];
@@ -1830,7 +1871,7 @@ function printHelp() {
 Environment:
   BUILD_TARGETS              Comma-separated targets. Defaults to youtube,youtube-music,reddit.
   MORPHE_CLI_VERSION         Release tag such as v1.7.0, or latest.
-  MORPHE_PATCHES_VERSION     Release tag such as v1.24.0, or latest.
+  MORPHE_PATCHES_VERSION     stable, dev, latest, or a release tag such as v1.24.0.
   YOUTUBE_APK                Local input path for YouTube.
   YOUTUBE_MUSIC_APK          Local input path for YouTube Music.
   REDDIT_APK                 Local input path for Reddit.
