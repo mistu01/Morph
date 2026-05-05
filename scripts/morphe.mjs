@@ -470,7 +470,7 @@ async function desiredApkVersion(app, patchesList = null) {
   if (source === "latest") return "";
   if (source === "recommended") {
     const list = patchesList || await fetchPatchesList();
-    const compatible = compatibleVersionsFor(app, list);
+    const compatible = recommendedVersionsFor(app, list);
     return compatible[0] || "";
   }
   if (/^\d+(?:\.\d+)+$/.test(source)) return source;
@@ -479,15 +479,21 @@ async function desiredApkVersion(app, patchesList = null) {
 }
 
 function recommendedVersionFor(app, patchesList) {
-  return compatibleVersionsFor(app, patchesList)[0] || "";
+  return recommendedVersionsFor(app, patchesList)[0] || "";
 }
 
-function compatibleVersionsFor(app, patchesList) {
+function recommendedVersionsFor(app, patchesList) {
+  const defaultVersions = compatibleVersionsFor(app, patchesList, { defaultOnly: true });
+  return defaultVersions.length ? defaultVersions : compatibleVersionsFor(app, patchesList);
+}
+
+function compatibleVersionsFor(app, patchesList, { defaultOnly = false, includeExperimental = includeExperimentalTargets() } = {}) {
   const versions = new Set();
 
   for (const patch of patchesList?.patches || []) {
+    if (defaultOnly && patch?.default !== true) continue;
     for (const entry of compatiblePackageEntriesFor(patch, app)) {
-      for (const version of compatibleVersionsFromEntry(entry)) versions.add(String(version));
+      for (const version of compatibleVersionsFromEntry(entry, { includeExperimental })) versions.add(String(version));
     }
   }
 
@@ -784,9 +790,12 @@ function allCompatiblePackageEntriesFor(patch) {
   return Object.entries(compatible);
 }
 
-function compatibleVersionsFromEntry(entry) {
+function compatibleVersionsFromEntry(entry, { includeExperimental = includeExperimentalTargets() } = {}) {
   if (Array.isArray(entry?.targets)) {
-    return entry.targets.map((target) => target?.version).filter(Boolean);
+    return entry.targets
+      .filter((target) => includeExperimental || !target?.isExperimental)
+      .map((target) => target?.version)
+      .filter(Boolean);
   }
 
   if (Array.isArray(entry)) {
@@ -794,6 +803,10 @@ function compatibleVersionsFromEntry(entry) {
   }
 
   return [];
+}
+
+function includeExperimentalTargets() {
+  return truthy(env("MORPHE_INCLUDE_EXPERIMENTAL_TARGETS"));
 }
 
 function findPatchEntry(bundle, patchName) {
@@ -1275,7 +1288,9 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
 }
 
 function shouldFallbackToLatest(app) {
-  return !app.requestedVersion && (env("APK_VERSION_SOURCE") || "recommended").toLowerCase() === "recommended";
+  return !app.requestedVersion
+    && (env("APK_VERSION_SOURCE") || "recommended").toLowerCase() === "recommended"
+    && truthy(env("APK_FALLBACK_TO_LATEST"));
 }
 
 async function downloadExactApkFromSource(source, app, options) {
@@ -1886,6 +1901,9 @@ Environment:
   APK_SOURCE                 Comma-separated source order: apkmirror, apkpure, local, or auto.
                               Defaults to apkpure.
   APK_VERSION_SOURCE         recommended, latest, or an explicit version. Defaults to recommended.
+  APK_FALLBACK_TO_LATEST     Set to 1 to fall back to latest if the recommended APK is unavailable.
+  MORPHE_INCLUDE_EXPERIMENTAL_TARGETS
+                             Set to 1 to allow experimental Morphe patch target versions.
   YOUTUBE_APK_VERSION        Explicit YouTube APK versionName override.
   YOUTUBE_MUSIC_APK_VERSION  Explicit YouTube Music APK versionName override.
   REDDIT_APK_VERSION         Explicit Reddit APK versionName override.
