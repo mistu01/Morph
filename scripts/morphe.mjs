@@ -187,7 +187,7 @@ async function build() {
 
   for (const app of selectedApps()) {
     await ensureInput(app);
-    await ensurePatchOptions(app);
+    await ensurePatchOptions(app, tools);
     const patchArgs = patchArgsFor(app);
     const temporaryFilesPath = fromRoot(`.cache/tmp/${app.id}`);
     mkdirSync(dirname(app.output), { recursive: true });
@@ -312,20 +312,8 @@ async function createOptions() {
   const tools = await ensureTools(flag("refresh-tools"));
 
   for (const app of selectedApps()) {
-    mkdirSync(dirname(app.options), { recursive: true });
-    console.log(`\n==> Creating options for ${app.label}`);
-    run("java", [
-      "-jar",
-      tools.cli,
-      "options-create",
-      "--patches",
-      tools.patches,
-      "--out",
-      app.options,
-      "--filter-package-name",
-      app.packageName,
-    ]);
-    await ensurePatchOptions(app);
+    createDefaultOptionsFile(app, tools, { force: true });
+    await ensurePatchOptions(app, tools);
   }
 }
 
@@ -520,12 +508,14 @@ async function printReleaseNotes() {
   lines.push(`- Targets: ${apps.map((app) => app.label).join(", ")}`);
   lines.push(`- Morphe CLI: ${cliMeta?.tag || env("MORPHE_CLI_VERSION") || "latest"}`);
   lines.push(`- Morphe patches: ${patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest"}`);
-  lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
+  lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
   lines.push(`- Patch args: ${patchArgs.length ? patchArgs.join(" ") : "none"}`);
   if (rootBuild) {
-    lines.push("- Root modules: Magisk, KernelSU, and APatch compatible module ZIPs are attached.");
+    lines.push("- Root modules: Magisk, KernelSU, and APatch compatible ZIPs.");
   }
+  lines.push("");
+  lines.push("## App Results");
   lines.push("");
 
   for (const app of apps) {
@@ -541,33 +531,25 @@ async function printReleaseNotes() {
       ? result.success === false ? "completed with patch failures" : "successful"
       : "unknown; result file missing";
 
-    lines.push(`## ${app.label}`);
-    lines.push("");
-    lines.push(`- APK version: ${apkVersion}`);
-    lines.push(`- Package: ${packageName}`);
-    if (sourcePackageName !== packageName) lines.push(`- Source package: ${sourcePackageName}`);
-    if (rootBuild) lines.push(`- Module install path: /${app.rootApkPath}`);
-    if (apkMeta?.filename) lines.push(`- Source APK: ${apkMeta.filename}${apkMeta.size ? ` (${apkMeta.size})` : ""}`);
-    if (apkMeta?.source) lines.push(`- APK source: ${apkMeta.source}`);
-    if (apkMeta?.desiredVersion) lines.push(`- Requested APK version: ${apkMeta.desiredVersion}`);
-    if (apkMeta?.fallbackFromVersion) lines.push(`- Fallback: exact ${apkMeta.fallbackFromVersion} was unavailable; used ${apkSourceLabel(apkMeta.source)} latest with --force`);
-    if (apkMeta?.morpheTopRecommendedVersion) lines.push(`- Morphe top recommended APK version: ${apkMeta.morpheTopRecommendedVersion}`);
-    if (Array.isArray(apkMeta?.availableCompatibleVersions)) {
-      lines.push(`- Source-compatible recommended versions found: ${apkMeta.availableCompatibleVersions.join(", ") || "none"}`);
-    }
-    if (apkMeta?.forcePatchRequired) lines.push("- Patch args added for this target: --force");
-    lines.push(`- Build result: ${buildResult}`);
-    lines.push(`- Successful patches (${applied.length}): ${applied.length ? applied.join(", ") : "none"}`);
-    lines.push(`- Failed patches (${failed.length}): ${failed.length ? failed.map(formatFailedPatch).join("; ") : "none"}`);
-    if (stepFailures.length) {
-      lines.push(`- Failed build steps: ${stepFailures.join("; ")}`);
-    }
-    lines.push("");
+    const sourceParts = [];
+    if (apkMeta?.source) sourceParts.push(apkSourceLabel(apkMeta.source));
+    if (apkMeta?.filename) sourceParts.push(apkMeta.filename);
+    if (apkMeta?.fallbackFromVersion) sourceParts.push(`fallback from ${apkMeta.fallbackFromVersion}`);
+    if (apkMeta?.forcePatchRequired) sourceParts.push("--force");
+
+    lines.push(`- ${app.label} ${apkVersion}: ${buildResult}; patches ${applied.length} ok, ${failed.length} failed`);
+    lines.push(`  - Package: ${packageName}${sourcePackageName !== packageName ? ` (source ${sourcePackageName})` : ""}`);
+    if (rootBuild) lines.push(`  - Module path: /${app.rootApkPath}`);
+    if (sourceParts.length) lines.push(`  - Source: ${sourceParts.join("; ")}`);
+    lines.push(`  - Applied: ${formatPatchList(applied)}`);
+    if (failed.length) lines.push(`  - Failed: ${failed.map(formatFailedPatch).join("; ")}`);
+    if (stepFailures.length) lines.push(`  - Failed steps: ${stepFailures.join("; ")}`);
   }
 
-  lines.push("Review the attached `*-result.json` files for full patching details.");
-  lines.push("");
-  lines.push("Warning: `--continue-on-error` can produce a partially patched APK if any patch fails.");
+  if (patchArgs.includes("--continue-on-error")) {
+    lines.push("");
+    lines.push("Note: `--continue-on-error` was enabled, so check the workflow artifact JSON when debugging patch failures.");
+  }
 
   console.log(lines.join("\n"));
 }
@@ -664,12 +646,12 @@ function patchArgsFor(app) {
   return args;
 }
 
-async function ensurePatchOptions(app) {
+async function ensurePatchOptions(app, tools = null) {
   if (rootBuild) {
     await ensureRootPatchArgs(app);
     return;
   }
-  await ensurePackageNameOptions(app);
+  await ensurePackageNameOptions(app, tools);
 }
 
 async function ensureRootPatchArgs(app) {
@@ -698,10 +680,15 @@ async function ensureRootPatchArgs(app) {
   if (enabled.length) console.log(`${app.label}: root patch args enable: ${enabled.join(", ")}.`);
 }
 
-async function ensurePackageNameOptions(app) {
+async function ensurePackageNameOptions(app, tools = null) {
   if (!app.patchedPackageName) return;
   if (!packageNamePattern.test(app.patchedPackageName)) {
     throw new Error(`${app.label}: invalid patched package name "${app.patchedPackageName}".`);
+  }
+
+  if (!existsSync(app.options)) {
+    const activeTools = tools || await ensureTools(flag("refresh-tools"));
+    createDefaultOptionsFile(app, activeTools);
   }
 
   const patchesList = await fetchPatchesList();
@@ -744,6 +731,24 @@ async function ensurePackageNameOptions(app) {
   }]);
 
   console.log(`${app.label}: package rename option set to ${app.patchedPackageName}`);
+}
+
+function createDefaultOptionsFile(app, tools, { force = false } = {}) {
+  if (!force && existsSync(app.options)) return;
+
+  mkdirSync(dirname(app.options), { recursive: true });
+  console.log(`\n==> Creating options for ${app.label}`);
+  run("java", [
+    "-jar",
+    tools.cli,
+    "options-create",
+    "--patches",
+    tools.patches,
+    "--out",
+    app.options,
+    "--filter-package-name",
+    app.packageName,
+  ]);
 }
 
 function patchCompatibleWithApp(patch, app) {
@@ -2027,6 +2032,16 @@ function stepFailuresFrom(steps) {
 
 function formatFailedPatch(entry) {
   return entry.reason ? `${entry.name} (${entry.reason})` : entry.name;
+}
+
+function formatPatchList(names, limit = 8) {
+  if (!names.length) return "none";
+
+  const shown = names.slice(0, limit);
+  const remaining = names.length - shown.length;
+  return remaining > 0
+    ? `${shown.join(", ")}, +${remaining} more`
+    : shown.join(", ");
 }
 
 function firstReasonLine(reason) {
