@@ -319,6 +319,7 @@ def load_patches_metadata_from_cli(tools: dict) -> list[dict]:
             "list-patches",
             "--patches", str(tools["patches"]),
             "--bypass-verification",
+            "--index",
             "--packages",
             "--versions",
             "--universal-patches",
@@ -328,6 +329,7 @@ def load_patches_metadata_from_cli(tools: dict) -> list[dict]:
             "list-patches",
             "--patches", str(tools["patches"]),
             "--bypass-verification",
+            "--index",
             "--packages",
             "--versions",
         ],
@@ -403,16 +405,51 @@ def parse_cli_patch_list(output: str) -> list[dict]:
     patches = []
     current = None
     current_package = None
+    pending_index = None
+    pending_name = None
     package_pattern = re.compile(r"\b([a-z]\w*(?:\.[a-z]\w*)+)\b")
     version_pattern = re.compile(r"\b\d+(?:\.\d+){1,5}\b")
+    indexed_patch_pattern = re.compile(r"^(?:\[(\d+)\]|(\d+)[.)])\s+(.+)$")
 
     for raw_line in output.splitlines():
         line = raw_line.strip()
         if not line:
             continue
+        if line.lower().rstrip(":") in {"compatible packages", "compatible versions", "options", "description"}:
+            continue
+        if version_pattern.fullmatch(line):
+            continue
+
+        indexed_patch_match = indexed_patch_pattern.match(line)
+        if indexed_patch_match:
+            pending_index = int(indexed_patch_match.group(1) or indexed_patch_match.group(2))
+            pending_name = indexed_patch_match.group(3).rstrip(":").strip()
+            current = {"name": pending_name, "index": pending_index, "compatiblePackages": []}
+            patches.append(current)
+            current_package = None
+            continue
+
+        if line.lower().startswith("index:"):
+            index_match = re.search(r"\d+", line)
+            pending_index = int(index_match.group(0)) if index_match else None
+            if current is not None and pending_index is not None:
+                current["index"] = pending_index
+            continue
+
+        if line.lower().startswith("name:"):
+            pending_name = line.split(":", 1)[1].strip()
+            current = {"name": pending_name, "compatiblePackages": []}
+            if pending_index is not None:
+                current["index"] = pending_index
+            patches.append(current)
+            current_package = None
+            continue
 
         if not raw_line.startswith((" ", "\t", "-", "|")) and not package_pattern.search(line):
             current = {"name": line.rstrip(":"), "compatiblePackages": []}
+            if pending_index is not None:
+                current["index"] = pending_index
+                pending_index = None
             patches.append(current)
             current_package = None
             continue
@@ -729,7 +766,7 @@ def patch_app(app: dict, tools: dict, patch_catalog: list[dict] | None = None) -
     integrations = resolve_integrations()
     if integrations:
         args += ["--merge", integrations]
-    enabled_patches = enabled_patch_names_for_app(app, patch_catalog or [])
+    enabled_patches = enabled_patches_for_app(app, patch_catalog or [])
     args += patch_selection_args(app, enabled_patches)
 
     print(f"\n==> Building ReVanced {app['label']}")
@@ -778,14 +815,22 @@ def write_failure_result(app: dict, tools: dict, error: Exception) -> None:
     })
 
 
-def patch_selection_args(app: dict, auto_includes: list[str] | None = None) -> list[str]:
+def patch_selection_args(app: dict, auto_includes: list[dict] | None = None) -> list[str]:
     args = []
     includes = split_csv(env(f"{app['env_prefix']}_REVANCED_INCLUDE_PATCHES") or env("REVANCED_INCLUDE_PATCHES"))
     excludes = split_csv(env(f"{app['env_prefix']}_REVANCED_EXCLUDE_PATCHES") or env("REVANCED_EXCLUDE_PATCHES"))
-    all_includes = unique_list([*(auto_includes or []), *includes])
     if truthy(env("REVANCED_EXCLUSIVE")):
         args.append("--exclusive")
-    for name in all_includes:
+    for patch in auto_includes or []:
+        name = patch.get("name", "")
+        index = patch.get("index")
+        if name in excludes:
+            continue
+        if index is not None:
+            args += ["--ei", str(index)]
+        elif name:
+            args += ["--enable", name]
+    for name in includes:
         if name not in excludes:
             args += ["--enable", name]
     for name in excludes:
@@ -793,19 +838,24 @@ def patch_selection_args(app: dict, auto_includes: list[str] | None = None) -> l
     return args
 
 
-def enabled_patch_names_for_app(app: dict, patches: list[dict]) -> list[str]:
+def enabled_patches_for_app(app: dict, patches: list[dict]) -> list[dict]:
     if not revanced_enable_disabled_patches():
         return []
 
-    names = []
+    selected = []
+    seen = set()
     for patch in patches or []:
         name = patch.get("name")
         if not name or patch.get("metadataOnly"):
             continue
         compatible_packages = compatible_packages_from_patch(patch)
         if not compatible_packages or any(compatible_package_matches(app, item) for item in compatible_packages):
-            names.append(str(name))
-    return unique_list(names)
+            key = patch.get("index") if patch.get("index") is not None else name
+            if key in seen:
+                continue
+            seen.add(key)
+            selected.append({"name": str(name), "index": patch.get("index")})
+    return selected
 
 
 def compatible_package_matches(app: dict, item: dict) -> bool:
