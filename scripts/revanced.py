@@ -95,6 +95,7 @@ APP_CONFIGS = {
         "apkmirror_type": "apk",
         "input": "input/revanced/instagram.apk",
         "output": "output/revanced/instagram-revanced.apk",
+        "auto_enable_disabled_patches": False,
         "default_exclude_patches": [
             "Anonymous story viewing",
             "Change link sharing domain",
@@ -864,7 +865,12 @@ def default_excluded_patches(app: dict) -> list[str]:
 
 
 def enabled_patches_for_app(app: dict, patches: list[dict]) -> list[dict]:
-    if not revanced_enable_disabled_patches():
+    override = env(f"{app['env_prefix']}_REVANCED_ENABLE_DISABLED_PATCHES")
+    if override:
+        enabled = truthy(override)
+    else:
+        enabled = revanced_enable_disabled_patches() and app.get("auto_enable_disabled_patches", True) is not False
+    if not enabled:
         return []
 
     selected = []
