@@ -23,6 +23,7 @@ PATHS = {
     "input": ROOT / "input" / "revanced",
     "output": ROOT / "output" / "revanced",
 }
+DEFAULT_TARGETS = "youtube,youtube-music,reddit,twitter,instagram,google-photos"
 
 APP_CONFIGS = {
     "youtube": {
@@ -94,6 +95,20 @@ APP_CONFIGS = {
         "apkmirror_type": "apk",
         "input": "input/revanced/instagram.apk",
         "output": "output/revanced/instagram-revanced.apk",
+    },
+    "google-photos": {
+        "label": "Google Photos",
+        "package": "com.google.android.apps.photos",
+        "apkpure_name": "Google Photos",
+        "apkpure_page": "https://apkpure.com/google-photos/com.google.android.apps.photos",
+        "apkmirror_org": "google-inc",
+        "apkmirror_repo": "photos",
+        "apkmirror_arch": "universal",
+        "apkmirror_fallback_arch": "arm64-v8a",
+        "apkmirror_dpi": "nodpi",
+        "apkmirror_type": "apk",
+        "input": "input/revanced/google-photos.apk",
+        "output": "output/revanced/google-photos-revanced.apk",
     },
 }
 
@@ -222,6 +237,10 @@ def load_patches_metadata(tools: dict) -> list[dict]:
     if extracted:
         return extracted
 
+    cli_metadata = load_recommended_versions_from_cli(tools)
+    if cli_metadata:
+        return cli_metadata
+
     cli_metadata = load_patches_metadata_from_cli(tools)
     if cli_metadata:
         return cli_metadata
@@ -241,24 +260,132 @@ def load_patches_metadata(tools: dict) -> list[dict]:
     )
 
 
+def load_recommended_versions_from_cli(tools: dict) -> list[dict]:
+    if shutil.which("java") is None:
+        return []
+
+    package_names = sorted({app["package"] for app in APP_CONFIGS.values()})
+    filter_args = []
+    for package_name in package_names:
+        filter_args += ["--filter-package-names", package_name]
+
+    commands = [
+        [
+            "java", "-jar", str(tools["cli"]),
+            "list-versions",
+            "--patches", str(tools["patches"]),
+            "--bypass-verification",
+            *filter_args,
+        ],
+        [
+            "java", "-jar", str(tools["cli"]),
+            "list-versions",
+            "--patches", str(tools["patches"]),
+            "--bypass-verification",
+            *[arg for package_name in package_names for arg in ("--filter-package-name", package_name)],
+        ],
+    ]
+    failures = []
+    for command in commands:
+        result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
+        output = f"{result.stdout}\n{result.stderr}".strip()
+        if result.returncode != 0:
+            failures.append(format_command_failure(command, result.returncode, output))
+            continue
+        if not output:
+            failures.append(format_command_failure(command, result.returncode, "no output"))
+            continue
+        parsed = parse_cli_version_list(output)
+        if parsed:
+            write_json(PATHS["tools"] / "patches-cli-versions.json", {
+                "source": "revanced-cli list-versions",
+                "patches": parsed,
+                "generatedAt": now(),
+            })
+            return parsed
+        failures.append(format_command_failure(command, result.returncode, output))
+    write_text(PATHS["tools"] / "patches-cli-versions.log", "\n\n".join(failures))
+    return []
+
+
 def load_patches_metadata_from_cli(tools: dict) -> list[dict]:
     if shutil.which("java") is None:
         return []
 
     commands = [
-        ["java", "-jar", str(tools["cli"]), "list-patches", "--with-packages", "--with-versions", str(tools["patches"])],
-        ["java", "-jar", str(tools["cli"]), "list-patches", "--with-packages", "--with-versions", "--json", str(tools["patches"])],
+        [
+            "java", "-jar", str(tools["cli"]),
+            "list-patches",
+            "--patches", str(tools["patches"]),
+            "--bypass-verification",
+            "--packages",
+            "--versions",
+        ],
+        [
+            "java", "-jar", str(tools["cli"]),
+            "list-patches",
+            "--patches", str(tools["patches"]),
+            "--bypass-verification",
+            "--packages",
+            "--versions",
+            "--universal-patches",
+        ],
     ]
+    failures = []
     for command in commands:
         result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
         output = f"{result.stdout}\n{result.stderr}".strip()
-        if result.returncode != 0 or not output:
+        if result.returncode != 0:
+            failures.append(format_command_failure(command, result.returncode, output))
+            continue
+        if not output:
+            failures.append(format_command_failure(command, result.returncode, "no output"))
             continue
         parsed = parse_cli_patch_list(output)
         if parsed:
-            write_json(PATHS["tools"] / "patches-cli.json", {"patches": parsed, "generatedAt": now()})
+            write_json(PATHS["tools"] / "patches-cli.json", {
+                "source": "revanced-cli list-patches",
+                "patches": parsed,
+                "generatedAt": now(),
+            })
             return parsed
+        failures.append(format_command_failure(command, result.returncode, output))
+    write_text(PATHS["tools"] / "patches-cli.log", "\n\n".join(failures))
     return []
+
+
+def parse_cli_version_list(output: str) -> list[dict]:
+    packages = []
+    current = None
+    package_pattern = re.compile(r"^Package name:\s*([a-z]\w*(?:\.[a-z]\w*)+)\s*$", re.IGNORECASE)
+    version_pattern = re.compile(r"\b\d+(?:\.\d+){1,5}\b")
+
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        package_match = package_pattern.match(line)
+        if package_match:
+            current = {"name": package_match.group(1), "versions": []}
+            packages.append(current)
+            continue
+
+        if current is None:
+            continue
+
+        for version in version_pattern.findall(line):
+            if version not in current["versions"]:
+                current["versions"].append(version)
+
+    packages = [package for package in packages if package["versions"]]
+    if not packages:
+        return []
+
+    return [{
+        "name": "ReVanced recommended compatible versions",
+        "compatiblePackages": packages,
+    }]
 
 
 def parse_cli_patch_list(output: str) -> list[dict]:
@@ -296,6 +423,7 @@ def parse_cli_patch_list(output: str) -> list[dict]:
         if package_match:
             current_package = {"name": package_match.group(1), "versions": []}
             current["compatiblePackages"].append(current_package)
+            continue
 
         if current_package is not None:
             for version in version_pattern.findall(line):
@@ -323,7 +451,7 @@ def extract_patches_json(bundle: Path) -> list[dict] | None:
 
 
 def selected_apps(target_args: list[str], patches: list[dict]) -> list[dict]:
-    requested = split_csv(",".join(target_args) or env("REVANCED_TARGETS") or env("BUILD_TARGETS") or "youtube,youtube-music,reddit")
+    requested = split_csv(",".join(target_args) or env("REVANCED_TARGETS") or env("BUILD_TARGETS") or DEFAULT_TARGETS)
     approved = approved_packages(patches)
     selected = []
     for target in requested:
@@ -347,6 +475,10 @@ def approved_packages(patches: list[dict]) -> set[str]:
 
 
 def recommended_version(app: dict, patches: list[dict]) -> str:
+    recommended = recommended_version_from_cli_summary(app, patches)
+    if recommended:
+        return recommended
+
     versions = set()
     for patch in patches or []:
         if patch.get("excluded") is True:
@@ -360,6 +492,20 @@ def recommended_version(app: dict, patches: list[dict]) -> str:
                 if version:
                     versions.add(str(version))
     return sorted(versions, key=version_key, reverse=True)[0] if versions else ""
+
+
+def recommended_version_from_cli_summary(app: dict, patches: list[dict]) -> str:
+    for patch in patches or []:
+        if patch.get("name") != "ReVanced recommended compatible versions":
+            continue
+        for item in compatible_packages_from_patch(patch):
+            package_name = item.get("name") or item.get("packageName") or item.get("package")
+            if package_name != app["package"]:
+                continue
+            for version in item.get("versions") or item.get("versionNames") or []:
+                if version:
+                    return str(version)
+    return ""
 
 
 def compatible_packages_from_patch(patch: dict) -> list[dict]:
@@ -692,7 +838,7 @@ def resolve_integrations() -> str:
 
 
 def print_release_notes() -> None:
-    apps = [app_config(target) for target in split_csv(env("REVANCED_TARGETS") or env("BUILD_TARGETS") or "youtube,youtube-music,reddit")]
+    apps = [app_config(target) for target in split_csv(env("REVANCED_TARGETS") or env("BUILD_TARGETS") or DEFAULT_TARGETS)]
     cli_meta = read_json(PATHS["tools"] / "revanced-cli.json")
     patches_meta = read_json(PATHS["tools"] / "revanced-patches.json")
     lines = [
@@ -862,6 +1008,18 @@ def read_json(path: Path) -> dict:
 def write_json(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+
+
+def write_text(path: Path, data: str) -> None:
+    if not data:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(data + "\n", encoding="utf-8")
+
+
+def format_command_failure(command: list[str], returncode: int, output: str) -> str:
+    redacted = " ".join(str(part) for part in command)
+    return f"$ {redacted}\nexit={returncode}\n{output.strip()}"
 
 
 def split_csv(value: str | None) -> list[str]:
