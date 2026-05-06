@@ -452,7 +452,7 @@ def patch_app(app: dict, tools: dict) -> None:
     args = [
         "java", "-jar", str(tools["cli"]),
         "patch", str(app["input"]),
-        "--patch-bundle", str(tools["patches"]),
+        "--patches", str(tools["patches"]),
         "--out", str(output),
     ]
 
