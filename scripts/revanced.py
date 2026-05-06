@@ -384,6 +384,7 @@ def parse_cli_version_list(output: str) -> list[dict]:
 
     return [{
         "name": "ReVanced recommended compatible versions",
+        "metadataOnly": "recommendedVersions",
         "compatiblePackages": packages,
     }]
 
@@ -467,6 +468,8 @@ def selected_apps(target_args: list[str], patches: list[dict]) -> list[dict]:
 def approved_packages(patches: list[dict]) -> set[str]:
     packages = set()
     for patch in patches or []:
+        if patch.get("metadataOnly") == "recommendedVersions":
+            continue
         for item in compatible_packages_from_patch(patch):
             package_name = item.get("name") or item.get("packageName") or item.get("package")
             if package_name:
