@@ -226,11 +226,17 @@ def load_patches_metadata(tools: dict) -> list[dict]:
     if cli_metadata:
         return cli_metadata
 
-    if (env("REVANCED_APK_VERSION_SOURCE") or env("APK_VERSION_SOURCE") or "recommended").lower() == "latest":
+    source = revanced_apk_version_source()
+    if source == "latest" or not truthy(env("REVANCED_STRICT_PATCH_METADATA")):
+        if source == "recommended":
+            print(
+                "warning: ReVanced patch metadata unavailable; falling back from recommended APK versions to latest APKs.",
+                file=sys.stderr,
+            )
         return []
 
     raise RuntimeError(
-        "Could not load ReVanced patch metadata. Set REVANCED_PATCHES_JSON_URL or use REVANCED_APK_VERSION_SOURCE=latest."
+        "Could not load ReVanced patch metadata. Set REVANCED_PATCHES_JSON_URL, use REVANCED_APK_VERSION_SOURCE=latest, or unset REVANCED_STRICT_PATCH_METADATA."
     )
 
 
@@ -381,7 +387,7 @@ def ensure_input(app: dict, patches: list[dict], force: bool = False) -> None:
         })
         return
 
-    source = (env("REVANCED_APK_VERSION_SOURCE") or env("APK_VERSION_SOURCE") or "recommended").lower()
+    source = revanced_apk_version_source()
     explicit = env(f"{app['env_prefix']}_APK_VERSION")
     version = explicit or ("" if source == "latest" else source if re.match(r"^\d+(?:\.\d+)+$", source) else recommended_version(app, patches))
     if source == "recommended" and not version:
@@ -859,6 +865,10 @@ def write_json(path: Path, data: dict) -> None:
 
 def split_csv(value: str | None) -> list[str]:
     return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def revanced_apk_version_source() -> str:
+    return (env("REVANCED_APK_VERSION_SOURCE") or env("APK_VERSION_SOURCE") or "latest").lower()
 
 
 def format_inline_list(values: list[str], limit: int = 8) -> str:
