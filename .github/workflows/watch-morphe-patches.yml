@@ -42,7 +42,6 @@ jobs:
           esac
 
           stable="$(gh api 'repos/MorpheApp/morphe-patches/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == false))[0].tag_name')"
-          dev="$(gh api 'repos/MorpheApp/morphe-patches/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == true))[0].tag_name')"
           release_tags="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName')"
           triggered="0"
 
@@ -106,8 +105,7 @@ jobs:
           }
 
           check_channel "stable" "$stable"
-          check_channel "dev" "$dev"
 
           if [ "$triggered" = "0" ]; then
-            echo "No new Morphe stable or dev patch builds needed."
+            echo "No new Morphe stable patch build needed."
           fi

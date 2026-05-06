@@ -132,11 +132,24 @@ def build(args: argparse.Namespace) -> None:
     tools = ensure_tools()
     patches = load_patches_metadata(tools)
     apps = selected_apps(args.target, patches)
+    continue_on_error = truthy(env("REVANCED_CONTINUE_ON_ERROR"))
+    failures = []
 
     PATHS["output"].mkdir(parents=True, exist_ok=True)
     for app in apps:
-        ensure_input(app, patches, force=args.force_download or truthy(env("AUTO_UPDATE_APKS")))
-        patch_app(app, tools)
+        try:
+            ensure_input(app, patches, force=args.force_download or truthy(env("AUTO_UPDATE_APKS")))
+            patch_app(app, tools)
+        except Exception as error:
+            if not continue_on_error:
+                raise
+            failures.append(f"{app['label']}: {error}")
+            print(f"warning: {app['label']} failed: {error}", file=sys.stderr)
+
+    if failures:
+        print("warning: one or more ReVanced targets failed:", file=sys.stderr)
+        for failure in failures:
+            print(f"warning: - {failure}", file=sys.stderr)
 
 
 def ensure_tools(force: bool = False) -> dict:
@@ -456,6 +469,8 @@ def patch_app(app: dict, tools: dict) -> None:
         "--bypass-verification",
         "--out", str(output),
     ]
+    if truthy(env("REVANCED_FORCE_PATCH")) or truthy(env("FORCE_PATCH")):
+        args.append("--force")
 
     args += signing_args()
     integrations = resolve_integrations()
@@ -529,6 +544,8 @@ def print_release_notes() -> None:
         f"- ReVanced CLI: {cli_meta.get('tag', env('REVANCED_CLI_VERSION') or 'latest')}",
         f"- ReVanced patches: {patches_meta.get('tag', env('REVANCED_PATCHES_VERSION') or 'latest')}",
         f"- APK version source: {env('REVANCED_APK_VERSION_SOURCE') or env('APK_VERSION_SOURCE') or 'recommended'}",
+        f"- Force patch: {'enabled' if truthy(env('REVANCED_FORCE_PATCH')) or truthy(env('FORCE_PATCH')) else 'disabled'}",
+        f"- Continue on error: {'enabled' if truthy(env('REVANCED_CONTINUE_ON_ERROR')) else 'disabled'}",
         "",
         "## App Results",
         "",
