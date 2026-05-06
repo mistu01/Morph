@@ -13,7 +13,7 @@ on:
 
 jobs:
   watch:
-    name: Trigger builds on new patch releases
+    name: Trigger normal builds on stable patch releases
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -65,7 +65,7 @@ jobs:
             return 1
           }
 
-          trigger_standard_build() {
+          trigger_normal_build_patched_apks() {
             local channel="$1"
             local patches_tag="$2"
 
@@ -83,7 +83,7 @@ jobs:
               -f upload_artifact="true"
 
             triggered="1"
-            echo "Triggered standard APK build for ${channel} Morphe patches ${patches_tag}."
+            echo "Triggered normal Build patched APKs workflow for ${channel} Morphe patches ${patches_tag}."
           }
 
           check_channel() {
@@ -100,7 +100,7 @@ jobs:
             standard_release="$(find_existing_release "$patches_tag" "standard APK" || true)"
             echo "Existing standard APK release for ${patches_tag}: ${standard_release:-none}"
             if [ -z "$standard_release" ]; then
-              trigger_standard_build "$channel" "$patches_tag"
+              trigger_normal_build_patched_apks "$channel" "$patches_tag"
             fi
           }
 
