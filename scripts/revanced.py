@@ -562,19 +562,21 @@ def patch_app(app: dict, tools: dict) -> None:
     print(f"\n==> Building ReVanced {app['label']}")
     result = run_with_tee(args)
     patch_counts = patch_counts_from_log(result["output"])
-    if result.returncode != 0 and not output.exists():
-        raise RuntimeError(f"java exited with status {result.returncode}")
-    success = result.returncode == 0
+    returncode = result["returncode"]
+    if returncode != 0 and not output.exists():
+        raise RuntimeError(f"java exited with status {returncode}")
+    success = returncode == 0
     if not success:
-        print(f"warning: ReVanced CLI exited with status {result.returncode}, but {relative(output)} was produced.", file=sys.stderr)
+        print(f"warning: ReVanced CLI exited with status {returncode}, but {relative(output)} was produced.", file=sys.stderr)
     write_json(result_file_for(app), {
         "app": app["id"],
         "label": app["label"],
         "packageName": app["package"],
         "success": success,
-        "warning": "" if success else f"ReVanced CLI exited with status {result.returncode} after producing an APK.",
+        "warning": "" if success else f"ReVanced CLI exited with status {returncode} after producing an APK.",
         "patchesSucceeded": patch_counts["succeeded"],
         "patchesFailed": patch_counts["failed"],
+        "succeededPatches": patch_counts["succeededNames"],
         "failedPatches": patch_counts["failedNames"],
         "input": str(app["input"]),
         "output": str(output),
