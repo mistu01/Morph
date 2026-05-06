@@ -398,18 +398,18 @@ def ensure_input(app: dict, patches: list[dict], force: bool = False) -> None:
         try:
             metadata = download_from_source(app, apk_source, version)
             downloaded = Path(metadata["path"]).resolve()
-            if downloaded.suffix.lower() != ".apk":
-                raise RuntimeError(f"{apk_source} downloaded {downloaded.suffix or 'a non-APK file'}, but ReVanced CLI requires a plain .apk input.")
-            destination = replace_extension(destination, downloaded.suffix or ".apk")
+            input_apk = apk_input_from_download(app, downloaded, output_dir=downloaded.parent)
+            destination = replace_extension(destination, ".apk")
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.unlink(missing_ok=True)
-            shutil.move(str(downloaded), destination)
+            shutil.move(str(input_apk), destination)
             write_json(metadata_file, {
                 **metadata,
                 "app": app["id"],
                 "packageName": app["package"],
                 "desiredVersion": version or "latest",
                 "destination": str(destination),
+                "extractedFrom": str(downloaded) if downloaded != input_apk else "",
                 "downloadedAt": now(),
             })
             app["input"] = str(destination)
@@ -425,25 +425,37 @@ def download_from_source(app: dict, source: str, version: str) -> dict:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if source == "apkmirror":
-        apkmirror_type = env(f"{app['env_prefix']}_APKMIRROR_TYPE") or app["apkmirror_type"]
-        apkmirror_extension = "apkm" if apkmirror_type == "bundle" else "apk"
-        args = [
-            sys.executable, str(ROOT / "scripts" / "apkmirror_download.py"),
-            "--app-name", app["label"],
-            "--package-name", app["package"],
-            "--org", app["apkmirror_org"],
-            "--repo", app["apkmirror_repo"],
-            "--out-dir", str(output_dir),
-            "--version", version or "latest",
-            "--arch", env(f"{app['env_prefix']}_APKMIRROR_ARCH") or env("APKMIRROR_ARCH") or app["apkmirror_arch"],
-            "--dpi", env(f"{app['env_prefix']}_APKMIRROR_DPI") or env("APKMIRROR_DPI") or app["apkmirror_dpi"],
-            "--type", apkmirror_type,
-            "--out-file", f"{app['id']}-{version or 'latest'}.{apkmirror_extension}",
-        ]
-        fallback_arch = env(f"{app['env_prefix']}_APKMIRROR_FALLBACK_ARCH") or env("APKMIRROR_FALLBACK_ARCH") or app.get("apkmirror_fallback_arch")
-        if fallback_arch:
-            args += ["--fallback-arch", fallback_arch]
-        return run_json(args)
+        explicit_type = env(f"{app['env_prefix']}_APKMIRROR_TYPE")
+        requested_type = explicit_type or app["apkmirror_type"]
+        candidate_types = [requested_type]
+        if not explicit_type and requested_type == "apk":
+            candidate_types.append("bundle")
+
+        errors = []
+        for apkmirror_type in candidate_types:
+            apkmirror_extension = "apkm" if apkmirror_type == "bundle" else "apk"
+            args = [
+                sys.executable, str(ROOT / "scripts" / "apkmirror_download.py"),
+                "--app-name", app["label"],
+                "--package-name", app["package"],
+                "--org", app["apkmirror_org"],
+                "--repo", app["apkmirror_repo"],
+                "--out-dir", str(output_dir),
+                "--version", version or "latest",
+                "--arch", env(f"{app['env_prefix']}_APKMIRROR_ARCH") or env("APKMIRROR_ARCH") or app["apkmirror_arch"],
+                "--dpi", env(f"{app['env_prefix']}_APKMIRROR_DPI") or env("APKMIRROR_DPI") or app["apkmirror_dpi"],
+                "--type", apkmirror_type,
+                "--out-file", f"{app['id']}-{version or 'latest'}.{apkmirror_extension}",
+            ]
+            fallback_arch = env(f"{app['env_prefix']}_APKMIRROR_FALLBACK_ARCH") or env("APKMIRROR_FALLBACK_ARCH") or app.get("apkmirror_fallback_arch")
+            if fallback_arch:
+                args += ["--fallback-arch", fallback_arch]
+
+            try:
+                return run_json(args)
+            except Exception as error:
+                errors.append(f"{apkmirror_type}: {error}")
+        raise RuntimeError("; ".join(errors))
 
     if source == "apkpure":
         args = [
@@ -458,6 +470,72 @@ def download_from_source(app: dict, source: str, version: str) -> dict:
         return run_json(args)
 
     raise RuntimeError(f"Unsupported APK source {source}")
+
+
+def apk_input_from_download(app: dict, downloaded: Path, output_dir: Path) -> Path:
+    if downloaded.suffix.lower() == ".apk":
+        if apk_has_android_payload(downloaded):
+            return downloaded
+        raise RuntimeError(f"{downloaded.name} is not a valid APK payload.")
+
+    if downloaded.suffix.lower() not in {".xapk", ".apkm", ".apks"}:
+        raise RuntimeError(f"{downloaded.name} is {downloaded.suffix or 'not an APK'}, and ReVanced CLI requires a plain .apk input.")
+
+    extracted = extract_base_apk(app, downloaded, output_dir)
+    print(f"{app['label']}: extracted base APK from {downloaded.name}: {relative(extracted)}")
+    return extracted
+
+
+def extract_base_apk(app: dict, container: Path, output_dir: Path) -> Path:
+    if not zipfile.is_zipfile(container):
+        raise RuntimeError(f"{container.name} is not a readable split APK container.")
+
+    candidates = []
+    with zipfile.ZipFile(container) as archive:
+        for info in archive.infolist():
+            name = info.filename
+            basename = Path(name).name
+            if info.is_dir() or not basename.lower().endswith(".apk"):
+                continue
+            priority = split_apk_priority(app, name)
+            candidates.append((priority, -info.file_size, name))
+
+        for _, __, name in sorted(candidates):
+            extracted = output_dir / f"{app['id']}-base.apk"
+            extracted.unlink(missing_ok=True)
+            with archive.open(name) as source, extracted.open("wb") as target:
+                shutil.copyfileobj(source, target)
+            if apk_has_android_payload(extracted):
+                return extracted
+            extracted.unlink(missing_ok=True)
+
+    available = ", ".join(name for _, __, name in sorted(candidates)[:12])
+    raise RuntimeError(f"Could not find a base APK inside {container.name}. APK entries: {available or 'none'}")
+
+
+def split_apk_priority(app: dict, name: str) -> int:
+    basename = Path(name).name.lower()
+    package = app["package"].lower()
+    if basename == "base.apk":
+        return 0
+    if basename == f"{package}.apk":
+        return 1
+    if package in basename:
+        return 2
+    if not any(marker in basename for marker in ("split_", "config.", "dpi", "lang", "density")):
+        return 3
+    return 9
+
+
+def apk_has_android_payload(path: Path) -> bool:
+    if not zipfile.is_zipfile(path):
+        return False
+    try:
+        with zipfile.ZipFile(path) as archive:
+            names = set(archive.namelist())
+            return "AndroidManifest.xml" in names and "resources.arsc" in names
+    except zipfile.BadZipFile:
+        return False
 
 
 def patch_app(app: dict, tools: dict) -> None:
