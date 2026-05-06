@@ -453,6 +453,7 @@ def patch_app(app: dict, tools: dict) -> None:
         "java", "-jar", str(tools["cli"]),
         "patch", str(app["input"]),
         "--patches", str(tools["patches"]),
+        "--bypass-verification",
         "--out", str(output),
     ]
 
