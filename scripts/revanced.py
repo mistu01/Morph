@@ -146,6 +146,7 @@ def build(args: argparse.Namespace) -> None:
     check_java()
     tools = ensure_tools()
     patches = load_patches_metadata(tools)
+    patch_catalog = load_patches_metadata_from_cli(tools) if revanced_enable_disabled_patches() else patches
     apps = selected_apps(args.target, patches)
     continue_on_error = truthy(env("REVANCED_CONTINUE_ON_ERROR"))
     failures = []
@@ -154,7 +155,7 @@ def build(args: argparse.Namespace) -> None:
     for app in apps:
         try:
             ensure_input(app, patches, force=args.force_download or truthy(env("AUTO_UPDATE_APKS")))
-            patch_app(app, tools)
+            patch_app(app, tools, patch_catalog)
         except Exception as error:
             write_failure_result(app, tools, error)
             if not continue_on_error:
@@ -320,6 +321,7 @@ def load_patches_metadata_from_cli(tools: dict) -> list[dict]:
             "--bypass-verification",
             "--packages",
             "--versions",
+            "--universal-patches",
         ],
         [
             "java", "-jar", str(tools["cli"]),
@@ -328,7 +330,6 @@ def load_patches_metadata_from_cli(tools: dict) -> list[dict]:
             "--bypass-verification",
             "--packages",
             "--versions",
-            "--universal-patches",
         ],
     ]
     failures = []
@@ -431,7 +432,7 @@ def parse_cli_patch_list(output: str) -> list[dict]:
                 if version not in current_package["versions"]:
                     current_package["versions"].append(version)
 
-    return [patch for patch in patches if patch.get("compatiblePackages")]
+    return patches
 
 
 def extract_patches_json(bundle: Path) -> list[dict] | None:
@@ -709,7 +710,7 @@ def apk_has_android_payload(path: Path) -> bool:
         return False
 
 
-def patch_app(app: dict, tools: dict) -> None:
+def patch_app(app: dict, tools: dict, patch_catalog: list[dict] | None = None) -> None:
     output = Path(app["output"])
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -728,9 +729,12 @@ def patch_app(app: dict, tools: dict) -> None:
     integrations = resolve_integrations()
     if integrations:
         args += ["--merge", integrations]
-    args += patch_selection_args(app)
+    enabled_patches = enabled_patch_names_for_app(app, patch_catalog or [])
+    args += patch_selection_args(app, enabled_patches)
 
     print(f"\n==> Building ReVanced {app['label']}")
+    if enabled_patches:
+        print(f"INFO: Explicitly enabling {len(enabled_patches)} compatible ReVanced patches for {app['label']}")
     result = run_with_tee(args)
     patch_counts = patch_counts_from_log(result["output"])
     returncode = result["returncode"]
@@ -749,6 +753,7 @@ def patch_app(app: dict, tools: dict) -> None:
         "patchesFailed": patch_counts["failed"],
         "succeededPatches": patch_counts["succeededNames"],
         "failedPatches": patch_counts["failedNames"],
+        "explicitlyEnabledPatches": enabled_patches,
         "input": str(app["input"]),
         "output": str(output),
         "patchBundle": str(tools["patches"]),
@@ -773,17 +778,39 @@ def write_failure_result(app: dict, tools: dict, error: Exception) -> None:
     })
 
 
-def patch_selection_args(app: dict) -> list[str]:
+def patch_selection_args(app: dict, auto_includes: list[str] | None = None) -> list[str]:
     args = []
     includes = split_csv(env(f"{app['env_prefix']}_REVANCED_INCLUDE_PATCHES") or env("REVANCED_INCLUDE_PATCHES"))
     excludes = split_csv(env(f"{app['env_prefix']}_REVANCED_EXCLUDE_PATCHES") or env("REVANCED_EXCLUDE_PATCHES"))
+    all_includes = unique_list([*(auto_includes or []), *includes])
     if truthy(env("REVANCED_EXCLUSIVE")):
         args.append("--exclusive")
-    for name in includes:
-        args += ["-i", name]
+    for name in all_includes:
+        if name not in excludes:
+            args += ["--enable", name]
     for name in excludes:
-        args += ["-e", name]
+        args += ["--disable", name]
     return args
+
+
+def enabled_patch_names_for_app(app: dict, patches: list[dict]) -> list[str]:
+    if not revanced_enable_disabled_patches():
+        return []
+
+    names = []
+    for patch in patches or []:
+        name = patch.get("name")
+        if not name or patch.get("metadataOnly"):
+            continue
+        compatible_packages = compatible_packages_from_patch(patch)
+        if not compatible_packages or any(compatible_package_matches(app, item) for item in compatible_packages):
+            names.append(str(name))
+    return unique_list(names)
+
+
+def compatible_package_matches(app: dict, item: dict) -> bool:
+    package_name = item.get("name") or item.get("packageName") or item.get("package")
+    return package_name == app["package"]
 
 
 def signing_args() -> list[str]:
@@ -869,6 +896,7 @@ def print_release_notes() -> None:
         f"- ReVanced patches: {patches_meta.get('tag', env('REVANCED_PATCHES_VERSION') or 'latest')}",
         f"- APK version source: {env('REVANCED_APK_VERSION_SOURCE') or env('APK_VERSION_SOURCE') or 'recommended'}",
         f"- Recommended APK fallback to latest: {'enabled' if revanced_apk_fallback_to_latest() else 'disabled'}",
+        f"- Enable disabled compatible patches: {'enabled' if revanced_enable_disabled_patches() else 'disabled'}",
         f"- Force patch: {'enabled' if truthy(env('REVANCED_FORCE_PATCH')) or truthy(env('FORCE_PATCH')) else 'disabled'}",
         f"- Continue on error: {'enabled' if truthy(env('REVANCED_CONTINUE_ON_ERROR')) else 'disabled'}",
         "",
@@ -1051,6 +1079,21 @@ def revanced_apk_version_source() -> str:
 
 def revanced_apk_fallback_to_latest() -> bool:
     return truthy(env("REVANCED_APK_FALLBACK_TO_LATEST") or env("APK_FALLBACK_TO_LATEST"))
+
+
+def revanced_enable_disabled_patches() -> bool:
+    return truthy(env("REVANCED_ENABLE_DISABLED_PATCHES"))
+
+
+def unique_list(values: list[str]) -> list[str]:
+    seen = set()
+    result = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        result.append(value)
+    return result
 
 
 def format_inline_list(values: list[str], limit: int = 8) -> str:
