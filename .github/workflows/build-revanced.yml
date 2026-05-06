@@ -145,8 +145,21 @@ jobs:
 
           python scripts/revanced.py release-notes > release-notes.md
 
+      - name: Detect ReVanced APK outputs
+        if: ${{ github.event_name == 'schedule' || inputs.create_release || inputs.upload_artifact }}
+        run: |
+          shopt -s nullglob
+          apks=(output/revanced/*.apk)
+          if [ "${#apks[@]}" -gt 0 ]; then
+            echo "HAS_REVANCED_APKS=true" >> "$GITHUB_ENV"
+            printf 'Found ReVanced APK output: %s\n' "${apks[@]}"
+          else
+            echo "HAS_REVANCED_APKS=false" >> "$GITHUB_ENV"
+            echo "No ReVanced APK outputs were produced; skipping GitHub Release asset upload."
+          fi
+
       - name: Create GitHub Release
-        if: ${{ github.event_name == 'schedule' || inputs.create_release }}
+        if: ${{ (github.event_name == 'schedule' || inputs.create_release) && env.HAS_REVANCED_APKS == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |

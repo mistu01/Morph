@@ -141,6 +141,7 @@ def build(args: argparse.Namespace) -> None:
             ensure_input(app, patches, force=args.force_download or truthy(env("AUTO_UPDATE_APKS")))
             patch_app(app, tools)
         except Exception as error:
+            write_failure_result(app, tools, error)
             if not continue_on_error:
                 raise
             failures.append(f"{app['label']}: {error}")
@@ -484,9 +485,24 @@ def patch_app(app: dict, tools: dict) -> None:
         "app": app["id"],
         "label": app["label"],
         "packageName": app["package"],
+        "success": True,
         "input": str(app["input"]),
         "output": str(output),
         "patchBundle": str(tools["patches"]),
+        "builtAt": now(),
+    })
+
+
+def write_failure_result(app: dict, tools: dict, error: Exception) -> None:
+    write_json(result_file_for(app), {
+        "app": app["id"],
+        "label": app["label"],
+        "packageName": app["package"],
+        "success": False,
+        "input": str(app.get("input", "")),
+        "output": str(app.get("output", "")),
+        "patchBundle": str(tools.get("patches", "")),
+        "error": str(error),
         "builtAt": now(),
     })
 
@@ -553,7 +569,10 @@ def print_release_notes() -> None:
     for app in apps:
         apk_meta = read_json(metadata_file_for(app))
         result = read_json(result_file_for(app))
-        status = "successful" if result and Path(result.get("output", "")).exists() else "unknown"
+        if result.get("success") is False:
+            status = f"failed ({result.get('error', 'unknown error')})"
+        else:
+            status = "successful" if result and Path(result.get("output", "")).exists() else "unknown"
         version = apk_meta.get("version") or apk_meta.get("desiredVersion") or "unknown"
         source = apk_meta.get("source") or "unknown"
         lines.append(f"- {app['label']} {version}: {status}")
