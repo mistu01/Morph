@@ -111,6 +111,54 @@ const appConfigs = {
     rootModuleName: "Mistu Reddit Root",
     rootApkPath: "system/app/Reddit/Reddit.apk",
   },
+  twitter: {
+    id: "twitter",
+    label: "X (Twitter)",
+    apkpureName: "X",
+    packageName: "com.twitter.android",
+    apkpureSlug: "x",
+    apkpurePage: "https://apkpure.com/x/com.twitter.android",
+    apkmirrorOrg: "x-corp",
+    apkmirrorRepo: "x-formerly-twitter",
+    apkmirrorType: env("TWITTER_APKMIRROR_TYPE") || "bundle",
+    apkmirrorArch: env("TWITTER_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "universal",
+    apkmirrorFallbackArch: env("TWITTER_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "arm64-v8a",
+    apkmirrorDpi: env("TWITTER_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "nodpi",
+    patchedPackageName: env("TWITTER_PATCHED_PACKAGE_NAME"),
+    requestedVersion: env("TWITTER_APK_VERSION"),
+    input: envPath("TWITTER_APK", "input/twitter.apkm"),
+    url: env("TWITTER_APK_URL"),
+    output: envPath("TWITTER_OUT", rootBuild ? "output/root/twitter-root.apk" : "output/twitter-patched.apk"),
+    options: envPath("TWITTER_OPTIONS", rootBuild ? "config/root/twitter-options.json" : "config/twitter-options.json"),
+    result: envPath("TWITTER_RESULT", rootBuild ? "output/root/twitter-result.json" : "output/twitter-result.json"),
+    rootModuleId: "mistu_twitter_root",
+    rootModuleName: "Mistu X Root",
+    rootApkPath: "system/app/Twitter/Twitter.apk",
+  },
+  instagram: {
+    id: "instagram",
+    label: "Instagram",
+    apkpureName: "Instagram",
+    packageName: "com.instagram.android",
+    apkpureSlug: "instagram",
+    apkpurePage: "https://apkpure.com/instagram/com.instagram.android",
+    apkmirrorOrg: "instagram",
+    apkmirrorRepo: "instagram-instagram",
+    apkmirrorType: env("INSTAGRAM_APKMIRROR_TYPE") || "bundle",
+    apkmirrorArch: env("INSTAGRAM_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "universal",
+    apkmirrorFallbackArch: env("INSTAGRAM_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "arm64-v8a",
+    apkmirrorDpi: env("INSTAGRAM_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "nodpi",
+    patchedPackageName: env("INSTAGRAM_PATCHED_PACKAGE_NAME"),
+    requestedVersion: env("INSTAGRAM_APK_VERSION"),
+    input: envPath("INSTAGRAM_APK", "input/instagram.apkm"),
+    url: env("INSTAGRAM_APK_URL"),
+    output: envPath("INSTAGRAM_OUT", rootBuild ? "output/root/instagram-root.apk" : "output/instagram-patched.apk"),
+    options: envPath("INSTAGRAM_OPTIONS", rootBuild ? "config/root/instagram-options.json" : "config/instagram-options.json"),
+    result: envPath("INSTAGRAM_RESULT", rootBuild ? "output/root/instagram-result.json" : "output/instagram-result.json"),
+    rootModuleId: "mistu_instagram_root",
+    rootModuleName: "Mistu Instagram Root",
+    rootApkPath: "system/app/Instagram/Instagram.apk",
+  },
 };
 
 const releaseAssets = {
@@ -122,7 +170,7 @@ const releaseAssets = {
     meta: fromRoot(".cache/tools/morphe-cli.json"),
   },
   patches: {
-    repo: "MorpheApp/morphe-patches",
+    repo: env("MORPHE_PATCHES_REPO") || "MorpheApp/morphe-patches",
     versionEnv: "MORPHE_PATCHES_VERSION",
     assetPattern: /^patches-.+\.mpp$/,
     output: fromRoot(".cache/tools/patches.mpp"),
@@ -411,7 +459,7 @@ async function githubReleaseForVersion(repo, version = "latest", { prereleaseKey
 async function fetchPatchesList() {
   patchesListPromise ||= (async () => {
     const tag = await selectedPatchReleaseTag();
-    return githubJson(`https://raw.githubusercontent.com/MorpheApp/morphe-patches/${tag}/patches-list.json`);
+    return githubJson(`https://raw.githubusercontent.com/${releaseAssets.patches.repo}/${tag}/patches-list.json`);
   })();
   return patchesListPromise;
 }
@@ -420,7 +468,7 @@ async function selectedPatchReleaseTag() {
   const version = env("MORPHE_PATCHES_VERSION") || "latest";
 
   selectedPatchReleaseTagPromise ||= (async () => {
-    const release = await githubReleaseForVersion("MorpheApp/morphe-patches", version, {
+    const release = await githubReleaseForVersion(releaseAssets.patches.repo, version, {
       prereleaseKeyword: true,
     });
     return release.tag_name;
