@@ -20,7 +20,7 @@ on:
       apk_version_source:
         description: "APK version source: recommended, latest, or an explicit version"
         required: true
-        default: "recommended"
+        default: "latest"
       create_release:
         description: "Create a GitHub Release and attach patched APKs"
         required: true
@@ -94,7 +94,7 @@ jobs:
           REVANCED_PATCHES_JSON_URL: ${{ vars.REVANCED_PATCHES_JSON_URL }}
           REVANCED_INTEGRATIONS: ${{ vars.REVANCED_INTEGRATIONS }}
           REVANCED_APK_SOURCE: apkmirror,apkpure
-          REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'recommended' }}
+          REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
           REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
@@ -110,7 +110,7 @@ jobs:
         if: ${{ github.event_name == 'schedule' || inputs.create_release }}
         env:
           REVANCED_TARGETS: ${{ inputs.targets || 'youtube,youtube-music,reddit' }}
-          REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'recommended' }}
+          REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
           PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}
           GH_TOKEN: ${{ github.token }}
         run: |

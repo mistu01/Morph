@@ -157,6 +157,7 @@ def ensure_tools(force: bool = False) -> dict:
         meta=PATHS["tools"] / "revanced-patches.json",
         force=force,
         direct_url=env("REVANCED_PATCHES_URL"),
+        fallback_url=revanced_api_patches_url(env("REVANCED_PATCHES_VERSION") or "latest"),
     )
     patches_json = download_optional_patch_metadata(force=force)
     return {"cli": cli, "patches": patches, "patches_json": patches_json}
@@ -186,6 +187,12 @@ def download_optional_patch_metadata(force: bool = False) -> Path | None:
         return None
 
 
+def revanced_api_patches_url(version: str) -> str:
+    if (version or "latest").lower() in {"latest", "stable"}:
+        return "https://api.revanced.app/v5/patches.rvp"
+    return ""
+
+
 def load_patches_metadata(tools: dict) -> list[dict]:
     metadata_file = tools.get("patches_json")
     if metadata_file and Path(metadata_file).exists():
@@ -201,12 +208,80 @@ def load_patches_metadata(tools: dict) -> list[dict]:
     if extracted:
         return extracted
 
+    cli_metadata = load_patches_metadata_from_cli(tools)
+    if cli_metadata:
+        return cli_metadata
+
     if (env("REVANCED_APK_VERSION_SOURCE") or env("APK_VERSION_SOURCE") or "recommended").lower() == "latest":
         return []
 
     raise RuntimeError(
         "Could not load ReVanced patch metadata. Set REVANCED_PATCHES_JSON_URL or use REVANCED_APK_VERSION_SOURCE=latest."
     )
+
+
+def load_patches_metadata_from_cli(tools: dict) -> list[dict]:
+    if shutil.which("java") is None:
+        return []
+
+    commands = [
+        ["java", "-jar", str(tools["cli"]), "list-patches", "--with-packages", "--with-versions", str(tools["patches"])],
+        ["java", "-jar", str(tools["cli"]), "list-patches", "--with-packages", "--with-versions", "--json", str(tools["patches"])],
+    ]
+    for command in commands:
+        result = subprocess.run(command, cwd=ROOT, text=True, capture_output=True)
+        output = f"{result.stdout}\n{result.stderr}".strip()
+        if result.returncode != 0 or not output:
+            continue
+        parsed = parse_cli_patch_list(output)
+        if parsed:
+            write_json(PATHS["tools"] / "patches-cli.json", {"patches": parsed, "generatedAt": now()})
+            return parsed
+    return []
+
+
+def parse_cli_patch_list(output: str) -> list[dict]:
+    try:
+        data = json.loads(output)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict) and isinstance(data.get("patches"), list):
+            return data["patches"]
+    except json.JSONDecodeError:
+        pass
+
+    patches = []
+    current = None
+    current_package = None
+    package_pattern = re.compile(r"\b([a-z]\w*(?:\.[a-z]\w*)+)\b")
+    version_pattern = re.compile(r"\b\d+(?:\.\d+){1,5}\b")
+
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        if not raw_line.startswith((" ", "\t", "-", "|")) and not package_pattern.search(line):
+            current = {"name": line.rstrip(":"), "compatiblePackages": []}
+            patches.append(current)
+            current_package = None
+            continue
+
+        if current is None:
+            current = {"name": "ReVanced patches", "compatiblePackages": []}
+            patches.append(current)
+
+        package_match = package_pattern.search(line)
+        if package_match:
+            current_package = {"name": package_match.group(1), "versions": []}
+            current["compatiblePackages"].append(current_package)
+
+        if current_package is not None:
+            for version in version_pattern.findall(line):
+                if version not in current_package["versions"]:
+                    current_package["versions"].append(version)
+
+    return [patch for patch in patches if patch.get("compatiblePackages")]
 
 
 def extract_patches_json(bundle: Path) -> list[dict] | None:
@@ -469,22 +544,39 @@ def print_release_notes() -> None:
     print("\n".join(lines))
 
 
-def download_release_asset(repo: str, version: str, pattern: re.Pattern, output: Path, meta: Path, force: bool = False, direct_url: str | None = None) -> Path:
-    if output.exists() and not force:
+def download_release_asset(
+    repo: str,
+    version: str,
+    pattern: re.Pattern,
+    output: Path,
+    meta: Path,
+    force: bool = False,
+    direct_url: str | None = None,
+    fallback_url: str = "",
+) -> Path:
+    if usable_file(output) and not force:
         return output
+    output.unlink(missing_ok=True)
     if direct_url:
         download_file(direct_url, output)
         write_json(meta, {"repo": repo, "tag": version, "asset": Path(urlparse(direct_url).path).name, "downloadedAt": now()})
         return output
 
-    release = github_release(repo, version)
-    asset = next((item for item in release.get("assets", []) if pattern.match(item.get("name", ""))), None)
-    if not asset:
-        names = ", ".join(item.get("name", "") for item in release.get("assets", []))
-        raise RuntimeError(f"No matching asset found for {repo} {release.get('tag_name')}. Assets: {names or 'none'}")
-    print(f"Downloading {repo} {release['tag_name']}: {asset['name']}")
-    download_file(asset["browser_download_url"], output)
-    write_json(meta, {"repo": repo, "tag": release["tag_name"], "asset": asset["name"], "downloadedAt": now()})
+    try:
+        release = github_release(repo, version)
+        asset = next((item for item in release.get("assets", []) if pattern.match(item.get("name", ""))), None)
+        if not asset:
+            names = ", ".join(item.get("name", "") for item in release.get("assets", []))
+            raise RuntimeError(f"No matching asset found for {repo} {release.get('tag_name')}. Assets: {names or 'none'}")
+        print(f"Downloading {repo} {release['tag_name']}: {asset['name']}")
+        download_file(asset["browser_download_url"], output)
+        write_json(meta, {"repo": repo, "tag": release["tag_name"], "asset": asset["name"], "downloadedAt": now()})
+    except Exception as error:
+        if not fallback_url:
+            raise
+        print(f"warning: could not download {repo} from GitHub ({error}); using {fallback_url}", file=sys.stderr)
+        download_file(fallback_url, output)
+        write_json(meta, {"repo": repo, "tag": version, "asset": Path(urlparse(fallback_url).path).name, "fallbackUrl": fallback_url, "downloadedAt": now()})
     return output
 
 
@@ -514,8 +606,11 @@ def download_file(url: str, destination: Path) -> None:
     headers = {"User-Agent": "morph-revanced-builder"}
     if env("GITHUB_TOKEN") and "github.com" in url:
         headers["Authorization"] = f"Bearer {env('GITHUB_TOKEN')}"
-    with urlopen_with_retry(Request(url, headers=headers)) as response, destination.open("wb") as output:
+    tmp = destination.with_suffix(f"{destination.suffix}.tmp")
+    tmp.unlink(missing_ok=True)
+    with urlopen_with_retry(Request(url, headers=headers)) as response, tmp.open("wb") as output:
         shutil.copyfileobj(response, output)
+    tmp.replace(destination)
 
 
 def urlopen_with_retry(request: Request, attempts: int = 4):
@@ -602,6 +697,13 @@ def version_key(value: str) -> tuple:
 
 def replace_extension(path: Path, extension: str) -> Path:
     return path.with_suffix(extension if extension.startswith(".") else f".{extension}")
+
+
+def usable_file(path: Path) -> bool:
+    try:
+        return path.exists() and path.stat().st_size > 0
+    except OSError:
+        return False
 
 
 def relative(path: Path) -> str:
