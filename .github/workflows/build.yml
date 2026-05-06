@@ -19,6 +19,11 @@ on:
         description: "APK version source: recommended, latest, or an explicit version"
         required: true
         default: "recommended"
+      apk_fallback_to_latest:
+        description: "Fall back to latest available APK if the recommended APK version disappears"
+        required: true
+        type: boolean
+        default: false
       force_patch:
         description: "Pass --force to skip Morphe APK version compatibility checks"
         required: true
@@ -201,6 +206,7 @@ jobs:
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           APK_SOURCE: apkmirror,apkpure
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
           REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
@@ -215,6 +221,7 @@ jobs:
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           GH_TOKEN: ${{ github.token }}
           PATCHES_VERSION: ${{ inputs.patches_version }}
         run: |

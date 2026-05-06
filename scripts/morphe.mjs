@@ -564,6 +564,7 @@ async function printReleaseNotes() {
   lines.push(`- Morphe patches: ${patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest"}`);
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
+  lines.push(`- Recommended APK fallback to latest: ${truthy(env("APK_FALLBACK_TO_LATEST")) ? "enabled" : "disabled"}`);
   lines.push(`- Patch args: ${patchArgs.length ? patchArgs.join(" ") : "none"}`);
   if (rootBuild) {
     lines.push("- Root modules: Magisk, KernelSU, and APatch compatible ZIPs.");

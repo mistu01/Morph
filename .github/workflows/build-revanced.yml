@@ -1,0 +1,159 @@
+name: Build ReVanced patched APKs
+
+on:
+  schedule:
+    - cron: "37 2 * * 1"
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Comma-separated targets: youtube,youtube-music,reddit,twitter,instagram"
+        required: true
+        default: "youtube,youtube-music,reddit"
+      cli_version:
+        description: "ReVanced CLI tag, dev, or latest"
+        required: true
+        default: "latest"
+      patches_version:
+        description: "ReVanced patches tag, dev, or latest"
+        required: true
+        default: "latest"
+      apk_version_source:
+        description: "APK version source: recommended, latest, or an explicit version"
+        required: true
+        default: "recommended"
+      create_release:
+        description: "Create a GitHub Release and attach patched APKs"
+        required: true
+        type: boolean
+        default: true
+      upload_artifact:
+        description: "Upload patched APKs as a short-lived workflow artifact"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Download ReVanced tools
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REVANCED_CLI_VERSION: ${{ inputs.cli_version || 'latest' }}
+          REVANCED_PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}
+          REVANCED_PATCHES_URL: ${{ vars.REVANCED_PATCHES_URL }}
+          REVANCED_PATCHES_JSON_URL: ${{ vars.REVANCED_PATCHES_JSON_URL }}
+        run: python scripts/revanced.py tools
+
+      - name: Restore optional signing keystore
+        env:
+          APK_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          APK_KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          APK_KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+        run: |
+          if [ -n "$APK_KEYSTORE_B64" ]; then
+            if [ -z "$APK_KEYSTORE_PASSWORD" ] || [ -z "$APK_KEYSTORE_ENTRY_PASSWORD" ]; then
+              echo "::error::APK_KEYSTORE_B64 is set, but APK_KEYSTORE_PASSWORD or APK_KEYSTORE_ENTRY_PASSWORD is missing."
+              exit 1
+            fi
+            mkdir -p .secrets
+            printf '%s' "$APK_KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > .secrets/mistu-release.jks
+            echo "KEYSTORE_FILE=.secrets/mistu-release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build ReVanced patched APKs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          REVANCED_TARGETS: ${{ inputs.targets || 'youtube,youtube-music,reddit' }}
+          REVANCED_CLI_VERSION: ${{ inputs.cli_version || 'latest' }}
+          REVANCED_PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}
+          REVANCED_PATCHES_URL: ${{ vars.REVANCED_PATCHES_URL }}
+          REVANCED_PATCHES_JSON_URL: ${{ vars.REVANCED_PATCHES_JSON_URL }}
+          REVANCED_INTEGRATIONS: ${{ vars.REVANCED_INTEGRATIONS }}
+          REVANCED_APK_SOURCE: apkmirror,apkpure
+          REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'recommended' }}
+          YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
+          YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
+          REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
+          TWITTER_APK_URL: ${{ secrets.TWITTER_APK_URL }}
+          INSTAGRAM_APK_URL: ${{ secrets.INSTAGRAM_APK_URL }}
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          SIGNER_NAME: Mistu
+        run: python scripts/revanced.py build
+
+      - name: Prepare release metadata
+        if: ${{ github.event_name == 'schedule' || inputs.create_release }}
+        env:
+          REVANCED_TARGETS: ${{ inputs.targets || 'youtube,youtube-music,reddit' }}
+          REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'recommended' }}
+          PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_date="$(date -u +'%Y-%m-%d')"
+          release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
+          tag="revanced-${release_stamp}-${GITHUB_RUN_NUMBER}"
+          release_prerelease_flag=""
+
+          case "${PATCHES_VERSION,,}" in
+            dev|pre|preview|prerelease|pre-release)
+              release_prerelease_flag="--prerelease"
+              ;;
+          esac
+
+          echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=ReVanced patched APKs ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
+
+          python scripts/revanced.py release-notes > release-notes.md
+
+      - name: Create GitHub Release
+        if: ${{ github.event_name == 'schedule' || inputs.create_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_args=()
+          if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then
+            release_args+=("$RELEASE_PRERELEASE_FLAG")
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            output/revanced/*.apk \
+            "${release_args[@]}" \
+            --title "$RELEASE_NAME" \
+            --notes-file release-notes.md
+
+      - name: Upload ReVanced patched APKs
+        if: ${{ github.event_name == 'schedule' || inputs.upload_artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: revanced-patched-apks
+          path: |
+            output/revanced/*.apk
+            output/revanced/*-result.json
+          if-no-files-found: error
+          retention-days: 1

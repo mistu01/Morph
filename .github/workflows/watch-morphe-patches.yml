@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "17 0 * * 0"
   workflow_dispatch:
+    inputs:
+      apk_fallback_to_latest:
+        description: "Fall back to latest available APK if the recommended APK version disappears"
+        required: true
+        type: boolean
+        default: false
 
 jobs:
   watch:
@@ -17,7 +23,24 @@ jobs:
       - name: Check latest Morphe patch releases
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
+          REPO_APK_FALLBACK_TO_LATEST: ${{ vars.APK_FALLBACK_TO_LATEST }}
         run: |
+          apk_fallback_to_latest="${REPO_APK_FALLBACK_TO_LATEST:-false}"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            apk_fallback_to_latest="${INPUT_APK_FALLBACK_TO_LATEST:-false}"
+          fi
+
+          case "${apk_fallback_to_latest,,}" in
+            true|1|yes|on)
+              apk_fallback_to_latest="true"
+              ;;
+            *)
+              apk_fallback_to_latest="false"
+              ;;
+          esac
+
           stable="$(gh api 'repos/MorpheApp/morphe-patches/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == false))[0].tag_name')"
           dev="$(gh api 'repos/MorpheApp/morphe-patches/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == true))[0].tag_name')"
           release_tags="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName')"
@@ -54,6 +77,7 @@ jobs:
               -f cli_version="latest" \
               -f patches_version="${patches_tag}" \
               -f apk_version_source="recommended" \
+              -f apk_fallback_to_latest="${apk_fallback_to_latest}" \
               -f force_patch="true" \
               -f continue_on_error="true" \
               -f create_release="true" \
