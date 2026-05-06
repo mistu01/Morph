@@ -95,6 +95,20 @@ APP_CONFIGS = {
         "apkmirror_type": "apk",
         "input": "input/revanced/instagram.apk",
         "output": "output/revanced/instagram-revanced.apk",
+        "default_exclude_patches": [
+            "Anonymous story viewing",
+            "Change link sharing domain",
+            "Disable Reels auto-scroll",
+            "Enable location sticker redesign",
+            "Hide Stories from Home",
+            "Hide explore feed",
+            "Hide mock location",
+            "Hide navigation buttons",
+            "Hide suggested content",
+            "Remove build expired popup",
+            "Remove share targets",
+            "Sanitize sharing links",
+        ],
     },
     "google-photos": {
         "label": "Google Photos",
@@ -818,7 +832,7 @@ def write_failure_result(app: dict, tools: dict, error: Exception) -> None:
 def patch_selection_args(app: dict, auto_includes: list[dict] | None = None) -> list[str]:
     args = []
     includes = split_csv(env(f"{app['env_prefix']}_REVANCED_INCLUDE_PATCHES") or env("REVANCED_INCLUDE_PATCHES"))
-    excludes = split_csv(env(f"{app['env_prefix']}_REVANCED_EXCLUDE_PATCHES") or env("REVANCED_EXCLUDE_PATCHES"))
+    excludes = default_excluded_patches(app)
     if truthy(env("REVANCED_EXCLUSIVE")):
         args.append("--exclusive")
     for patch in auto_includes or []:
@@ -836,6 +850,17 @@ def patch_selection_args(app: dict, auto_includes: list[dict] | None = None) -> 
     for name in excludes:
         args += ["--disable", name]
     return args
+
+
+def default_excluded_patches(app: dict) -> list[str]:
+    values = [
+        "Enable ROM signature spoofing",
+        "Hex",
+        *app.get("default_exclude_patches", []),
+        *split_csv(env("REVANCED_EXCLUDE_PATCHES")),
+        *split_csv(env(f"{app['env_prefix']}_REVANCED_EXCLUDE_PATCHES")),
+    ]
+    return unique_list(values)
 
 
 def enabled_patches_for_app(app: dict, patches: list[dict]) -> list[dict]:
