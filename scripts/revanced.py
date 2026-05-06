@@ -560,7 +560,8 @@ def patch_app(app: dict, tools: dict) -> None:
     args += patch_selection_args(app)
 
     print(f"\n==> Building ReVanced {app['label']}")
-    result = subprocess.run(args, cwd=ROOT)
+    result = run_with_tee(args)
+    patch_counts = patch_counts_from_log(result["output"])
     if result.returncode != 0 and not output.exists():
         raise RuntimeError(f"java exited with status {result.returncode}")
     success = result.returncode == 0
@@ -572,6 +573,9 @@ def patch_app(app: dict, tools: dict) -> None:
         "packageName": app["package"],
         "success": success,
         "warning": "" if success else f"ReVanced CLI exited with status {result.returncode} after producing an APK.",
+        "patchesSucceeded": patch_counts["succeeded"],
+        "patchesFailed": patch_counts["failed"],
+        "failedPatches": patch_counts["failedNames"],
         "input": str(app["input"]),
         "output": str(output),
         "patchBundle": str(tools["patches"]),
@@ -589,6 +593,9 @@ def write_failure_result(app: dict, tools: dict, error: Exception) -> None:
         "output": str(app.get("output", "")),
         "patchBundle": str(tools.get("patches", "")),
         "error": str(error),
+        "patchesSucceeded": 0,
+        "patchesFailed": 0,
+        "failedPatches": [],
         "builtAt": now(),
     })
 
@@ -623,6 +630,45 @@ def signing_args() -> list[str]:
         if value:
             args += [flag, value]
     return args
+
+
+def run_with_tee(args: list[str]) -> dict:
+    process = subprocess.Popen(
+        args,
+        cwd=ROOT,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+    )
+    lines = []
+    assert process.stdout is not None
+    for line in process.stdout:
+        print(line, end="")
+        lines.append(line)
+    returncode = process.wait()
+    return {"returncode": returncode, "output": "".join(lines)}
+
+
+def patch_counts_from_log(output: str) -> dict:
+    succeeded = []
+    failed = []
+    for line in output.splitlines():
+        success_match = re.search(r'INFO:\s+"([^"]+)"\s+succeeded\b', line)
+        if success_match:
+            succeeded.append(success_match.group(1))
+            continue
+
+        failed_match = re.search(r'SEVERE:\s+"([^"]+)"\s+failed\b', line)
+        if failed_match:
+            failed.append(failed_match.group(1))
+
+    return {
+        "succeeded": len(succeeded),
+        "failed": len(failed),
+        "succeededNames": succeeded,
+        "failedNames": failed,
+    }
 
 
 def resolve_integrations() -> str:
@@ -667,8 +713,13 @@ def print_release_notes() -> None:
             status = "successful" if output_exists else "unknown"
         version = apk_meta.get("version") or apk_meta.get("desiredVersion") or "unknown"
         source = apk_meta.get("source") or "unknown"
+        patches_succeeded = result.get("patchesSucceeded", 0)
+        patches_failed = result.get("patchesFailed", 0)
         lines.append(f"- {app['label']} {version}: {status}")
         lines.append(f"  - Package: {app['package']}")
+        lines.append(f"  - Patches: {patches_succeeded} ok, {patches_failed} failed")
+        if patches_failed and result.get("failedPatches"):
+            lines.append(f"  - Failed patches: {format_inline_list(result['failedPatches'])}")
         lines.append(f"  - Source: {source}; {Path(result.get('output', app['output'])).name if result else Path(app['output']).name}")
     print("\n".join(lines))
 
@@ -806,6 +857,15 @@ def write_json(path: Path, data: dict) -> None:
 
 def split_csv(value: str | None) -> list[str]:
     return [item.strip() for item in (value or "").split(",") if item.strip()]
+
+
+def format_inline_list(values: list[str], limit: int = 8) -> str:
+    if not values:
+        return "none"
+    shown = values[:limit]
+    remaining = len(values) - len(shown)
+    suffix = f", +{remaining} more" if remaining > 0 else ""
+    return f"{', '.join(shown)}{suffix}"
 
 
 def env(name: str) -> str:
