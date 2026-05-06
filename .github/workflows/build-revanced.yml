@@ -107,6 +107,7 @@ jobs:
           REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
           REVANCED_FORCE_PATCH: ${{ inputs.force_patch || 'true' }}
           REVANCED_CONTINUE_ON_ERROR: ${{ inputs.continue_on_error || 'true' }}
+          REVANCED_USE_CUSTOM_KEYSTORE: ${{ vars.REVANCED_USE_CUSTOM_KEYSTORE || 'false' }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
           REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}

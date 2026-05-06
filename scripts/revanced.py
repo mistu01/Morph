@@ -63,8 +63,8 @@ APP_CONFIGS = {
         "apkmirror_arch": "universal",
         "apkmirror_fallback_arch": "arm64-v8a",
         "apkmirror_dpi": "120-640dpi",
-        "apkmirror_type": "bundle",
-        "input": "input/revanced/reddit.apkm",
+        "apkmirror_type": "apk",
+        "input": "input/revanced/reddit.apk",
         "output": "output/revanced/reddit-revanced.apk",
     },
     "twitter": {
@@ -77,8 +77,8 @@ APP_CONFIGS = {
         "apkmirror_arch": "universal",
         "apkmirror_fallback_arch": "arm64-v8a",
         "apkmirror_dpi": "nodpi",
-        "apkmirror_type": "bundle",
-        "input": "input/revanced/twitter.apkm",
+        "apkmirror_type": "apk",
+        "input": "input/revanced/twitter.apk",
         "output": "output/revanced/twitter-revanced.apk",
     },
     "instagram": {
@@ -91,8 +91,8 @@ APP_CONFIGS = {
         "apkmirror_arch": "universal",
         "apkmirror_fallback_arch": "arm64-v8a",
         "apkmirror_dpi": "nodpi",
-        "apkmirror_type": "bundle",
-        "input": "input/revanced/instagram.apkm",
+        "apkmirror_type": "apk",
+        "input": "input/revanced/instagram.apk",
         "output": "output/revanced/instagram-revanced.apk",
     },
 }
@@ -398,6 +398,8 @@ def ensure_input(app: dict, patches: list[dict], force: bool = False) -> None:
         try:
             metadata = download_from_source(app, apk_source, version)
             downloaded = Path(metadata["path"]).resolve()
+            if downloaded.suffix.lower() != ".apk":
+                raise RuntimeError(f"{apk_source} downloaded {downloaded.suffix or 'a non-APK file'}, but ReVanced CLI requires a plain .apk input.")
             destination = replace_extension(destination, downloaded.suffix or ".apk")
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.unlink(missing_ok=True)
@@ -480,12 +482,18 @@ def patch_app(app: dict, tools: dict) -> None:
     args += patch_selection_args(app)
 
     print(f"\n==> Building ReVanced {app['label']}")
-    run(args)
+    result = subprocess.run(args, cwd=ROOT)
+    if result.returncode != 0 and not output.exists():
+        raise RuntimeError(f"java exited with status {result.returncode}")
+    success = result.returncode == 0
+    if not success:
+        print(f"warning: ReVanced CLI exited with status {result.returncode}, but {relative(output)} was produced.", file=sys.stderr)
     write_json(result_file_for(app), {
         "app": app["id"],
         "label": app["label"],
         "packageName": app["package"],
-        "success": True,
+        "success": success,
+        "warning": "" if success else f"ReVanced CLI exited with status {result.returncode} after producing an APK.",
         "input": str(app["input"]),
         "output": str(output),
         "patchBundle": str(tools["patches"]),
@@ -521,6 +529,9 @@ def patch_selection_args(app: dict) -> list[str]:
 
 
 def signing_args() -> list[str]:
+    if not truthy(env("REVANCED_USE_CUSTOM_KEYSTORE")):
+        return []
+
     args = []
     mapping = [
         ("KEYSTORE_FILE", "--keystore"),
@@ -569,10 +580,13 @@ def print_release_notes() -> None:
     for app in apps:
         apk_meta = read_json(metadata_file_for(app))
         result = read_json(result_file_for(app))
-        if result.get("success") is False:
+        output_exists = result and Path(result.get("output", "")).exists()
+        if output_exists and result.get("success") is False:
+            status = f"successful with warnings ({result.get('warning', 'ReVanced CLI reported failures')})"
+        elif result.get("success") is False:
             status = f"failed ({result.get('error', 'unknown error')})"
         else:
-            status = "successful" if result and Path(result.get("output", "")).exists() else "unknown"
+            status = "successful" if output_exists else "unknown"
         version = apk_meta.get("version") or apk_meta.get("desiredVersion") or "unknown"
         source = apk_meta.get("source") or "unknown"
         lines.append(f"- {app['label']} {version}: {status}")
