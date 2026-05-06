@@ -233,6 +233,7 @@ def load_patches_metadata(tools: dict) -> list[dict]:
                 "warning: ReVanced patch metadata unavailable; falling back from recommended APK versions to latest APKs.",
                 file=sys.stderr,
             )
+            os.environ["REVANCED_APK_VERSION_SOURCE"] = "latest"
         return []
 
     raise RuntimeError(
