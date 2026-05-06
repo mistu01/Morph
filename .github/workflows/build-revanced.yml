@@ -21,6 +21,11 @@ on:
         description: "APK version source: recommended, latest, or an explicit version"
         required: true
         default: "latest"
+      apk_fallback_to_latest:
+        description: "Fall back to latest APK if the recommended APK is unavailable"
+        required: true
+        type: boolean
+        default: true
       force_patch:
         description: "Pass --force to skip ReVanced APK version compatibility checks"
         required: true
@@ -105,8 +110,9 @@ jobs:
           REVANCED_INTEGRATIONS: ${{ vars.REVANCED_INTEGRATIONS }}
           REVANCED_APK_SOURCE: apkmirror,apkpure
           REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
-          REVANCED_FORCE_PATCH: ${{ inputs.force_patch || 'true' }}
-          REVANCED_CONTINUE_ON_ERROR: ${{ inputs.continue_on_error || 'true' }}
+          REVANCED_APK_FALLBACK_TO_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.apk_fallback_to_latest == false && 'false' || 'true' }}
+          REVANCED_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_patch == false && 'false' || 'true' }}
+          REVANCED_CONTINUE_ON_ERROR: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_on_error == false && 'false' || 'true' }}
           REVANCED_USE_CUSTOM_KEYSTORE: ${{ vars.REVANCED_USE_CUSTOM_KEYSTORE || 'false' }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
@@ -125,8 +131,9 @@ jobs:
         env:
           REVANCED_TARGETS: ${{ inputs.targets || 'youtube,youtube-music,reddit,twitter,instagram,google-photos' }}
           REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
-          REVANCED_FORCE_PATCH: ${{ inputs.force_patch || 'true' }}
-          REVANCED_CONTINUE_ON_ERROR: ${{ inputs.continue_on_error || 'true' }}
+          REVANCED_APK_FALLBACK_TO_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.apk_fallback_to_latest == false && 'false' || 'true' }}
+          REVANCED_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_patch == false && 'false' || 'true' }}
+          REVANCED_CONTINUE_ON_ERROR: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_on_error == false && 'false' || 'true' }}
           PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}
           GH_TOKEN: ${{ github.token }}
         run: |

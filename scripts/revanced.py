@@ -540,7 +540,8 @@ def ensure_input(app: dict, patches: list[dict], force: bool = False) -> None:
     source = revanced_apk_version_source()
     explicit = env(f"{app['env_prefix']}_APK_VERSION")
     version = explicit or ("" if source == "latest" else source if re.match(r"^\d+(?:\.\d+)+$", source) else recommended_version(app, patches))
-    if source == "recommended" and not version:
+    can_fallback_to_latest = source == "recommended" and not explicit and revanced_apk_fallback_to_latest()
+    if source == "recommended" and not version and not can_fallback_to_latest:
         raise RuntimeError(f"No recommended ReVanced APK version found for {app['label']} in patch metadata.")
 
     destination = Path(app["input"])
@@ -549,30 +550,44 @@ def ensure_input(app: dict, patches: list[dict], force: bool = False) -> None:
         print(f"{app['label']} input already exists at {relative(destination)}")
         return
 
-    errors = []
-    for apk_source in split_csv(env("REVANCED_APK_SOURCE") or env("APK_SOURCE") or "apkmirror,apkpure"):
-        try:
-            metadata = download_from_source(app, apk_source, version)
-            downloaded = Path(metadata["path"]).resolve()
-            input_apk = apk_input_from_download(app, downloaded, output_dir=downloaded.parent)
-            destination = replace_extension(destination, ".apk")
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.unlink(missing_ok=True)
-            shutil.move(str(input_apk), destination)
-            write_json(metadata_file, {
-                **metadata,
-                "app": app["id"],
-                "packageName": app["package"],
-                "desiredVersion": version or "latest",
-                "destination": str(destination),
-                "extractedFrom": str(downloaded) if downloaded != input_apk else "",
-                "downloadedAt": now(),
-            })
-            app["input"] = str(destination)
-            return
-        except Exception as error:
-            errors.append(f"{apk_source}: {error}")
-    raise RuntimeError(f"{app['label']} APK could not be downloaded. {' | '.join(errors)}")
+    candidates = [(version, "recommended" if version else "latest")]
+    if can_fallback_to_latest and version:
+        candidates.append(("", "latest-fallback"))
+
+    all_errors = []
+    for candidate_version, candidate_reason in candidates:
+        if candidate_reason == "latest" and source == "recommended":
+            print(f"warning: No recommended APK version found for {app['label']}; falling back to latest APK.", file=sys.stderr)
+        elif candidate_reason == "latest-fallback":
+            print(f"warning: Falling back to latest {app['label']} APK after recommended version {version} was unavailable.", file=sys.stderr)
+
+        errors = []
+        for apk_source in split_csv(env("REVANCED_APK_SOURCE") or env("APK_SOURCE") or "apkmirror,apkpure"):
+            try:
+                metadata = download_from_source(app, apk_source, candidate_version)
+                downloaded = Path(metadata["path"]).resolve()
+                input_apk = apk_input_from_download(app, downloaded, output_dir=downloaded.parent)
+                destination = replace_extension(destination, ".apk")
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.unlink(missing_ok=True)
+                shutil.move(str(input_apk), destination)
+                write_json(metadata_file, {
+                    **metadata,
+                    "app": app["id"],
+                    "packageName": app["package"],
+                    "desiredVersion": candidate_version or "latest",
+                    "recommendedVersion": version if source == "recommended" else "",
+                    "fallbackToLatest": candidate_reason in {"latest", "latest-fallback"} and source == "recommended",
+                    "destination": str(destination),
+                    "extractedFrom": str(downloaded) if downloaded != input_apk else "",
+                    "downloadedAt": now(),
+                })
+                app["input"] = str(destination)
+                return
+            except Exception as error:
+                errors.append(f"{apk_source}: {error}")
+        all_errors.append(f"{candidate_reason}: {' | '.join(errors)}")
+    raise RuntimeError(f"{app['label']} APK could not be downloaded. {' || '.join(all_errors)}")
 
 
 def download_from_source(app: dict, source: str, version: str) -> dict:
@@ -853,6 +868,7 @@ def print_release_notes() -> None:
         f"- ReVanced CLI: {cli_meta.get('tag', env('REVANCED_CLI_VERSION') or 'latest')}",
         f"- ReVanced patches: {patches_meta.get('tag', env('REVANCED_PATCHES_VERSION') or 'latest')}",
         f"- APK version source: {env('REVANCED_APK_VERSION_SOURCE') or env('APK_VERSION_SOURCE') or 'recommended'}",
+        f"- Recommended APK fallback to latest: {'enabled' if revanced_apk_fallback_to_latest() else 'disabled'}",
         f"- Force patch: {'enabled' if truthy(env('REVANCED_FORCE_PATCH')) or truthy(env('FORCE_PATCH')) else 'disabled'}",
         f"- Continue on error: {'enabled' if truthy(env('REVANCED_CONTINUE_ON_ERROR')) else 'disabled'}",
         "",
@@ -1031,6 +1047,10 @@ def split_csv(value: str | None) -> list[str]:
 
 def revanced_apk_version_source() -> str:
     return (env("REVANCED_APK_VERSION_SOURCE") or env("APK_VERSION_SOURCE") or "latest").lower()
+
+
+def revanced_apk_fallback_to_latest() -> bool:
+    return truthy(env("REVANCED_APK_FALLBACK_TO_LATEST") or env("APK_FALLBACK_TO_LATEST"))
 
 
 def format_inline_list(values: list[str], limit: int = 8) -> str:
