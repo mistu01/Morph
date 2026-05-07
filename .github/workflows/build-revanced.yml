@@ -31,6 +31,11 @@ on:
         required: true
         type: boolean
         default: true
+      instagram_aggressive_patches:
+        description: "Force-enable Instagram disabled patches, including patches skipped by conservative defaults"
+        required: true
+        type: boolean
+        default: false
       force_patch:
         description: "Pass --force to skip ReVanced APK version compatibility checks"
         required: true
@@ -117,6 +122,7 @@ jobs:
           REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
           REVANCED_APK_FALLBACK_TO_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.apk_fallback_to_latest == false && 'false' || 'true' }}
           REVANCED_ENABLE_DISABLED_PATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_disabled_patches == false && 'false' || 'true' }}
+          INSTAGRAM_REVANCED_AGGRESSIVE_PATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.instagram_aggressive_patches == true && 'true' || 'false' }}
           REVANCED_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_patch == false && 'false' || 'true' }}
           REVANCED_CONTINUE_ON_ERROR: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_on_error == false && 'false' || 'true' }}
           REVANCED_USE_CUSTOM_KEYSTORE: ${{ vars.REVANCED_USE_CUSTOM_KEYSTORE || 'false' }}
@@ -139,6 +145,7 @@ jobs:
           REVANCED_APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'latest' }}
           REVANCED_APK_FALLBACK_TO_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.apk_fallback_to_latest == false && 'false' || 'true' }}
           REVANCED_ENABLE_DISABLED_PATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.enable_disabled_patches == false && 'false' || 'true' }}
+          INSTAGRAM_REVANCED_AGGRESSIVE_PATCHES: ${{ github.event_name == 'workflow_dispatch' && inputs.instagram_aggressive_patches == true && 'true' || 'false' }}
           REVANCED_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.force_patch == false && 'false' || 'true' }}
           REVANCED_CONTINUE_ON_ERROR: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_on_error == false && 'false' || 'true' }}
           PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}

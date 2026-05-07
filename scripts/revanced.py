@@ -854,6 +854,12 @@ def patch_selection_args(app: dict, auto_includes: list[dict] | None = None) -> 
 
 
 def default_excluded_patches(app: dict) -> list[str]:
+    if app["id"] == "instagram" and instagram_aggressive_patches():
+        return unique_list([
+            *split_csv(env("REVANCED_EXCLUDE_PATCHES")),
+            *split_csv(env(f"{app['env_prefix']}_REVANCED_EXCLUDE_PATCHES")),
+        ])
+
     values = [
         "Enable ROM signature spoofing",
         "Hex",
@@ -866,7 +872,9 @@ def default_excluded_patches(app: dict) -> list[str]:
 
 def enabled_patches_for_app(app: dict, patches: list[dict]) -> list[dict]:
     override = env(f"{app['env_prefix']}_REVANCED_ENABLE_DISABLED_PATCHES")
-    if override:
+    if app["id"] == "instagram" and instagram_aggressive_patches():
+        enabled = True
+    elif override:
         enabled = truthy(override)
     else:
         enabled = revanced_enable_disabled_patches() and app.get("auto_enable_disabled_patches", True) is not False
@@ -978,6 +986,7 @@ def print_release_notes() -> None:
         f"- APK version source: {env('REVANCED_APK_VERSION_SOURCE') or env('APK_VERSION_SOURCE') or 'recommended'}",
         f"- Recommended APK fallback to latest: {'enabled' if revanced_apk_fallback_to_latest() else 'disabled'}",
         f"- Enable disabled compatible patches: {'enabled' if revanced_enable_disabled_patches() else 'disabled'}",
+        f"- Instagram aggressive patches: {'enabled' if instagram_aggressive_patches() else 'disabled'}",
         f"- Force patch: {'enabled' if truthy(env('REVANCED_FORCE_PATCH')) or truthy(env('FORCE_PATCH')) else 'disabled'}",
         f"- Continue on error: {'enabled' if truthy(env('REVANCED_CONTINUE_ON_ERROR')) else 'disabled'}",
         "",
@@ -1164,6 +1173,10 @@ def revanced_apk_fallback_to_latest() -> bool:
 
 def revanced_enable_disabled_patches() -> bool:
     return truthy(env("REVANCED_ENABLE_DISABLED_PATCHES"))
+
+
+def instagram_aggressive_patches() -> bool:
+    return truthy(env("INSTAGRAM_REVANCED_AGGRESSIVE_PATCHES") or env("REVANCED_INSTAGRAM_AGGRESSIVE_PATCHES"))
 
 
 def unique_list(values: list[str]) -> list[str]:
