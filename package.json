@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Automation wrapper for patching YouTube, YouTube Music, and Reddit APKs with Morphe patches.",
+  "description": "Automation wrapper for patching Android APKs with Morphe patch bundles.",
   "scripts": {
     "build": "node scripts/morphe.mjs build",
     "download": "node scripts/morphe.mjs download",

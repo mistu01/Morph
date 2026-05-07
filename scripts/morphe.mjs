@@ -39,6 +39,44 @@ const rootEnabledPatches = new Set([
 ]);
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
 const rootBuild = truthy(env("ROOT_BUILD"));
+const defaultTargets = ["youtube", "youtube-music", "reddit"];
+const deRevancedSupportedApps = [
+  ["amazon-shopping", { label: "Amazon Shopping", packageName: "com.amazon.mShop.android.shopping" }],
+  ["amazon-music", { label: "Amazon Music", packageName: "com.amazon.mp3" }],
+  ["angulus", { label: "Angulus", packageName: "com.drinkplusplus.angulus" }],
+  ["bandcamp", { label: "Bandcamp", packageName: "com.bandcamp.android" }],
+  ["cricbuzz", { label: "Cricbuzz", packageName: "com.cricbuzz.android" }],
+  ["disney-plus", { label: "Disney+", packageName: "com.disney.disneyplus" }],
+  ["facebook", { label: "Facebook", packageName: "com.facebook.katana" }],
+  ["gmx-mail", { label: "GMX Mail", packageName: "de.gmx.mobile.android.mail" }],
+  ["google-news", { label: "Google News", packageName: "com.google.android.apps.magazines" }],
+  ["google-photos", { label: "Google Photos", packageName: "com.google.android.apps.photos" }],
+  ["google-recorder", { label: "Google Recorder", packageName: "com.google.android.apps.recorder" }],
+  ["hex-editor", { label: "Hex Editor", packageName: "com.myprog.hexedit" }],
+  ["icon-pack-studio", { label: "Icon Pack Studio", packageName: "ginlemon.iconpackstudio" }],
+  ["inshorts", { label: "Inshorts", packageName: "com.nis.app" }],
+  ["irplus", { label: "irplus", packageName: "net.binarymode.android.irplus" }],
+  ["letterboxd", { label: "Letterboxd", packageName: "com.letterboxd.letterboxd" }],
+  ["messenger", { label: "Messenger", packageName: "com.facebook.orca" }],
+  ["microsoft-lens", { label: "Microsoft Lens", packageName: "com.microsoft.office.officelens" }],
+  ["nothing-x", { label: "Nothing X", packageName: "com.nothing.smartcenter" }],
+  ["nu-nl", { label: "NU.nl", packageName: "nl.sanomamedia.android.nu" }],
+  ["peacock-tv", { label: "Peacock TV", packageName: "com.peacocktv.peacockandroid" }],
+  ["photomath", { label: "Photomath", packageName: "com.microblink.photomath" }],
+  ["photoshop-mix", { label: "Photoshop Mix", packageName: "com.adobe.photoshopmix", apkpureSlug: "adobe-photoshop-mix" }],
+  ["pixiv", { label: "Pixiv", packageName: "jp.pxv.android" }],
+  ["proton-mail", { label: "Proton Mail", packageName: "ch.protonmail.android" }],
+  ["rar", { label: "RAR", packageName: "com.rarlab.rar" }],
+  ["soundcloud", { label: "SoundCloud", packageName: "com.soundcloud.android" }],
+  ["strava", { label: "Strava", packageName: "com.strava" }],
+  ["threads", { label: "Threads", packageName: "com.instagram.barcelona" }],
+  ["tiktok-jp", { label: "TikTok (JP)", packageName: "com.ss.android.ugc.trill", apkpureSlug: "tiktok-jp" }],
+  ["tiktok", { label: "TikTok", packageName: "com.zhiliaoapp.musically" }],
+  ["tumblr", { label: "Tumblr", packageName: "com.tumblr" }],
+  ["twitch", { label: "Twitch", packageName: "tv.twitch.android.app" }],
+  ["viber", { label: "Viber", packageName: "com.viber.voip" }],
+];
+const deRevancedTargetIds = deRevancedSupportedApps.map(([id]) => id);
 
 const appConfigs = {
   youtube: {
@@ -159,6 +197,13 @@ const appConfigs = {
     rootModuleName: "Mistu Instagram Root",
     rootApkPath: "system/app/Instagram/Instagram.apk",
   },
+  ...Object.fromEntries(deRevancedSupportedApps.map(([id, config]) => [id, apkOnlyAppConfig(id, config)])),
+};
+
+const targetAliases = {
+  "de-revanced": deRevancedTargetIds,
+  "de-revanced-all": deRevancedTargetIds,
+  derevanced: deRevancedTargetIds,
 };
 
 const releaseAssets = {
@@ -185,6 +230,42 @@ const apkeepTool = {
   output: fromRoot(".cache/tools", process.platform === "win32" ? "apkeep.exe" : "apkeep"),
   meta: fromRoot(".cache/tools/apkeep.json"),
 };
+
+function apkOnlyAppConfig(id, config) {
+  const envPrefix = envPrefixFor(id);
+  const apkpureSlug = config.apkpureSlug || id;
+  const rootOutput = `output/root/${id}-root.apk`;
+  const standardOutput = `output/${id}-patched.apk`;
+  const rootOptions = `config/root/${id}-options.json`;
+  const standardOptions = `config/${id}-options.json`;
+  const rootResult = `output/root/${id}-result.json`;
+  const standardResult = `output/${id}-result.json`;
+
+  return {
+    id,
+    label: config.label,
+    apkpureName: config.apkpureName || config.label,
+    packageName: config.packageName,
+    apkpureSlug,
+    apkpurePage: config.apkpurePage || `https://apkpure.com/${apkpureSlug}/${config.packageName}`,
+    apkmirrorOrg: config.apkmirrorOrg,
+    apkmirrorRepo: config.apkmirrorRepo,
+    apkmirrorType: env(`${envPrefix}_APKMIRROR_TYPE`) || config.apkmirrorType,
+    apkmirrorArch: env(`${envPrefix}_APKMIRROR_ARCH`) || env("APKMIRROR_ARCH") || config.apkmirrorArch || "universal",
+    apkmirrorFallbackArch: env(`${envPrefix}_APKMIRROR_FALLBACK_ARCH`) || env("APKMIRROR_FALLBACK_ARCH") || config.apkmirrorFallbackArch,
+    apkmirrorDpi: env(`${envPrefix}_APKMIRROR_DPI`) || env("APKMIRROR_DPI") || config.apkmirrorDpi || "nodpi",
+    patchedPackageName: env(`${envPrefix}_PATCHED_PACKAGE_NAME`),
+    requestedVersion: env(`${envPrefix}_APK_VERSION`),
+    input: envPath(`${envPrefix}_APK`, `input/${id}.apk`),
+    url: env(`${envPrefix}_APK_URL`),
+    output: envPath(`${envPrefix}_OUT`, rootBuild ? rootOutput : standardOutput),
+    options: envPath(`${envPrefix}_OPTIONS`, rootBuild ? rootOptions : standardOptions),
+    result: envPath(`${envPrefix}_RESULT`, rootBuild ? rootResult : standardResult),
+    rootModuleId: `mistu_${id.replaceAll("-", "_")}_root`,
+    rootModuleName: `Mistu ${config.label} Root`,
+    rootApkPath: `system/app/${id}/${id}.apk`,
+  };
+}
 
 main().catch((error) => {
   console.error(`\nerror: ${error.message}`);
@@ -230,48 +311,86 @@ async function main() {
 async function build() {
   checkJava();
   const tools = await ensureTools(flag("refresh-tools"));
+  const continueOnError = shouldContinueBuildOnError();
+  const failures = [];
   mkdirSync(paths.output, { recursive: true });
   mkdirSync(paths.tmp, { recursive: true });
 
   for (const app of selectedApps()) {
-    await ensureInput(app);
-    await ensurePatchOptions(app, tools);
-    const patchArgs = patchArgsFor(app);
-    const temporaryFilesPath = fromRoot(`.cache/tmp/${app.id}`);
-    mkdirSync(dirname(app.output), { recursive: true });
-    mkdirSync(dirname(app.result), { recursive: true });
-    mkdirSync(temporaryFilesPath, { recursive: true });
-
-    const args = [
-      "-jar",
-      tools.cli,
-      "patch",
-      "--patches",
-      tools.patches,
-      "--out",
-      app.output,
-      "--result-file",
-      app.result,
-      "--temporary-files-path",
-      temporaryFilesPath,
-      "--purge",
-    ];
-
-    appendSigningArgs(args);
-
-    if (existsSync(app.options) && (!rootBuild || truthy(env("ROOT_ALLOW_OPTIONS_FILE")))) {
-      args.push("--options-file", app.options);
-      if (truthy(env("MORPHE_OPTIONS_UPDATE"))) args.push("--options-update");
-    } else if (rootBuild && existsSync(app.options)) {
-      console.log(`${app.label}: ignoring ${relative(app.options)} for root build so Morphe default patches stay enabled.`);
+    try {
+      await buildApp(app, tools);
+    } catch (error) {
+      await writeBuildFailure(app, error);
+      if (!continueOnError) throw error;
+      failures.push(`${app.label}: ${error.message}`);
+      console.warn(`warning: ${app.label} failed: ${error.message}`);
     }
-
-    args.push(...patchArgs, app.input);
-
-    console.log(`\n==> Building ${app.label}`);
-    run("java", args);
-    if (rootBuild) await assertRootPackageName(app);
   }
+
+  if (failures.length) {
+    console.warn("warning: one or more Morphe targets failed:");
+    for (const failure of failures) console.warn(`warning: - ${failure}`);
+  }
+}
+
+async function buildApp(app, tools) {
+  await ensureInput(app);
+  await ensurePatchOptions(app, tools);
+  const patchArgs = patchArgsFor(app);
+  const temporaryFilesPath = fromRoot(`.cache/tmp/${app.id}`);
+  mkdirSync(dirname(app.output), { recursive: true });
+  mkdirSync(dirname(app.result), { recursive: true });
+  mkdirSync(temporaryFilesPath, { recursive: true });
+
+  const args = [
+    "-jar",
+    tools.cli,
+    "patch",
+    "--patches",
+    tools.patches,
+    "--out",
+    app.output,
+    "--result-file",
+    app.result,
+    "--temporary-files-path",
+    temporaryFilesPath,
+    "--purge",
+  ];
+
+  appendSigningArgs(args);
+
+  if (existsSync(app.options) && (!rootBuild || truthy(env("ROOT_ALLOW_OPTIONS_FILE")))) {
+    args.push("--options-file", app.options);
+    if (truthy(env("MORPHE_OPTIONS_UPDATE"))) args.push("--options-update");
+  } else if (rootBuild && existsSync(app.options)) {
+    console.log(`${app.label}: ignoring ${relative(app.options)} for root build so Morphe default patches stay enabled.`);
+  }
+
+  args.push(...patchArgs, app.input);
+
+  console.log(`\n==> Building ${app.label}`);
+  run("java", args);
+  if (rootBuild) await assertRootPackageName(app);
+}
+
+async function writeBuildFailure(app, error) {
+  mkdirSync(dirname(app.result), { recursive: true });
+  const existing = await readJson(app.result);
+  await writeJson(app.result, {
+    ...(existing || {}),
+    app: app.id,
+    label: app.label,
+    packageName: existing?.packageName || app.packageName,
+    success: false,
+    error: existing?.error || error.message,
+    input: app.input,
+    output: app.output,
+    builtAt: existing?.builtAt || new Date().toISOString(),
+  });
+}
+
+function shouldContinueBuildOnError() {
+  return truthy(env("MORPHE_CONTINUE_ON_ERROR")) || passthroughArgs.includes("--continue-on-error");
 }
 
 async function assertRootPackageName(app) {
@@ -477,16 +596,18 @@ async function selectedPatchReleaseTag() {
 }
 
 async function printVersions() {
+  const patchesRepo = releaseAssets.patches.repo;
   const [cliRelease, patchesRelease, patchesDevRelease, patchesList] = await Promise.all([
     githubJson("https://api.github.com/repos/MorpheApp/morphe-cli/releases/latest"),
-    githubReleaseForVersion("MorpheApp/morphe-patches", "stable"),
-    githubReleaseForVersion("MorpheApp/morphe-patches", "dev", { prereleaseKeyword: true }),
+    githubReleaseForVersion(patchesRepo, "stable"),
+    githubReleaseForVersion(patchesRepo, "dev", { prereleaseKeyword: true }).catch(() => null),
     fetchPatchesList(),
   ]);
 
   console.log(`Morphe CLI latest: ${cliRelease.tag_name}`);
+  console.log(`Morphe patches repo: ${patchesRepo}`);
   console.log(`Morphe patches stable: ${patchesRelease.tag_name}`);
-  console.log(`Morphe patches dev: ${patchesDevRelease.tag_name}`);
+  console.log(`Morphe patches dev: ${patchesDevRelease?.tag_name || "none"}`);
   console.log(`Patch list version: ${patchesList.version}`);
 
   for (const app of Object.values(appConfigs)) {
@@ -561,6 +682,7 @@ async function printReleaseNotes() {
   lines.push("");
   lines.push(`- Targets: ${apps.map((app) => app.label).join(", ")}`);
   lines.push(`- Morphe CLI: ${cliMeta?.tag || env("MORPHE_CLI_VERSION") || "latest"}`);
+  lines.push(`- Morphe patches repo: ${releaseAssets.patches.repo}`);
   lines.push(`- Morphe patches: ${patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest"}`);
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
@@ -611,18 +733,27 @@ async function printReleaseNotes() {
 
 function selectedApps() {
   const explicitTargets = optionValues("target").concat(optionValues("targets"));
-  const targets = (explicitTargets.length
+  const requestedTargets = (explicitTargets.length
     ? explicitTargets
-    : splitTargets(env("BUILD_TARGETS") || "youtube,youtube-music,reddit"))
+    : splitTargets(env("BUILD_TARGETS") || defaultTargets.join(",")))
     .filter(Boolean);
+  const targets = requestedTargets.flatMap(expandTargetAlias);
 
   const uniqueTargets = [...new Set(targets)];
   const unknown = uniqueTargets.filter((target) => !appConfigs[target]);
   if (unknown.length) {
-    throw new Error(`Unknown target(s): ${unknown.join(", ")}. Valid targets: ${Object.keys(appConfigs).join(", ")}`);
+    throw new Error(
+      `Unknown target(s): ${unknown.join(", ")}. ` +
+      `Valid targets: ${Object.keys(appConfigs).join(", ")}. ` +
+      `Aliases: ${Object.keys(targetAliases).join(", ")}`,
+    );
   }
 
   return uniqueTargets.map((target) => appConfigs[target]);
+}
+
+function expandTargetAlias(target) {
+  return targetAliases[target.toLowerCase()] || [target];
 }
 
 function apkSources() {
@@ -842,7 +973,7 @@ function allCompatiblePackageEntriesFor(patch) {
 function compatibleVersionsFromEntry(entry, { includeExperimental = includeExperimentalTargets() } = {}) {
   if (Array.isArray(entry?.targets)) {
     return entry.targets
-      .filter((target) => includeExperimental || !target?.isExperimental)
+      .filter((target) => includeExperimental || !(target?.isExperimental || target?.experimental))
       .map((target) => target?.version)
       .filter(Boolean);
   }
@@ -1489,6 +1620,10 @@ async function downloadWithPythonApkmirror(
     forcePatchRequired = false,
   },
 ) {
+  if (!app.apkmirrorOrg || !app.apkmirrorRepo) {
+    throw new Error(`${app.label}: APKMirror metadata is not configured.`);
+  }
+
   const requestedLabel = selectedVersion || "latest";
 
   if (
@@ -1939,9 +2074,9 @@ function clean() {
 
 function printHelp() {
   console.log(`Usage:
-  node scripts/morphe.mjs build [--target youtube] [--target youtube-music] [--target reddit] [-- <morphe-cli patch args>]
-  node scripts/morphe.mjs download [--target youtube] [--target youtube-music] [--target reddit] [--force-download]
-  node scripts/morphe.mjs options [--target youtube] [--target youtube-music] [--target reddit]
+  node scripts/morphe.mjs build [--target youtube] [--target de-revanced-all] [-- <morphe-cli patch args>]
+  node scripts/morphe.mjs download [--target youtube] [--target de-revanced-all] [--force-download]
+  node scripts/morphe.mjs options [--target youtube] [--target reddit]
   node scripts/morphe.mjs tools [--refresh-tools]
   node scripts/morphe.mjs versions
   node scripts/morphe.mjs release-notes
@@ -1950,8 +2085,11 @@ function printHelp() {
 
 Environment:
   BUILD_TARGETS              Comma-separated targets. Defaults to youtube,youtube-music,reddit.
+                             Use de-revanced-all to build every De-ReVanced supported app.
   MORPHE_CLI_VERSION         Release tag such as v1.7.0, or latest.
   MORPHE_PATCHES_VERSION     stable, dev, latest, or a release tag such as v1.24.0.
+  MORPHE_PATCHES_REPO        Patch bundle repo. Defaults to MorpheApp/morphe-patches.
+                             Use RookieEnough/De-ReVanced for De-ReVanced.
   YOUTUBE_APK                Local input path for YouTube.
   YOUTUBE_MUSIC_APK          Local input path for YouTube Music.
   REDDIT_APK                 Local input path for Reddit.
@@ -1986,6 +2124,7 @@ Environment:
   ROOT_MODULE_VERSION         Optional module version label. Defaults to current UTC date.
   ROOT_MODULE_VERSION_CODE    Optional numeric module versionCode.
   AUTO_UPDATE_APKS           Set to 1 to refresh existing APK downloads during build.
+  MORPHE_CONTINUE_ON_ERROR   Set to 1 to keep building later targets after a target fails.
   PYTHON_BIN                 Python executable for the APKPure downloader. Defaults to python.
   KEYSTORE_FILE              Optional signing keystore path.
   MORPHE_EXTRA_ARGS_JSON     Optional JSON array of extra patch args.`);
@@ -2066,13 +2205,17 @@ function relative(file) {
   return file.replace(`${root}\\`, "").replace(`${root}/`, "");
 }
 
+function envPrefixFor(id) {
+  return id.replaceAll("-", "_").toUpperCase();
+}
+
 function envNameFor(id) {
   const names = {
     youtube: "YOUTUBE_APK",
     "youtube-music": "YOUTUBE_MUSIC_APK",
     reddit: "REDDIT_APK",
   };
-  return names[id] || `${id.replaceAll("-", "_").toUpperCase()}_APK`;
+  return names[id] || `${envPrefixFor(id)}_APK`;
 }
 
 function truthy(value) {
