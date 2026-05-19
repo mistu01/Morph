@@ -37,6 +37,7 @@ const rootDisabledPatches = new Set([
 const rootEnabledPatches = new Set([
   "disable play store updates",
 ]);
+const rootStockInputExtensions = new Set([".apk", ".xapk", ".apkm", ".apks"]);
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
 const rootBuild = truthy(env("ROOT_BUILD"));
 const defaultTargets = ["youtube", "youtube-music", "reddit"];
@@ -88,9 +89,10 @@ const appConfigs = {
     apkpurePage: "https://apkpure.com/youtube-2025/com.google.android.youtube",
     apkmirrorOrg: "google-inc",
     apkmirrorRepo: "youtube",
-    apkmirrorArch: env("YOUTUBE_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "universal",
-    apkmirrorFallbackArch: env("YOUTUBE_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "arm64-v8a",
-    apkmirrorDpi: env("YOUTUBE_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "nodpi",
+    apkmirrorType: env("YOUTUBE_APKMIRROR_TYPE") || env("APKMIRROR_TYPE") || "bundle",
+    apkmirrorArch: env("YOUTUBE_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a,armeabi-v7a",
+    apkmirrorFallbackArch: env("YOUTUBE_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "universal",
+    apkmirrorDpi: env("YOUTUBE_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "any",
     patchedPackageName: env("YOUTUBE_PATCHED_PACKAGE_NAME") || "com.mistu.android.youtube",
     requestedVersion: env("YOUTUBE_APK_VERSION"),
     input: envPath("YOUTUBE_APK", "input/youtube.apk"),
@@ -111,9 +113,10 @@ const appConfigs = {
     apkpurePage: "https://apkpure.com/youtube-music/com.google.android.apps.youtube.music",
     apkmirrorOrg: "google-inc",
     apkmirrorRepo: "youtube-music",
-    apkmirrorArch: env("YOUTUBE_MUSIC_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a",
-    apkmirrorFallbackArch: env("YOUTUBE_MUSIC_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "armeabi-v7a",
-    apkmirrorDpi: env("YOUTUBE_MUSIC_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "nodpi",
+    apkmirrorType: env("YOUTUBE_MUSIC_APKMIRROR_TYPE") || env("APKMIRROR_TYPE") || "bundle",
+    apkmirrorArch: env("YOUTUBE_MUSIC_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a,armeabi-v7a",
+    apkmirrorFallbackArch: env("YOUTUBE_MUSIC_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "universal",
+    apkmirrorDpi: env("YOUTUBE_MUSIC_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "any",
     patchedPackageName: env("YOUTUBE_MUSIC_PATCHED_PACKAGE_NAME") || "com.mistu.android.youtube.music",
     requestedVersion: env("YOUTUBE_MUSIC_APK_VERSION"),
     input: envPath("YOUTUBE_MUSIC_APK", "input/youtube-music.apk"),
@@ -370,7 +373,12 @@ async function buildApp(app, tools) {
 
   console.log(`\n==> Building ${app.label}`);
   run("java", args);
-  if (rootBuild) await assertRootPackageName(app);
+  if (rootBuild) {
+    await assertRootPackageName(app);
+    await renameVersionedBuildOutput(app, "root");
+  } else {
+    await renameVersionedBuildOutput(app);
+  }
 }
 
 async function writeBuildFailure(app, error) {
@@ -408,38 +416,76 @@ async function assertRootPackageName(app) {
   console.log(`${app.label}: verified root APK package name ${packageName}.`);
 }
 
+async function renameVersionedBuildOutput(app, variant = "patched") {
+  if (truthy(env("MORPHE_DISABLE_VERSIONED_OUTPUTS"))) return;
+  if (!usableFile(app.output)) return;
+
+  const appVersion = await appVersionFor(app);
+  const safeVersion = safeVersionForFile(appVersion);
+  const destination = join(dirname(app.output), `${app.id}-${safeVersion}-${variant}.apk`);
+
+  if (resolve(destination) !== resolve(app.output)) {
+    rmSync(destination, { force: true });
+    renameSync(app.output, destination);
+    app.output = destination;
+    console.log(`${app.label}: renamed APK output to ${relative(app.output)}`);
+  }
+
+  await updateBuildResultOutput(app);
+}
+
+async function updateBuildResultOutput(app) {
+  const result = await readJson(app.result);
+  if (!result) return;
+
+  await writeJson(app.result, {
+    ...result,
+    output: relative(app.output),
+    artifactName: basename(app.output),
+  });
+}
+
+async function appVersionFor(app) {
+  const result = await readJson(app.result);
+  const apkMeta = await readApkMetadata(app);
+  return result?.packageVersion || apkMeta?.version || "unknown";
+}
+
 async function packageRootModules() {
   checkJava();
   const apps = selectedApps();
   const stagingRoot = fromRoot(".cache/root-modules");
   const versionCode = releaseVersionCode();
-  const version = releaseVersionName();
 
   rmSync(stagingRoot, { recursive: true, force: true });
   mkdirSync(paths.rootModules, { recursive: true });
 
   const packaged = [];
   for (const app of apps) {
+    await resolveRootPatchedOutput(app);
+    await resolveRootStockInput(app);
+    const appVersion = await appVersionFor(app);
+    const moduleVersion = releaseVersionName(appVersion);
     if (!usableFile(app.output)) {
       throw new Error(`${app.label}: expected patched APK at ${relative(app.output)}. Run the root build first.`);
     }
-    if (!usableFile(app.input) || extname(app.input).toLowerCase() !== ".apk") {
-      throw new Error(`${app.label}: root modules need the original stock APK at ${relative(app.input)} so the package can be registered before bind mounting.`);
+    if (!usableFile(app.input) || !rootStockInputExtensions.has(extname(app.input).toLowerCase())) {
+      throw new Error(`${app.label}: root modules need the original stock APK or APK split archive at ${relative(app.input)} so the package can be registered before bind mounting.`);
     }
 
     const moduleDir = join(stagingRoot, app.id);
     createRootModule(moduleDir, {
       id: app.rootModuleId,
       name: app.rootModuleName,
-      version,
+      version: moduleVersion,
       versionCode,
       description: `${app.label} root module by mistu. Installs the patched APK with the original package name and detaches Play Store updates.`,
       apps: [app],
     });
 
-    const zip = join(paths.rootModules, `${app.id}-root-module.zip`);
+    const zip = join(paths.rootModules, `${app.id}-${safeVersionForFile(appVersion)}-root-module.zip`);
     createZip(moduleDir, zip);
-    packaged.push(zip);
+    packaged.push({ app, appVersion, file: zip });
     console.log(`${app.label}: root module written to ${relative(zip)}`);
   }
 
@@ -456,15 +502,47 @@ async function packageRootModules() {
       unregisterPlayStoreInstaller: true,
       playStoreDatabaseDetach: "best-effort when sqlite3 is available",
     },
-    modules: packaged.map((file) => relative(file)),
-    targets: apps.map((app) => ({
+    modules: packaged.map(({ file }) => relative(file)),
+    targets: packaged.map(({ app, appVersion, file }) => ({
       id: app.id,
       label: app.label,
+      version: appVersion,
       packageName: app.packageName,
       modulePath: app.rootApkPath,
       apk: relative(app.output),
+      module: relative(file),
     })),
   });
+}
+
+async function resolveRootPatchedOutput(app) {
+  if (usableFile(app.output)) return;
+
+  const result = await readJson(app.result);
+  const resultOutput = result?.output ? resolveMaybeRoot(result.output) : "";
+  if (resultOutput && usableFile(resultOutput)) {
+    app.output = resultOutput;
+    return;
+  }
+
+  if (result?.output) {
+    console.warn(`${app.label}: build result points to missing patched APK ${relative(resultOutput)}.`);
+  }
+}
+
+async function resolveRootStockInput(app) {
+  if (usableFile(app.input)) return;
+
+  const metadata = await readApkMetadata(app);
+  const metadataDestination = metadata?.destination ? resolveMaybeRoot(metadata.destination) : "";
+  if (metadataDestination && usableFile(metadataDestination)) {
+    app.input = metadataDestination;
+    return;
+  }
+
+  if (metadata?.destination) {
+    console.warn(`${app.label}: cached APK metadata points to missing stock input ${relative(metadataDestination)}.`);
+  }
 }
 
 async function downloadApks({ force = false } = {}) {
@@ -717,6 +795,7 @@ async function printReleaseNotes() {
     lines.push(`- ${app.label} ${apkVersion}: ${buildResult}; patches ${applied.length} ok, ${failed.length} failed`);
     lines.push(`  - Package: ${packageName}${sourcePackageName !== packageName ? ` (source ${sourcePackageName})` : ""}`);
     if (rootBuild) lines.push(`  - Module path: /${app.rootApkPath}`);
+    if (result?.artifactName) lines.push(`  - Artifact: ${result.artifactName}`);
     if (sourceParts.length) lines.push(`  - Source: ${sourceParts.join("; ")}`);
     lines.push(`  - Applied: ${formatPatchList(applied)}`);
     if (failed.length) lines.push(`  - Failed: ${failed.map(formatFailedPatch).join("; ")}`);
@@ -1021,7 +1100,7 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
   const entries = apps.map((app) => ({
     ...app,
     stagedPatchedApkName: `${app.id}-patched.apk`,
-    stagedStockApkName: `${app.id}-stock.apk`,
+    stagedStockDirName: app.id,
     fallbackSystemPath: rootSystemPathFor(app.rootApkPath),
   }));
   writeFileSync(join(moduleDir, "module.prop"), [
@@ -1049,7 +1128,7 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     `# ${name}`,
     "",
     "Install this ZIP with Magisk, KernelSU, KernelSU Next, or APatch, then reboot.",
-    "During installation, the module registers the original package using the stock APK, then bind-mounts the patched APK over the package base APK.",
+    "During installation, the module registers the original package using the stock APK files, then bind-mounts the patched APK over the package base APK.",
     "The module re-applies the bind mount and Play Store detach commands at boot.",
     "This keeps the launcher entry tied to the original package while running the patched APK.",
     "",
@@ -1060,12 +1139,75 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
 
   for (const app of entries) {
     const patchedDestination = join(moduleDir, "common", "patched", app.stagedPatchedApkName);
-    const stockDestination = join(moduleDir, "common", "stock", app.stagedStockApkName);
+    const stockDestination = join(moduleDir, "common", "stock", app.stagedStockDirName);
     mkdirSync(dirname(patchedDestination), { recursive: true });
-    mkdirSync(dirname(stockDestination), { recursive: true });
     copyFileSync(app.output, patchedDestination);
-    copyFileSync(app.input, stockDestination);
+    stageRootStockFiles(app, stockDestination);
   }
+}
+
+function stageRootStockFiles(app, destinationDir) {
+  rmSync(destinationDir, { recursive: true, force: true });
+  mkdirSync(destinationDir, { recursive: true });
+
+  const extension = extname(app.input).toLowerCase();
+  if (extension === ".apk") {
+    copyFileSync(app.input, join(destinationDir, "base.apk"));
+    return;
+  }
+
+  const entries = archiveApkEntries(app.input);
+  if (!entries.length) {
+    throw new Error(`${app.label}: stock archive ${relative(app.input)} did not contain any APK files.`);
+  }
+
+  const extractRoot = join(paths.tmp, "root-stock", app.id);
+  rmSync(extractRoot, { recursive: true, force: true });
+  mkdirSync(extractRoot, { recursive: true });
+
+  entries.forEach((entry, index) => {
+    extractArchiveEntry(app.input, entry, extractRoot);
+    const extracted = join(extractRoot, ...entry.split("/"));
+    if (!usableFile(extracted)) {
+      throw new Error(`${app.label}: stock archive entry ${entry} was not extracted.`);
+    }
+
+    const stagedName = stagedStockApkName(entry, index, entries.length);
+    copyFileSync(extracted, join(destinationDir, stagedName));
+  });
+}
+
+function archiveApkEntries(archive) {
+  const output = runCapture("jar", ["--list", "--file", archive]);
+  return output
+    .split(/\r?\n/)
+    .map((entry) => entry.trim().replaceAll("\\", "/"))
+    .filter(isSafeArchiveApkEntry);
+}
+
+function extractArchiveEntry(archive, entry, destinationDir) {
+  const result = spawnSync("jar", ["--extract", "--file", archive, entry], {
+    cwd: destinationDir,
+    env: process.env,
+    stdio: "inherit",
+  });
+
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`jar exited with status ${result.status}`);
+  }
+}
+
+function isSafeArchiveApkEntry(entry) {
+  if (!entry || entry.endsWith("/") || !entry.toLowerCase().endsWith(".apk")) return false;
+  if (entry.startsWith("/") || /^[a-zA-Z]:[\\/]/.test(entry)) return false;
+  return entry.split("/").every((part) => part && part !== "." && part !== "..");
+}
+
+function stagedStockApkName(entry, index, entryCount) {
+  if (entryCount === 1) return "base.apk";
+  const name = basename(entry).replace(/[^A-Za-z0-9._-]/g, "_") || `split-${index + 1}.apk`;
+  return `${String(index + 1).padStart(2, "0")}-${name}`;
 }
 
 function rootCustomizeScript(apps) {
@@ -1073,7 +1215,7 @@ function rootCustomizeScript(apps) {
     app.packageName,
     app.label,
     app.stagedPatchedApkName,
-    app.stagedStockApkName,
+    app.stagedStockDirName,
     app.fallbackSystemPath,
   ].join("|"));
 
@@ -1137,24 +1279,35 @@ function rootCustomizeScript(apps) {
     "}",
     "",
     "install_stock_package() {",
-    "  local pkg=\"$1\" label=\"$2\" stock_apk=\"$3\"",
-    "  local size session out verify_adb package_verifier",
-    "  [ -f \"$stock_apk\" ] || abort \"Missing stock APK for $label: $stock_apk\"",
+    "  local pkg=\"$1\" label=\"$2\" stock_dir=\"$3\"",
+    "  local total size session out verify_adb package_verifier apk name",
+    "  [ -d \"$stock_dir\" ] || abort \"Missing stock APK directory for $label: $stock_dir\"",
     "  uninstall_system_updates_if_needed \"$pkg\"",
     "  if [ -n \"$(pm_base_path \"$pkg\")\" ]; then",
     "    enable_package \"$pkg\"",
     "    return 0",
     "  fi",
-    "  ui_print \"  Registering original package with stock APK\"",
-    "  size=\"$(wc -c < \"$stock_apk\")\"",
+    "  ui_print \"  Registering original package with stock APK files\"",
+    "  total=0",
+    "  for apk in \"$stock_dir\"/*.apk; do",
+    "    [ -f \"$apk\" ] || continue",
+    "    size=\"$(wc -c < \"$apk\")\"",
+    "    total=$((total + size))",
+    "  done",
+    "  [ \"$total\" -gt 0 ] || abort \"No stock APK files found for $label in $stock_dir\"",
     "  verify_adb=\"$(settings get global verifier_verify_adb_installs 2>/dev/null)\"",
     "  package_verifier=\"$(settings get global package_verifier_enable 2>/dev/null)\"",
     "  settings put global verifier_verify_adb_installs 0 >/dev/null 2>&1 || true",
     "  settings put global package_verifier_enable 0 >/dev/null 2>&1 || true",
-    "  out=\"$(pm install-create --user 0 -i com.android.vending -r -S \"$size\" 2>&1)\" || { settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-create failed for $label\"; }",
+    "  out=\"$(pm install-create --user 0 -i com.android.vending -r -S \"$total\" 2>&1)\" || { settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-create failed for $label\"; }",
     "  session=\"${out#*[}\"",
     "  session=\"${session%]*}\"",
-    "  out=\"$(pm install-write -S \"$size\" \"$session\" base.apk \"$stock_apk\" 2>&1)\" || { pm install-abandon \"$session\" >/dev/null 2>&1 || true; settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-write failed for $label\"; }",
+    "  for apk in \"$stock_dir\"/*.apk; do",
+    "    [ -f \"$apk\" ] || continue",
+    "    size=\"$(wc -c < \"$apk\")\"",
+    "    name=\"${apk##*/}\"",
+    "    out=\"$(pm install-write -S \"$size\" \"$session\" \"$name\" \"$apk\" 2>&1)\" || { pm install-abandon \"$session\" >/dev/null 2>&1 || true; settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-write failed for $label ($name)\"; }",
+    "  done",
     "  out=\"$(pm install-commit \"$session\" 2>&1)\" || { settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true; settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true; ui_print \"$out\"; abort \"install-commit failed for $label\"; }",
     "  settings put global verifier_verify_adb_installs \"$verify_adb\" >/dev/null 2>&1 || true",
     "  settings put global package_verifier_enable \"$package_verifier\" >/dev/null 2>&1 || true",
@@ -1173,16 +1326,16 @@ function rootCustomizeScript(apps) {
     "}",
     "",
     "install_root_apk() {",
-    "  local pkg=\"$1\" label=\"$2\" patched_name=\"$3\" stock_name=\"$4\" fallback_path=\"$5\"",
-    "  local patched_apk stock_apk persistent_apk target_path",
+    "  local pkg=\"$1\" label=\"$2\" patched_name=\"$3\" stock_dir_name=\"$4\" fallback_path=\"$5\"",
+    "  local patched_apk stock_dir persistent_apk target_path",
     "  patched_apk=\"$MODPATH/common/patched/$patched_name\"",
-    "  stock_apk=\"$MODPATH/common/stock/$stock_name\"",
+    "  stock_dir=\"$MODPATH/common/stock/$stock_dir_name\"",
     "  persistent_apk=\"$DATA_DIR/$pkg.apk\"",
     "  [ -f \"$patched_apk\" ] || abort \"Missing patched APK for $label: $patched_apk\"",
     "",
     "  ui_print \"- App: $label\"",
     "  ui_print \"  Package: $pkg\"",
-    "  install_stock_package \"$pkg\" \"$label\" \"$stock_apk\"",
+    "  install_stock_package \"$pkg\" \"$label\" \"$stock_dir\"",
     "  target_path=\"$(pm_base_path \"$pkg\")\"",
     "  [ -n \"$target_path\" ] || abort \"Package path not found after stock registration for $label\"",
     "  cp -f \"$patched_apk\" \"$persistent_apk\"",
@@ -1416,8 +1569,8 @@ function createZip(sourceDir, destination) {
   run("jar", ["--create", "--file", destination, "-C", sourceDir, "."]);
 }
 
-function releaseVersionName() {
-  return env("ROOT_MODULE_VERSION") || new Date().toISOString().slice(0, 10);
+function releaseVersionName(fallbackVersion = "") {
+  return env("ROOT_MODULE_VERSION") || fallbackVersion || new Date().toISOString().slice(0, 10);
 }
 
 function releaseVersionCode() {
@@ -1631,7 +1784,8 @@ async function downloadWithPythonApkmirror(
     existing?.source === "apkmirror" &&
     existing?.destination &&
     existsSync(existing.destination) &&
-    (selectedVersion ? existing?.version === selectedVersion : true)
+    (selectedVersion ? existing?.version === selectedVersion : true) &&
+    existingApkmirrorInputMatches(app, existing)
   ) {
     app.input = existing.destination;
     console.log(`${app.label} ${existing.version || requestedLabel} already downloaded from APKMirror at ${relative(app.input)}`);
@@ -1696,8 +1850,11 @@ async function downloadWithPythonApkmirror(
     sourcePage: metadata.sourcePage,
     source: "apkmirror",
     directUrl: metadata.downloadUrl,
+    directUrls: metadata.downloadUrls,
     downloadPage: metadata.downloadPage,
+    downloadPages: metadata.downloadPages,
     variantPage: metadata.variantPage,
+    variantPages: metadata.variantPages,
     destination,
     version: metadata.version,
     versionCode: metadata.versionCode,
@@ -1705,6 +1862,7 @@ async function downloadWithPythonApkmirror(
     arch: metadata.arch,
     dpi: metadata.dpi,
     minAndroidVersion: metadata.minAndroidVersion,
+    variants: metadata.variants,
     desiredVersion,
     fallbackFromVersion,
     fallbackReason,
@@ -2105,11 +2263,13 @@ Environment:
   YOUTUBE_APK_VERSION        Explicit YouTube APK versionName override.
   YOUTUBE_MUSIC_APK_VERSION  Explicit YouTube Music APK versionName override.
   REDDIT_APK_VERSION         Explicit Reddit APK versionName override.
-  APKMIRROR_ARCH             Optional APKMirror architecture override.
-  APKMIRROR_DPI              Optional APKMirror DPI override. Defaults to nodpi.
-  YOUTUBE_APKMIRROR_ARCH     YouTube APKMirror architecture. Defaults to universal.
+  APKMIRROR_ARCH             Optional APKMirror architecture override. Comma-separated values
+                             are combined when APKMIRROR_TYPE is bundle.
+  APKMIRROR_DPI              Optional APKMirror DPI override. Defaults vary by target.
+  APKMIRROR_TYPE             Optional APKMirror type override: apk or bundle.
+  YOUTUBE_APKMIRROR_ARCH     YouTube APKMirror architecture. Defaults to arm64-v8a,armeabi-v7a.
   YOUTUBE_MUSIC_APKMIRROR_ARCH
-                              YouTube Music APKMirror architecture. Defaults to arm64-v8a.
+                              YouTube Music APKMirror architecture. Defaults to arm64-v8a,armeabi-v7a.
   REDDIT_APKMIRROR_TYPE      Reddit APKMirror file type. Defaults to bundle.
   REDDIT_APKMIRROR_ARCH      Reddit APKMirror architecture. Defaults to universal.
   REDDIT_APKMIRROR_DPI       Reddit APKMirror DPI. Defaults to 120-640dpi.
@@ -2125,9 +2285,34 @@ Environment:
   ROOT_MODULE_VERSION_CODE    Optional numeric module versionCode.
   AUTO_UPDATE_APKS           Set to 1 to refresh existing APK downloads during build.
   MORPHE_CONTINUE_ON_ERROR   Set to 1 to keep building later targets after a target fails.
+  MORPHE_DISABLE_VERSIONED_OUTPUTS
+                             Set to 1 to keep APK output names unversioned.
   PYTHON_BIN                 Python executable for the APKPure downloader. Defaults to python.
   KEYSTORE_FILE              Optional signing keystore path.
   MORPHE_EXTRA_ARGS_JSON     Optional JSON array of extra patch args.`);
+}
+
+function existingApkmirrorInputMatches(app, existing) {
+  const requestedType = (app.apkmirrorType || "apk").toUpperCase();
+  const requestedArches = splitList(app.apkmirrorArch);
+  const requestedDpi = app.apkmirrorDpi || "";
+  const existingArches = splitList(existing?.arch);
+
+  const existingType = String(existing?.fileType || "").toUpperCase();
+  if (existingType && requestedType === "BUNDLE" && !["BUNDLE", "APKM"].includes(existingType)) {
+    return false;
+  }
+  if (existingType && requestedType !== "BUNDLE" && existingType !== requestedType) {
+    return false;
+  }
+  if (requestedDpi && requestedDpi !== "any" && requestedDpi !== "*" && existing?.dpi && existing.dpi !== requestedDpi) {
+    return false;
+  }
+  if (!requestedArches.length || requestedArches.includes("all") || requestedArches.includes("full")) {
+    return true;
+  }
+  return requestedArches.every((arch) => existingArches.includes(arch))
+    || existingArches.some((arch) => ["universal", "noarch"].includes(arch));
 }
 
 async function listApkeepVersions(app) {
@@ -2163,6 +2348,13 @@ function splitTargets(value) {
   return value
     ? value.split(",").map((item) => item.trim()).filter(Boolean)
     : [];
+}
+
+function splitList(value) {
+  return String(value || "")
+    .split(/[,\s]+/)
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function parseJsonArrayEnv(name) {
@@ -2283,6 +2475,13 @@ function compareVersions(a, b) {
   }
 
   return 0;
+}
+
+function safeVersionForFile(version) {
+  return String(version || "unknown")
+    .trim()
+    .replace(/[^A-Za-z0-9._+-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
 }
 
 function apkpureDownloadUrl(app, version = "latest") {

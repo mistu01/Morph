@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
 import sys
+import tempfile
+import zipfile
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import unquote, urljoin, urlparse
@@ -41,23 +44,69 @@ def main() -> int:
     args = parser.parse_args()
 
     version_page = select_version_page(args.org, args.repo, args.version)
-    variant = select_variant(version_page, args)
-    download_page, download_url = resolve_download_url(variant["url"])
+    variants = select_variants(version_page, args)
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
-    filename = args.out_file or filename_from_url(download_url) or f"{args.repo}-{variant['version']}.apk"
+
+    if len(variants) == 1:
+        variant = variants[0]
+        download_page, download_url = resolve_download_url(variant["url"])
+        filename = args.out_file or filename_from_url(download_url) or f"{args.repo}-{variant['version']}.apk"
+        path = out_dir / filename
+        download_binary(args.app_name, download_url, download_page, path)
+
+        print(json.dumps(metadata_for_single_variant(args, version_page, variant, download_page, download_url, path)))
+        return 0
+
+    if args.type != "bundle":
+        raise RuntimeError(f"{args.app_name}: multiple APKMirror variants can only be packed when --type bundle is used.")
+    ensure_compatible_variant_set(args.app_name, variants)
+
+    filename = args.out_file or f"{args.repo}-{variants[0]['version']}.apkm"
     path = out_dir / filename
 
-    with open_url(download_url, referer=download_page, accept="application/vnd.android.package-archive,*/*") as response:
+    with tempfile.TemporaryDirectory(prefix="apkmirror-variants-") as tmp:
+        tmp_dir = Path(tmp)
+        downloaded = []
+        for index, variant in enumerate(variants, start=1):
+            download_page, download_url = resolve_download_url(variant["url"])
+            variant_path = tmp_dir / f"{index:02d}-{safe_filename(variant['arch'])}-{safe_filename(variant['dpi'])}.apkm"
+            download_binary(args.app_name, download_url, download_page, variant_path)
+            downloaded.append({
+                "variant": variant,
+                "downloadPage": download_page,
+                "downloadUrl": download_url,
+                "path": variant_path,
+                "size": format_bytes(variant_path.stat().st_size),
+            })
+
+        combine_split_archives(args.app_name, downloaded, path)
+
+    print(json.dumps(metadata_for_combined_variants(args, version_page, downloaded, path)))
+    return 0
+
+
+def download_binary(app_name: str, download_url: str, referer: str, path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open_url(download_url, referer=referer, accept="application/vnd.android.package-archive,*/*") as response:
         content_type = response.headers.get("Content-Type", "")
         if "text/html" in content_type.lower():
-            raise RuntimeError(f"{args.app_name}: APKMirror returned HTML instead of an APK for {download_url}")
+            raise RuntimeError(f"{app_name}: APKMirror returned HTML instead of an APK for {download_url}")
 
         with path.open("wb") as output:
             shutil.copyfileobj(response, output)
 
-    print(json.dumps({
+
+def metadata_for_single_variant(
+    args: argparse.Namespace,
+    version_page: dict[str, str],
+    variant: dict[str, str],
+    download_page: str,
+    download_url: str,
+    path: Path,
+) -> dict[str, object]:
+    return {
         "appName": args.app_name,
         "packageName": args.package_name,
         "source": "apkmirror",
@@ -74,8 +123,118 @@ def main() -> int:
         "dpi": variant["dpi"],
         "minAndroidVersion": variant.get("minAndroidVersion", ""),
         "size": format_bytes(path.stat().st_size),
-    }))
-    return 0
+    }
+
+
+def metadata_for_combined_variants(
+    args: argparse.Namespace,
+    version_page: dict[str, str],
+    downloaded: list[dict[str, object]],
+    path: Path,
+) -> dict[str, object]:
+    variants = [item["variant"] for item in downloaded]
+    version_codes = [item.get("versionCode", "") for item in variants]
+    return {
+        "appName": args.app_name,
+        "packageName": args.package_name,
+        "source": "apkmirror",
+        "sourcePage": version_page["url"],
+        "variantPages": [item["url"] for item in variants],
+        "downloadPages": [item["downloadPage"] for item in downloaded],
+        "downloadUrls": [item["downloadUrl"] for item in downloaded],
+        "path": str(path),
+        "filename": path.name,
+        "version": variants[0]["version"],
+        "versionCode": ",".join(dict.fromkeys(version_codes)),
+        "fileType": "APKM",
+        "arch": ",".join(item["arch"] for item in variants),
+        "dpi": ",".join(item["dpi"] for item in variants),
+        "minAndroidVersion": ",".join(item.get("minAndroidVersion", "") for item in variants),
+        "size": format_bytes(path.stat().st_size),
+        "variants": [
+            {
+                "version": item["variant"]["version"],
+                "versionCode": item["variant"].get("versionCode", ""),
+                "type": item["variant"]["type"],
+                "arch": item["variant"]["arch"],
+                "dpi": item["variant"]["dpi"],
+                "minAndroidVersion": item["variant"].get("minAndroidVersion", ""),
+                "variantPage": item["variant"]["url"],
+                "downloadPage": item["downloadPage"],
+                "downloadUrl": item["downloadUrl"],
+                "size": item["size"],
+            }
+            for item in downloaded
+        ],
+    }
+
+
+def ensure_compatible_variant_set(app_name: str, variants: list[dict[str, str]]) -> None:
+    versions = sorted({item.get("version", "") for item in variants if item.get("version")})
+    version_codes = sorted({item.get("versionCode", "") for item in variants if item.get("versionCode")})
+    if len(versions) > 1 or len(version_codes) > 1:
+        summary = ", ".join(
+            f"{item['arch']} {item['dpi']} version={item.get('version', 'unknown')} "
+            f"versionCode={item.get('versionCode', 'unknown')}"
+            for item in variants
+        )
+        raise RuntimeError(
+            f"{app_name}: APKMirror variants are not install-compatible and cannot be packed together. "
+            f"Selected variants: {summary}. "
+            "Use a narrower APKMIRROR_ARCH/APKMIRROR_DPI selection or let the workflow fall back to APKPure."
+        )
+
+
+def combine_split_archives(app_name: str, downloaded: list[dict[str, object]], destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    written: dict[str, str] = {}
+    apk_count = 0
+    base_seen = False
+
+    with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as output:
+        for item in downloaded:
+            variant_path = item["path"]
+            if not zipfile.is_zipfile(variant_path):
+                raise RuntimeError(f"{app_name}: APKMirror bundle variant was not a split APK archive: {variant_path}")
+
+            with zipfile.ZipFile(variant_path) as archive:
+                for entry in archive.infolist():
+                    if entry.is_dir() or not entry.filename.lower().endswith(".apk"):
+                        continue
+                    output_name = archive_apk_output_name(entry.filename)
+                    data = archive.read(entry)
+                    digest = hashlib.sha256(data).hexdigest()
+
+                    if output_name in written:
+                        if written[output_name] == digest:
+                            continue
+                        raise RuntimeError(
+                            f"{app_name}: APKMirror variants contain conflicting APK split {output_name}; "
+                            "choose a narrower APKMIRROR_ARCH/APKMIRROR_DPI set."
+                        )
+
+                    output.writestr(output_name, data)
+                    written[output_name] = digest
+                    apk_count += 1
+                    if output_name == "base.apk":
+                        base_seen = True
+
+    if not apk_count:
+        raise RuntimeError(f"{app_name}: APKMirror variants did not contain APK files.")
+    if not base_seen:
+        raise RuntimeError(f"{app_name}: APKMirror variants did not contain base.apk.")
+
+
+def archive_apk_output_name(entry_name: str) -> str:
+    normalized = entry_name.replace("\\", "/")
+    name = Path(normalized).name
+    if name == "base.apk":
+        return name
+    return safe_filename(name)
+
+
+def safe_filename(value: str) -> str:
+    return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-") or "variant"
 
 
 def select_version_page(org: str, repo: str, requested: str) -> dict[str, str]:
@@ -119,31 +278,52 @@ def ensure_page_exists(url: str) -> None:
         raise RuntimeError(f"APKMirror page was not available: {url}. {exc}") from exc
 
 
-def select_variant(version_page: dict[str, str], args: argparse.Namespace) -> dict[str, str]:
+def select_variants(version_page: dict[str, str], args: argparse.Namespace) -> list[dict[str, str]]:
     soup = soup_from_url(version_page["url"])
     direct = direct_download_button(soup)
     if direct:
-        return {
+        return [{
             "version": version_page["name"],
             "type": args.type,
             "arch": args.arch,
             "dpi": args.dpi,
             "url": direct,
-        }
+        }]
 
     variants = parse_variants(soup)
     if not variants:
         raise RuntimeError(f"Could not find APKMirror variants at {version_page['url']}")
 
-    selected = find_variant(variants, args.arch, args.dpi, args.type)
-    if not selected and args.fallback_arch:
-        selected = find_variant(variants, args.fallback_arch, args.dpi, args.type)
+    selected = selected_variants_for_arches(variants, args)
     if not selected:
         summary = ", ".join(f"{item['version']} {item['type']} {item['arch']} {item['dpi']}" for item in variants[:12])
         raise RuntimeError(
             f"Could not find APKMirror {args.type.upper()} variant for "
             f"arch={args.arch}, dpi={args.dpi}. Available: {summary or 'none'}"
         )
+
+    return selected
+
+
+def selected_variants_for_arches(variants: list[dict[str, str]], args: argparse.Namespace) -> list[dict[str, str]]:
+    arches = split_values(args.arch) or ["universal"]
+    fallback_arches = split_values(args.fallback_arch)
+    selected: list[dict[str, str]] = []
+
+    if any(arch in {"all", "full"} for arch in arches):
+        candidates = filter_variants(variants, args.dpi, args.type)
+        for arch in sorted({item["arch"].lower() for item in candidates}):
+            add_unique_variant(selected, find_variant(variants, arch, args.dpi, args.type))
+        return selected
+
+    for arch in arches:
+        add_unique_variant(selected, find_variant(variants, arch, args.dpi, args.type))
+
+    if selected:
+        return selected
+
+    for arch in fallback_arches:
+        add_unique_variant(selected, find_variant(variants, arch, args.dpi, args.type))
 
     return selected
 
@@ -175,22 +355,65 @@ def parse_variants(soup: BeautifulSoup) -> list[dict[str, str]]:
 
 
 def find_variant(variants: list[dict[str, str]], arch: str, dpi: str, file_type: str) -> dict[str, str] | None:
-    candidates = [item for item in variants if item["type"] == file_type]
-    if dpi not in {"*", "any"}:
-        candidates = [item for item in candidates if item["dpi"].lower() == dpi.lower()]
+    arch = arch.lower()
+    candidates = filter_variants(variants, dpi, file_type)
 
     if arch in {"universal", "noarch"}:
         preferred = [item for item in candidates if item["arch"].lower() in {"universal", "noarch"}]
         if preferred:
-            return preferred[0]
+            return sorted(preferred, key=variant_sort_key)[0]
         return None
 
     exact = [item for item in candidates if arch_matches(item["arch"], arch)]
     if exact:
-        return exact[0]
+        return sorted(exact, key=variant_sort_key)[0]
 
     universal = [item for item in candidates if item["arch"].lower() in {"universal", "noarch"}]
-    return universal[0] if universal else None
+    return sorted(universal, key=variant_sort_key)[0] if universal else None
+
+
+def filter_variants(variants: list[dict[str, str]], dpi: str, file_type: str) -> list[dict[str, str]]:
+    candidates = [item for item in variants if item["type"] == file_type]
+    if dpi not in {"*", "any"}:
+        candidates = [item for item in candidates if item["dpi"].lower() == dpi.lower()]
+    return candidates
+
+
+def add_unique_variant(selected: list[dict[str, str]], variant: dict[str, str] | None) -> None:
+    if not variant:
+        return
+    if any(item["url"] == variant["url"] for item in selected):
+        return
+    selected.append(variant)
+
+
+def split_values(value: str) -> list[str]:
+    return [item.strip().lower() for item in re.split(r"[,\s]+", value or "") if item.strip()]
+
+
+def variant_sort_key(variant: dict[str, str]) -> tuple[float, int, str]:
+    return (
+        android_version_value(variant.get("minAndroidVersion", "")),
+        dpi_specificity(variant.get("dpi", "")),
+        variant.get("dpi", ""),
+    )
+
+
+def android_version_value(value: str) -> float:
+    match = re.search(r"Android\s+(\d+(?:\.\d+)?)(L)?", value, re.IGNORECASE)
+    if not match:
+        return 999.0
+    number = float(match.group(1))
+    return number + (0.1 if match.group(2) else 0)
+
+
+def dpi_specificity(value: str) -> int:
+    normalized = value.lower()
+    if normalized in {"nodpi", "universal"}:
+        return 0
+    if "-" in normalized:
+        return 1
+    return 2
 
 
 def arch_matches(value: str, requested: str) -> bool:

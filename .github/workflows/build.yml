@@ -229,6 +229,7 @@ jobs:
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
           tag="build-${release_stamp}-${GITHUB_RUN_NUMBER}"
           release_prerelease_flag=""
+          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
 
           case "${PATCHES_VERSION,,}" in
             dev|pre|preview|prerelease|pre-release)
@@ -249,7 +250,7 @@ jobs:
           esac
 
           echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=Morph patched APKs ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=Morph patched APKs ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
 
           node scripts/morphe.mjs release-notes > release-notes.md
