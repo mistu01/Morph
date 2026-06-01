@@ -45,43 +45,6 @@ const youtubeAbiVariants = [
   { artifactAbi: "arm64-v8a", apkmirrorArch: "arm64-v8a" },
   { artifactAbi: "arm-v7a", apkmirrorArch: "armeabi-v7a" },
 ];
-const deRevancedSupportedApps = [
-  ["amazon-shopping", { label: "Amazon Shopping", packageName: "com.amazon.mShop.android.shopping" }],
-  ["amazon-music", { label: "Amazon Music", packageName: "com.amazon.mp3" }],
-  ["angulus", { label: "Angulus", packageName: "com.drinkplusplus.angulus" }],
-  ["bandcamp", { label: "Bandcamp", packageName: "com.bandcamp.android" }],
-  ["cricbuzz", { label: "Cricbuzz", packageName: "com.cricbuzz.android" }],
-  ["disney-plus", { label: "Disney+", packageName: "com.disney.disneyplus" }],
-  ["facebook", { label: "Facebook", packageName: "com.facebook.katana" }],
-  ["gmx-mail", { label: "GMX Mail", packageName: "de.gmx.mobile.android.mail" }],
-  ["google-news", { label: "Google News", packageName: "com.google.android.apps.magazines" }],
-  ["google-photos", { label: "Google Photos", packageName: "com.google.android.apps.photos" }],
-  ["google-recorder", { label: "Google Recorder", packageName: "com.google.android.apps.recorder" }],
-  ["hex-editor", { label: "Hex Editor", packageName: "com.myprog.hexedit" }],
-  ["icon-pack-studio", { label: "Icon Pack Studio", packageName: "ginlemon.iconpackstudio" }],
-  ["inshorts", { label: "Inshorts", packageName: "com.nis.app" }],
-  ["irplus", { label: "irplus", packageName: "net.binarymode.android.irplus" }],
-  ["letterboxd", { label: "Letterboxd", packageName: "com.letterboxd.letterboxd" }],
-  ["messenger", { label: "Messenger", packageName: "com.facebook.orca" }],
-  ["microsoft-lens", { label: "Microsoft Lens", packageName: "com.microsoft.office.officelens" }],
-  ["nothing-x", { label: "Nothing X", packageName: "com.nothing.smartcenter" }],
-  ["nu-nl", { label: "NU.nl", packageName: "nl.sanomamedia.android.nu" }],
-  ["peacock-tv", { label: "Peacock TV", packageName: "com.peacocktv.peacockandroid" }],
-  ["photomath", { label: "Photomath", packageName: "com.microblink.photomath" }],
-  ["photoshop-mix", { label: "Photoshop Mix", packageName: "com.adobe.photoshopmix", apkpureSlug: "adobe-photoshop-mix" }],
-  ["pixiv", { label: "Pixiv", packageName: "jp.pxv.android" }],
-  ["proton-mail", { label: "Proton Mail", packageName: "ch.protonmail.android" }],
-  ["rar", { label: "RAR", packageName: "com.rarlab.rar" }],
-  ["soundcloud", { label: "SoundCloud", packageName: "com.soundcloud.android" }],
-  ["strava", { label: "Strava", packageName: "com.strava" }],
-  ["threads", { label: "Threads", packageName: "com.instagram.barcelona" }],
-  ["tiktok-jp", { label: "TikTok (JP)", packageName: "com.ss.android.ugc.trill", apkpureSlug: "tiktok-jp" }],
-  ["tiktok", { label: "TikTok", packageName: "com.zhiliaoapp.musically" }],
-  ["tumblr", { label: "Tumblr", packageName: "com.tumblr" }],
-  ["twitch", { label: "Twitch", packageName: "tv.twitch.android.app" }],
-  ["viber", { label: "Viber", packageName: "com.viber.voip" }],
-];
-const deRevancedTargetIds = deRevancedSupportedApps.map(([id]) => id);
 
 const appConfigs = {
   ...youtubeAbiAppConfigs({
@@ -193,15 +156,11 @@ const appConfigs = {
     rootModuleName: "Mistu Instagram Root",
     rootApkPath: "system/app/Instagram/Instagram.apk",
   },
-  ...Object.fromEntries(deRevancedSupportedApps.map(([id, config]) => [id, apkOnlyAppConfig(id, config)])),
 };
 
 const targetAliases = {
   youtube: youtubeAbiVariants.map((variant) => youtubeAbiTargetId("youtube", variant)),
   "youtube-music": youtubeAbiVariants.map((variant) => youtubeAbiTargetId("youtube-music", variant)),
-  "de-revanced": deRevancedTargetIds,
-  "de-revanced-all": deRevancedTargetIds,
-  derevanced: deRevancedTargetIds,
 };
 
 const releaseAssets = {
@@ -228,45 +187,6 @@ const apkeepTool = {
   output: fromRoot(".cache/tools", process.platform === "win32" ? "apkeep.exe" : "apkeep"),
   meta: fromRoot(".cache/tools/apkeep.json"),
 };
-
-function apkOnlyAppConfig(id, config) {
-  const envPrefix = envPrefixFor(id);
-  const apkpureSlug = config.apkpureSlug || id;
-  const rootOutput = `output/root/${id}-root.apk`;
-  const standardOutput = `output/${id}-patched.apk`;
-  const rootOptions = `config/root/${id}-options.json`;
-  const standardOptions = `config/${id}-options.json`;
-  const rootResult = `output/root/${id}-result.json`;
-  const standardResult = `output/${id}-result.json`;
-
-  return {
-    id,
-    label: config.label,
-    apkpureName: config.apkpureName || config.label,
-    packageName: config.packageName,
-    apkpureSlug,
-    apkpurePage: config.apkpurePage || `https://apkpure.com/${apkpureSlug}/${config.packageName}`,
-    uptodownSlug: env(`${envPrefix}_UPTODOWN_SLUG`) || config.uptodownSlug || id,
-    divxlandSlug: env(`${envPrefix}_DIVXLAND_SLUG`) || config.divxlandSlug || id,
-    apkmirrorOrg: config.apkmirrorOrg,
-    apkmirrorRepo: config.apkmirrorRepo,
-    apkmirrorSlug: config.apkmirrorSlug,
-    apkmirrorType: env(`${envPrefix}_APKMIRROR_TYPE`) || config.apkmirrorType,
-    apkmirrorArch: env(`${envPrefix}_APKMIRROR_ARCH`) || env("APKMIRROR_ARCH") || config.apkmirrorArch || "universal",
-    apkmirrorFallbackArch: env(`${envPrefix}_APKMIRROR_FALLBACK_ARCH`) || env("APKMIRROR_FALLBACK_ARCH") || config.apkmirrorFallbackArch,
-    apkmirrorDpi: env(`${envPrefix}_APKMIRROR_DPI`) || env("APKMIRROR_DPI") || config.apkmirrorDpi || "nodpi",
-    patchedPackageName: env(`${envPrefix}_PATCHED_PACKAGE_NAME`),
-    requestedVersion: env(`${envPrefix}_APK_VERSION`),
-    input: envPath(`${envPrefix}_APK`, `input/${id}.apk`),
-    url: env(`${envPrefix}_APK_URL`),
-    output: envPath(`${envPrefix}_OUT`, rootBuild ? rootOutput : standardOutput),
-    options: envPath(`${envPrefix}_OPTIONS`, rootBuild ? rootOptions : standardOptions),
-    result: envPath(`${envPrefix}_RESULT`, rootBuild ? rootResult : standardResult),
-    rootModuleId: `mistu_${id.replaceAll("-", "_")}_root`,
-    rootModuleName: `Mistu ${config.label} Root`,
-    rootApkPath: `system/app/${id}/${id}.apk`,
-  };
-}
 
 function youtubeAbiAppConfigs(config) {
   return Object.fromEntries(youtubeAbiVariants.map((variant) => {
@@ -2614,8 +2534,8 @@ function clean() {
 
 function printHelp() {
   console.log(`Usage:
-  node scripts/morphe.mjs build [--target youtube] [--target de-revanced-all] [-- <morphe-cli patch args>]
-  node scripts/morphe.mjs download [--target youtube] [--target de-revanced-all] [--force-download]
+  node scripts/morphe.mjs build [--target youtube] [-- <morphe-cli patch args>]
+  node scripts/morphe.mjs download [--target youtube] [--force-download]
   node scripts/morphe.mjs options [--target youtube] [--target reddit]
   node scripts/morphe.mjs tools [--refresh-tools]
   node scripts/morphe.mjs versions
@@ -2627,11 +2547,9 @@ function printHelp() {
 Environment:
   BUILD_TARGETS              Comma-separated targets. Defaults to youtube,youtube-music,reddit.
                              youtube and youtube-music expand to arm64-v8a and arm-v7a artifacts.
-                             Use de-revanced-all to build every De-ReVanced supported app.
   MORPHE_CLI_VERSION         Release tag such as v1.7.0, or latest.
   MORPHE_PATCHES_VERSION     stable, dev, latest, or a release tag such as v1.24.0.
   MORPHE_PATCHES_REPO        Patch bundle repo. Defaults to MorpheApp/morphe-patches.
-                             Use RookieEnough/De-ReVanced for De-ReVanced.
   YOUTUBE_APK                Local input path for YouTube.
   YOUTUBE_MUSIC_APK          Local input path for YouTube Music.
   REDDIT_APK                 Local input path for Reddit.
