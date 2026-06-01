@@ -91,6 +91,8 @@ const appConfigs = {
     packageName: "com.google.android.youtube",
     apkpureSlug: "youtube-2025",
     apkpurePage: "https://apkpure.com/youtube-2025/com.google.android.youtube",
+    uptodownSlug: "youtube",
+    divxlandSlug: "youtube",
     apkmirrorOrg: "google-inc",
     apkmirrorRepo: "youtube",
     rootModuleId: "mistu_youtube_root",
@@ -104,6 +106,8 @@ const appConfigs = {
     packageName: "com.google.android.apps.youtube.music",
     apkpureSlug: "youtube-music",
     apkpurePage: "https://apkpure.com/youtube-music/com.google.android.apps.youtube.music",
+    uptodownSlug: "youtube-music",
+    divxlandSlug: "youtube-music",
     apkmirrorOrg: "google-inc",
     apkmirrorRepo: "youtube-music",
     rootModuleId: "mistu_youtube_music_root",
@@ -117,6 +121,8 @@ const appConfigs = {
     packageName: "com.reddit.frontpage",
     apkpureSlug: "reddit-app",
     apkpurePage: "https://apkpure.com/reddit-app/com.reddit.frontpage",
+    uptodownSlug: "reddit-official-app",
+    divxlandSlug: "reddit",
     apkmirrorOrg: "redditinc",
     apkmirrorRepo: "reddit",
     apkmirrorType: env("REDDIT_APKMIRROR_TYPE") || "bundle",
@@ -141,6 +147,8 @@ const appConfigs = {
     packageName: "com.twitter.android",
     apkpureSlug: "x",
     apkpurePage: "https://apkpure.com/x/com.twitter.android",
+    uptodownSlug: "twitter",
+    divxlandSlug: "x",
     apkmirrorOrg: "x-corp",
     apkmirrorRepo: "x-formerly-twitter",
     apkmirrorType: env("TWITTER_APKMIRROR_TYPE") || "bundle",
@@ -165,6 +173,8 @@ const appConfigs = {
     packageName: "com.instagram.android",
     apkpureSlug: "instagram",
     apkpurePage: "https://apkpure.com/instagram/com.instagram.android",
+    uptodownSlug: "instagram",
+    divxlandSlug: "instagram",
     apkmirrorOrg: "instagram",
     apkmirrorRepo: "instagram-instagram",
     apkmirrorType: env("INSTAGRAM_APKMIRROR_TYPE") || "bundle",
@@ -235,6 +245,8 @@ function apkOnlyAppConfig(id, config) {
     packageName: config.packageName,
     apkpureSlug,
     apkpurePage: config.apkpurePage || `https://apkpure.com/${apkpureSlug}/${config.packageName}`,
+    uptodownSlug: env(`${envPrefix}_UPTODOWN_SLUG`) || config.uptodownSlug || id,
+    divxlandSlug: env(`${envPrefix}_DIVXLAND_SLUG`) || config.divxlandSlug || id,
     apkmirrorOrg: config.apkmirrorOrg,
     apkmirrorRepo: config.apkmirrorRepo,
     apkmirrorType: env(`${envPrefix}_APKMIRROR_TYPE`) || config.apkmirrorType,
@@ -271,6 +283,8 @@ function youtubeAbiAppConfigs(config) {
       baseId: config.id,
       baseLabel: config.label,
       artifactAbi: variant.artifactAbi,
+      uptodownSlug: env(`${variantEnvPrefix}_UPTODOWN_SLUG`) || env(`${envPrefix}_UPTODOWN_SLUG`) || config.uptodownSlug || config.id,
+      divxlandSlug: env(`${variantEnvPrefix}_DIVXLAND_SLUG`) || env(`${envPrefix}_DIVXLAND_SLUG`) || config.divxlandSlug || config.id,
       apkmirrorArch: env(`${variantEnvPrefix}_APKMIRROR_ARCH`)
         || env(`${envPrefix}_APKMIRROR_ARCH`)
         || env("APKMIRROR_ARCH")
@@ -927,20 +941,31 @@ function expandTargetAlias(target) {
 
 function apkSources() {
   const raw = env("APK_SOURCE") || "apkpure";
-  const expanded = raw.toLowerCase() === "auto" ? "apkmirror,apkpure" : raw;
+  const expanded = raw.toLowerCase() === "auto" ? "apkmirror,apkpure,uptodown,divxland" : raw;
   const sources = expanded
     .split(/[,\s]+/)
-    .map((source) => source.trim().toLowerCase())
+    .map(normalizeApkSource)
     .filter(Boolean);
   const uniqueSources = [...new Set(sources.length ? sources : ["apkpure"])];
-  const supported = new Set(["apkmirror", "apkpure", "local"]);
+  const supported = new Set(["apkmirror", "apkpure", "uptodown", "divxland", "local"]);
   const unknown = uniqueSources.filter((source) => !supported.has(source));
 
   if (unknown.length) {
-    throw new Error(`Unsupported APK_SOURCE value(s): ${unknown.join(", ")}. Use apkmirror, apkpure, local, or auto.`);
+    throw new Error(`Unsupported APK_SOURCE value(s): ${unknown.join(", ")}. Use apkmirror, apkpure, uptodown, divxland, local, or auto.`);
   }
 
   return uniqueSources;
+}
+
+function normalizeApkSource(source) {
+  const normalized = source.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  return {
+    "apkmirror.com": "apkmirror",
+    "apkpure.com": "apkpure",
+    "apkpure.net": "apkpure",
+    "uptodown.com": "uptodown",
+    "divxland.org": "divxland",
+  }[normalized] || normalized;
 }
 
 function apkSourceLabel(source) {
@@ -950,6 +975,8 @@ function apkSourceLabel(source) {
     "apkpure-direct": "APKPure",
     "apkpure-python": "APKPure",
     apkeep: "APKPure/apkeep",
+    uptodown: "Uptodown",
+    divxland: "DivxLand",
     local: "local input",
   };
   return labels[source] || source || "configured source";
@@ -978,7 +1005,7 @@ async function ensureInput(app) {
   }
 
   throw new Error(
-    `${app.label} input is missing. Put it at ${relative(app.input)}, set ${envNameFor(app.id)}_URL, or set APK_SOURCE=apkmirror,apkpure.`,
+    `${app.label} input is missing. Put it at ${relative(app.input)}, set ${envNameFor(app.id)}_URL, or set APK_SOURCE=apkmirror,apkpure,uptodown,divxland.`,
   );
 }
 
@@ -1672,7 +1699,7 @@ function releaseVersionCode() {
 async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
   const sources = apkDownloadSourcesFor(app);
   if (!sources.length) {
-    const requirement = app.artifactAbi ? " ABI-specific APK downloads require APK_SOURCE to include apkmirror." : "";
+    const requirement = app.artifactAbi ? " ABI-specific APK downloads require APK_SOURCE to include apkmirror, uptodown, or divxland." : "";
     throw new Error(`${app.label}: APK_SOURCE does not include a downloadable source.${requirement}`);
   }
 
@@ -1731,13 +1758,15 @@ function shouldFallbackToLatest(app) {
 function apkDownloadSourcesFor(app) {
   const sources = apkSources().filter((source) => source !== "local");
   return app.artifactAbi
-    ? sources.filter((source) => source === "apkmirror")
+    ? sources.filter((source) => ["apkmirror", "uptodown", "divxland"].includes(source))
     : sources;
 }
 
 async function downloadExactApkFromSource(source, app, options) {
   if (source === "apkmirror") return downloadWithPythonApkmirror(app, options);
   if (source === "apkpure") return downloadWithPythonApkpure(app, options);
+  if (source === "uptodown") return downloadWithUptodown(app, options);
+  if (source === "divxland") return downloadWithDivxland(app, options);
   throw new Error(`Unsupported APK source "${source}"`);
 }
 
@@ -1770,6 +1799,34 @@ async function downloadLatestApkFromSources(
           existing,
           desiredVersion,
           fallbackReason,
+        });
+      }
+
+      if (source === "uptodown") {
+        return await downloadWithUptodown(app, {
+          selectedVersion: "",
+          force,
+          patchesList,
+          metadataFile,
+          existing,
+          desiredVersion,
+          fallbackFromVersion: fallbackReason ? desiredVersion : "",
+          fallbackReason,
+          forcePatchRequired: Boolean(fallbackReason),
+        });
+      }
+
+      if (source === "divxland") {
+        return await downloadWithDivxland(app, {
+          selectedVersion: "",
+          force,
+          patchesList,
+          metadataFile,
+          existing,
+          desiredVersion,
+          fallbackFromVersion: fallbackReason ? desiredVersion : "",
+          fallbackReason,
+          forcePatchRequired: Boolean(fallbackReason),
         });
       }
 
@@ -1896,34 +1953,36 @@ async function downloadWithPythonApkmirror(
   rmSync(outputDir, { recursive: true, force: true });
   mkdirSync(outputDir, { recursive: true });
 
-  const apkmirrorType = app.apkmirrorType || "apk";
+  const apkmirrorType = (app.apkmirrorType || "apk").toLowerCase();
   const apkmirrorExtension = apkmirrorType === "bundle" ? "apkm" : "apk";
 
-  console.log(`Downloading APKMirror ${app.label} ${requestedLabel} (${apkmirrorType}, ${app.apkmirrorArch}/${app.apkmirrorDpi})`);
-  const metadata = runPythonJson([
-    fromRoot("scripts/apkmirror_download.py"),
-    "--app-name",
-    app.label,
-    "--package-name",
-    app.packageName,
-    "--org",
-    app.apkmirrorOrg,
-    "--repo",
-    app.apkmirrorRepo,
-    "--out-dir",
-    outputDir,
-    "--version",
-    requestedLabel,
-    "--arch",
-    app.apkmirrorArch,
-    "--dpi",
-    app.apkmirrorDpi,
-    "--type",
-    apkmirrorType,
-    "--out-file",
-    `${app.id}-${requestedLabel}.${apkmirrorExtension}`,
-    ...(app.apkmirrorFallbackArch ? ["--fallback-arch", app.apkmirrorFallbackArch] : []),
-  ]);
+  let metadata;
+  try {
+    metadata = downloadApkmirrorVariant(app, {
+      outputDir,
+      requestedLabel,
+      type: apkmirrorType,
+      arch: app.apkmirrorArch,
+      dpi: app.apkmirrorDpi,
+      outFile: `${app.id}-${requestedLabel}.${apkmirrorExtension}`,
+      fallbackArch: app.apkmirrorFallbackArch,
+    });
+  } catch (error) {
+    if (!shouldRetryApkmirrorUniversalApk(app, apkmirrorType, error)) throw error;
+
+    console.warn(`${app.label}: ${error.message}`);
+    console.warn(`${app.label}: retrying APKMirror with exact-version universal APK fallback.`);
+    metadata = downloadApkmirrorVariant(app, {
+      outputDir,
+      requestedLabel,
+      type: "apk",
+      arch: "universal",
+      dpi: "any",
+      outFile: `${app.id}-${requestedLabel}-universal.apk`,
+      fallbackArch: "",
+    });
+    metadata.artifactAbiFallback = "universal-apk";
+  }
 
   if (selectedVersion && metadata.version !== selectedVersion) {
     throw new Error(`${app.label}: APKMirror downloaded ${metadata.version}, expected ${selectedVersion}.`);
@@ -1963,6 +2022,7 @@ async function downloadWithPythonApkmirror(
     fileType: metadata.fileType,
     arch: metadata.arch,
     dpi: metadata.dpi,
+    artifactAbiFallback: metadata.artifactAbiFallback,
     minAndroidVersion: metadata.minAndroidVersion,
     variants: metadata.variants,
     desiredVersion,
@@ -2068,6 +2128,175 @@ async function downloadWithPythonApkpure(
     morpheTopRecommendedVersion: topRecommendedVersion,
     availableCompatibleVersions: compatible.filter((version) => availableVersions.includes(version)),
     filename: basename(destination),
+    downloadedAt: new Date().toISOString(),
+  });
+}
+
+async function downloadWithUptodown(
+  app,
+  {
+    selectedVersion = "",
+    force = false,
+    patchesList = null,
+    metadataFile,
+    existing,
+    desiredVersion = "",
+    fallbackFromVersion = "",
+    fallbackReason = "",
+    forcePatchRequired = false,
+  },
+) {
+  const sourcePage = uptodownDownloadPage(app);
+  const page = await fetchText(sourcePage, uptodownHeaders());
+  const selected = parseUptodownDownloadPage(app, sourcePage, page);
+
+  if (selectedVersion && selected.version !== selectedVersion) {
+    throw new Error(`${app.label}: Uptodown latest version is ${selected.version || "unknown"}, expected ${selectedVersion}.`);
+  }
+
+  if (
+    !force &&
+    existing?.source === "uptodown" &&
+    existing?.version === selected.version &&
+    existing?.destination &&
+    existsSync(existing.destination)
+  ) {
+    app.input = existing.destination;
+    console.log(`${app.label} ${selected.version || "latest"} already downloaded from Uptodown at ${relative(app.input)}`);
+    return;
+  }
+
+  const extension = extensionFromDownload(selected.directUrl, "apk");
+  const destination = replaceExtension(app.input, extension);
+  console.log(`Downloading Uptodown ${app.label} ${selected.version || "latest"}`);
+  rmSync(destination, { force: true });
+  const downloaded = await downloadFile(selected.directUrl, destination, {
+    ...uptodownHeaders(),
+    Referer: sourcePage,
+  });
+  app.input = destination;
+
+  const list = patchesList || await fetchPatchesList();
+  const topRecommendedVersion = recommendedVersionFor(app, list);
+  const compatible = compatibleVersionsFor(app, list);
+
+  await writeJson(metadataFile, {
+    app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
+    packageName: app.packageName,
+    sourcePage,
+    source: "uptodown",
+    directUrl: downloaded.url || selected.directUrl,
+    destination,
+    version: selected.version,
+    versionCode: selected.versionCode,
+    fileType: extension.replace(/^\./, "").toUpperCase(),
+    arch: "universal",
+    dpi: "unknown",
+    artifactAbiFallback: app.artifactAbi ? "universal-apk" : undefined,
+    desiredVersion,
+    fallbackFromVersion,
+    fallbackReason,
+    forcePatchRequired,
+    morpheTopRecommendedVersion: topRecommendedVersion,
+    availableCompatibleVersions: compatible.filter((version) => version === selected.version),
+    filename: basename(destination),
+    size: selected.size || formatBytes(Number(downloaded.headers?.get("content-length") || 0)),
+    downloadedAt: new Date().toISOString(),
+  });
+}
+
+async function downloadWithDivxland(
+  app,
+  {
+    selectedVersion = "",
+    force = false,
+    patchesList = null,
+    metadataFile,
+    existing,
+    desiredVersion = "",
+    fallbackFromVersion = "",
+    fallbackReason = "",
+    forcePatchRequired = false,
+  },
+) {
+  const sourcePage = divxlandDownloadPage(app);
+  const page = await fetchText(sourcePage, divxlandHeaders(sourcePage));
+  let selected = parseDivxlandDownloadPage(app, sourcePage, page);
+  if (selected.needsIntermediateFetch) {
+    const intermediate = await fetchText(selected.downloadPage, divxlandHeaders(sourcePage));
+    selected = parseDivxlandIntermediatePage(app, sourcePage, selected.downloadPage, selected.version, selected.size, intermediate);
+  }
+  if (!selected.keyUrl || !selected.postId) {
+    throw new Error(`${app.label}: DivxLand download key metadata was not found at ${selected.downloadPage}.`);
+  }
+
+  if (selectedVersion && selected.version !== selectedVersion) {
+    throw new Error(`${app.label}: DivxLand latest version is ${selected.version || "unknown"}, expected ${selectedVersion}.`);
+  }
+
+  if (
+    !force &&
+    existing?.source === "divxland" &&
+    existing?.version === selected.version &&
+    existing?.destination &&
+    existsSync(existing.destination)
+  ) {
+    app.input = existing.destination;
+    console.log(`${app.label} ${selected.version || "latest"} already downloaded from DivxLand at ${relative(app.input)}`);
+    return;
+  }
+
+  const keyResponse = await fetchWithRetry(selected.keyUrl, {
+    method: "POST",
+    headers: divxlandHeaders(selected.downloadPage, { "Content-Type": "application/json" }),
+    body: JSON.stringify({ post_id: selected.postId }),
+  });
+  if (!keyResponse.ok) {
+    throw new Error(`${app.label}: DivxLand key request failed (${keyResponse.status})`);
+  }
+  const keyData = await keyResponse.json();
+  const directUrl = resolveUrl(selected.downloadPage, keyData?.url || "");
+  if (!directUrl) {
+    throw new Error(`${app.label}: DivxLand key response did not include a download URL.`);
+  }
+
+  const extension = extensionFromDownload(directUrl, "apk");
+  const destination = replaceExtension(app.input, extension);
+  console.log(`Downloading DivxLand ${app.label} ${selected.version || "latest"}`);
+  rmSync(destination, { force: true });
+  const downloaded = await downloadFile(directUrl, destination, divxlandHeaders(selected.downloadPage));
+  app.input = destination;
+
+  const list = patchesList || await fetchPatchesList();
+  const topRecommendedVersion = recommendedVersionFor(app, list);
+  const compatible = compatibleVersionsFor(app, list);
+
+  await writeJson(metadataFile, {
+    app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
+    packageName: app.packageName,
+    sourcePage,
+    source: "divxland",
+    directUrl: downloaded.url || directUrl,
+    downloadPage: selected.downloadPage,
+    keyUrl: selected.keyUrl,
+    destination,
+    version: selected.version,
+    fileType: extension.replace(/^\./, "").toUpperCase(),
+    arch: "universal",
+    dpi: "unknown",
+    artifactAbiFallback: app.artifactAbi ? "universal-apk" : undefined,
+    desiredVersion,
+    fallbackFromVersion,
+    fallbackReason,
+    forcePatchRequired,
+    morpheTopRecommendedVersion: topRecommendedVersion,
+    availableCompatibleVersions: compatible.filter((version) => version === selected.version),
+    filename: basename(destination),
+    size: selected.size || formatBytes(Number(downloaded.headers?.get("content-length") || 0)),
     downloadedAt: new Date().toISOString(),
   });
 }
@@ -2280,6 +2509,7 @@ async function downloadFile(url, destination, headers = {}) {
 
   mkdirSync(dirname(destination), { recursive: true });
   await pipeline(Readable.fromWeb(response.body), createWriteStream(destination));
+  return { url: response.url, headers: response.headers };
 }
 
 async function fetchWithRetry(url, options = {}, attempts = 4) {
@@ -2362,7 +2592,8 @@ Environment:
   YOUTUBE_APK_URL            Private direct URL for CI input.
   YOUTUBE_MUSIC_APK_URL      Private direct URL for CI input.
   REDDIT_APK_URL             Private direct URL for CI input.
-  APK_SOURCE                 Comma-separated source order: apkmirror, apkpure, local, or auto.
+  APK_SOURCE                 Comma-separated source order: apkmirror, apkpure, uptodown,
+                              divxland, local, or auto.
                               Defaults to apkpure.
   APK_VERSION_SOURCE         recommended, latest, or an explicit version. Defaults to recommended.
   APK_FALLBACK_TO_LATEST     Set to 1 to fall back to latest if the recommended APK is unavailable.
@@ -2375,6 +2606,8 @@ Environment:
                              are combined when APKMIRROR_TYPE is bundle.
   APKMIRROR_DPI              Optional APKMirror DPI override. Defaults vary by target.
   APKMIRROR_TYPE             Optional APKMirror type override: apk or bundle.
+  <TARGET>_UPTODOWN_SLUG     Optional Uptodown subdomain slug override.
+  <TARGET>_DIVXLAND_SLUG     Optional DivxLand subdomain slug override.
   YOUTUBE_APKMIRROR_ARCH     YouTube APKMirror architecture override for both ABI artifacts.
                              Defaults to arm64-v8a and armeabi-v7a as separate builds.
   YOUTUBE_ARM64_V8A_APKMIRROR_ARCH
@@ -2408,6 +2641,173 @@ Environment:
   PYTHON_BIN                 Python executable for the APKPure downloader. Defaults to python.
   KEYSTORE_FILE              Optional signing keystore path.
   MORPHE_EXTRA_ARGS_JSON     Optional JSON array of extra patch args.`);
+}
+
+function downloadApkmirrorVariant(app, { outputDir, requestedLabel, type, arch, dpi, outFile, fallbackArch }) {
+  console.log(`Downloading APKMirror ${app.label} ${requestedLabel} (${type}, ${arch}/${dpi})`);
+  const metadata = runPythonJson([
+    fromRoot("scripts/apkmirror_download.py"),
+    "--app-name",
+    app.label,
+    "--package-name",
+    app.packageName,
+    "--org",
+    app.apkmirrorOrg,
+    "--repo",
+    app.apkmirrorRepo,
+    "--out-dir",
+    outputDir,
+    "--version",
+    requestedLabel,
+    "--arch",
+    arch,
+    "--dpi",
+    dpi,
+    "--type",
+    type,
+    "--out-file",
+    outFile,
+    ...(fallbackArch ? ["--fallback-arch", fallbackArch] : []),
+  ]);
+
+  return metadata;
+}
+
+function uptodownDownloadPage(app) {
+  const slug = app.uptodownSlug || (app.baseId || app.id);
+  return `https://${slug}.en.uptodown.com/android/download`;
+}
+
+function parseUptodownDownloadPage(app, sourcePage, page) {
+  const button = page.match(/<button[^>]+id=["']detail-download-button["'][\s\S]*?>/i)?.[0] || "";
+  const token = htmlAttribute(button, "data-url");
+  if (!token) {
+    throw new Error(`${app.label}: Uptodown download button was not found at ${sourcePage}.`);
+  }
+
+  return {
+    version: firstMatch(page, /"softwareVersion"\s*:\s*"([^"]+)"/i)
+      || firstMatch(page, /<title>\s*Download\s+.+?\s+(\d+(?:\.\d+)+)\s+for Android/i),
+    versionCode: htmlAttribute(button, "data-download-version"),
+    directUrl: `https://dw.uptodown.com/dwn/${token}`,
+    size: firstMatch(button, /<span class=["']size["']>\s*([^<]+)/i) || firstMatch(page, /<span class=["']size["']>\s*([^<]+)/i),
+  };
+}
+
+function divxlandDownloadPage(app) {
+  const slug = app.divxlandSlug || (app.baseId || app.id);
+  return `https://${slug}.en.divxland.org/download/`;
+}
+
+function parseDivxlandDownloadPage(app, sourcePage, page) {
+  const version = firstMatch(page, /"softwareVersion"\s*:\s*"([^"]+)"/i)
+    || firstMatch(page, /Download\s+.+?\s+(\d+(?:\.\d+)+)\s+latest version/i);
+  const size = firstMatch(page, /"fileSize"\s*:\s*"([^"]+)"/i)
+    || firstMatch(page, /<span[^>]+class=["'][^"']*download-size[^"']*["'][^>]*>\s*([^<]+)/i);
+  const downloadHref = htmlDecode(firstMatch(page, /<a[^>]+id=["']downloadBtn["'][^>]+href=["']([^"']+)["']/i)
+    || firstMatch(page, /<a[^>]+href=["']([^"']*\/download\/\d+\/)["'][^>]*>\s*[\s\S]*?Download APK/i)
+    || "/download/0/");
+  const downloadPage = resolveUrl(sourcePage, downloadHref);
+  if (!downloadPage) {
+    throw new Error(`${app.label}: DivxLand download link was not found at ${sourcePage}.`);
+  }
+
+  const downloadHtml = page.includes("const postId")
+    ? page
+    : null;
+  return parseDivxlandIntermediatePage(app, sourcePage, downloadPage, version, size, downloadHtml);
+}
+
+function parseDivxlandIntermediatePage(app, sourcePage, downloadPage, version, size, knownHtml = null) {
+  const html = knownHtml || "";
+  const page = html || null;
+  if (page) {
+    const postId = firstMatch(page, /const\s+postId\s*=\s*(\d+)/);
+    const idx = firstMatch(page, /const\s+idx\s*=\s*(\d+)/) || firstMatch(downloadPage, /\/download\/(\d+)\//) || "0";
+    if (postId) {
+      return {
+        version,
+        size,
+        downloadPage,
+        keyUrl: resolveUrl(downloadPage, `/download/${idx}/key/`),
+        postId: Number(postId),
+      };
+    }
+  }
+
+  return {
+    version,
+    size,
+    downloadPage,
+    keyUrl: "",
+    postId: 0,
+    needsIntermediateFetch: true,
+    sourcePage,
+  };
+}
+
+async function fetchText(url, headers = {}) {
+  const response = await fetchWithRetry(url, { headers });
+  if (!response.ok) {
+    throw new Error(`Fetch failed (${response.status}) for ${url}`);
+  }
+  return response.text();
+}
+
+function firstMatch(value, pattern) {
+  return value?.match(pattern)?.[1]?.trim() || "";
+}
+
+function htmlAttribute(tag, name) {
+  return htmlDecode(firstMatch(tag || "", new RegExp(`${name}=["']([^"']+)["']`, "i")));
+}
+
+function htmlDecode(value = "") {
+  return value
+    .replaceAll("&amp;", "&")
+    .replaceAll("&quot;", "\"")
+    .replaceAll("&#039;", "'")
+    .replaceAll("&apos;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .trim();
+}
+
+function resolveUrl(base, value) {
+  if (!value) return "";
+  return new URL(value, base).toString();
+}
+
+function extensionFromDownload(url, fallback = "apk") {
+  try {
+    const extension = extname(new URL(url).pathname).toLowerCase();
+    if ([".apk", ".xapk", ".apkm", ".apks"].includes(extension)) return extension;
+  } catch {}
+  return `.${fallback.replace(/^\./, "")}`;
+}
+
+function uptodownHeaders(extra = {}) {
+  return {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "User-Agent": "Mozilla/5.0 morph-youtube-builder",
+    ...extra,
+  };
+}
+
+function divxlandHeaders(referer = "", extra = {}) {
+  return {
+    "Accept": "text/html,application/xhtml+xml,application/json,application/xml;q=0.9,*/*;q=0.8",
+    "User-Agent": "Mozilla/5.0 morph-youtube-builder",
+    ...(referer ? { Referer: referer } : {}),
+    ...extra,
+  };
+}
+
+function shouldRetryApkmirrorUniversalApk(app, apkmirrorType, error) {
+  return Boolean(app.artifactAbi)
+    && String(apkmirrorType).toLowerCase() === "bundle"
+    && splitList(app.apkmirrorFallbackArch).includes("universal")
+    && /Could not find APKMirror BUNDLE variant/i.test(error?.message || "");
 }
 
 function existingApkmirrorInputMatches(app, existing) {

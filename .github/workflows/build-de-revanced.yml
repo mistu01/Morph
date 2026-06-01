@@ -210,7 +210,7 @@ jobs:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version || 'latest' }}
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version || 'latest' }}
           MORPHE_CONTINUE_ON_ERROR: ${{ github.event_name == 'workflow_dispatch' && inputs.continue_on_error == false && 'false' || 'true' }}
-          APK_SOURCE: apkpure
+          APK_SOURCE: apkpure,uptodown,divxland
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'recommended' }}
           APK_FALLBACK_TO_LATEST: ${{ github.event_name == 'workflow_dispatch' && inputs.apk_fallback_to_latest == false && 'false' || 'true' }}
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}

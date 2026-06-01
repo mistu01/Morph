@@ -215,7 +215,7 @@ jobs:
           BUILD_TARGETS: ${{ inputs.targets }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version || inputs.patches_type }}
-          APK_SOURCE: apkmirror,apkpure
+          APK_SOURCE: apkmirror,apkpure,uptodown,divxland
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
