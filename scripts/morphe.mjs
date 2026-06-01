@@ -415,8 +415,14 @@ async function checkReleaseOutputs() {
       missing.push(`${app.label}: result JSON is missing artifactName`);
       continue;
     }
-    if (patchesFrom(result.appliedPatches).length === 0) {
+    const appliedPatches = patchesFrom(result.appliedPatches);
+    const failedPatches = failedPatchesFrom(result.failedPatches);
+    if (appliedPatches.length === 0) {
       missing.push(`${app.label}: no patches were applied`);
+      continue;
+    }
+    if (failedPatches.length > appliedPatches.length) {
+      missing.push(`${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed)`);
       continue;
     }
     if (!usableFile(output)) {
