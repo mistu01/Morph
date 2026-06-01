@@ -397,6 +397,8 @@ async function build() {
 
 async function checkReleaseOutputs() {
   const missing = [];
+  const continueOnError = shouldContinueBuildOnError();
+  let successCount = 0;
 
   for (const app of selectedApps()) {
     await resolveRootPatchedOutput(app);
@@ -408,6 +410,10 @@ async function checkReleaseOutputs() {
       continue;
     }
     if (result.success === false) {
+      if (continueOnError) {
+        console.warn(`warning: ${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""} — skipping from release (continue-on-error is set).`);
+        continue;
+      }
       missing.push(`${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""}`);
       continue;
     }
@@ -418,16 +424,30 @@ async function checkReleaseOutputs() {
     const appliedPatches = patchesFrom(result.appliedPatches);
     const failedPatches = failedPatchesFrom(result.failedPatches);
     if (appliedPatches.length === 0) {
+      if (continueOnError) {
+        console.warn(`warning: ${app.label}: no patches were applied — skipping from release (continue-on-error is set).`);
+        continue;
+      }
       missing.push(`${app.label}: no patches were applied`);
       continue;
     }
     if (failedPatches.length > appliedPatches.length) {
+      if (continueOnError) {
+        console.warn(`warning: ${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed) — skipping from release (continue-on-error is set).`);
+        continue;
+      }
       missing.push(`${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed)`);
       continue;
     }
     if (!usableFile(output)) {
       missing.push(`${app.label}: missing artifact file ${relative(output)}`);
+      continue;
     }
+    successCount += 1;
+  }
+
+  if (continueOnError && successCount === 0) {
+    throw new Error(`Release outputs are incomplete: all targets failed to build. Nothing to release.`);
   }
 
   if (missing.length) {
@@ -436,6 +456,7 @@ async function checkReleaseOutputs() {
 
   console.log(`Release outputs complete for ${selectedApps().map((app) => app.label).join(", ")}.`);
 }
+
 
 async function buildApp(app, tools) {
   await ensureInput(app);

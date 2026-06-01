@@ -218,11 +218,14 @@ jobs:
           SIGNER_NAME: Mistu
         run: node scripts/morphe.mjs build
 
+
       - name: Validate release outputs
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
         run: node scripts/morphe.mjs release-check
+
 
       - name: Prepare release metadata
         if: ${{ inputs.create_release }}
