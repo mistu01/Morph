@@ -828,9 +828,9 @@ async function desiredApkVersion(app, patchesList = null) {
     const compatible = recommendedVersionsFor(app, list);
     return compatible[0] || "";
   }
-  if (/^\d+(?:\.\d+)+$/.test(source)) return source;
+  if (/^\d+(?:\.\d+)+(?:[-+][A-Za-z0-9._-]+)?$/.test(source)) return source;
 
-  throw new Error(`Unsupported APK_VERSION_SOURCE "${source}". Use recommended, latest, or an explicit version like 20.47.62.`);
+  throw new Error(`Unsupported APK_VERSION_SOURCE "${source}". Use recommended, latest, or an explicit version like 20.47.62 or 11.91.0-release.0.`);
 }
 
 function recommendedVersionFor(app, patchesList) {
@@ -1724,33 +1724,18 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
 
   if (desiredVersion) {
     const exactErrors = [];
-    const versionCandidates = apkVersionCandidates(desiredVersion);
-    for (const selectedVersion of versionCandidates) {
-      const aliasReason = selectedVersion === desiredVersion
-        ? ""
-        : `using mirror version alias ${selectedVersion} for recommended ${desiredVersion}`;
-
-      for (const source of sources) {
-        try {
-          if (aliasReason) {
-            console.warn(`${app.label}: ${aliasReason}; enabling --force for patching.`);
-            app.forcePatch = true;
-          }
-
-          return await downloadExactApkFromSource(source, app, {
-            selectedVersion,
-            force,
-            patchesList,
-            metadataFile,
-            existing,
-            desiredVersion,
-            fallbackFromVersion: aliasReason ? desiredVersion : "",
-            fallbackReason: aliasReason,
-            forcePatchRequired: Boolean(aliasReason),
-          });
-        } catch (error) {
-          exactErrors.push(`${apkSourceLabel(source)}${selectedVersion === desiredVersion ? "" : ` ${selectedVersion}`}: ${error.message}`);
-        }
+    for (const source of sources) {
+      try {
+        return await downloadExactApkFromSource(source, app, {
+          selectedVersion: desiredVersion,
+          force,
+          patchesList,
+          metadataFile,
+          existing,
+          desiredVersion,
+        });
+      } catch (error) {
+        exactErrors.push(`${apkSourceLabel(source)}: ${error.message}`);
       }
     }
 
@@ -1774,13 +1759,6 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
   }
 
   return downloadLatestApkFromSources(app, { sources, force, patchesList, metadataFile, existing, desiredVersion });
-}
-
-function apkVersionCandidates(version) {
-  const candidates = [version];
-  const withoutRipped = String(version).replace("-ripped", "");
-  if (withoutRipped !== version) candidates.push(withoutRipped);
-  return [...new Set(candidates)];
 }
 
 function shouldFallbackToLatest(app) {
@@ -2180,12 +2158,14 @@ async function downloadWithUptodown(
     forcePatchRequired = false,
   },
 ) {
-  const sourcePage = uptodownDownloadPage(app);
+  const sourcePage = selectedVersion
+    ? await uptodownExactDownloadPage(app, selectedVersion)
+    : uptodownDownloadPage(app);
   const page = await fetchText(sourcePage, uptodownHeaders());
   const selected = parseUptodownDownloadPage(app, sourcePage, page);
 
   if (selectedVersion && selected.version !== selectedVersion) {
-    throw new Error(`${app.label}: Uptodown latest version is ${selected.version || "unknown"}, expected ${selectedVersion}.`);
+    throw new Error(`${app.label}: Uptodown downloaded page version ${selected.version || "unknown"}, expected ${selectedVersion}.`);
   }
 
   if (
@@ -2267,7 +2247,7 @@ async function downloadWithDivxland(
   }
 
   if (selectedVersion && selected.version !== selectedVersion) {
-    throw new Error(`${app.label}: DivxLand latest version is ${selected.version || "unknown"}, expected ${selectedVersion}.`);
+    throw new Error(`${app.label}: DivxLand only exposed ${selected.version || "unknown"} on its download page, expected exact version ${selectedVersion}.`);
   }
 
   if (
@@ -2629,7 +2609,8 @@ Environment:
   APK_SOURCE                 Comma-separated source order: apkmirror, apkpure, uptodown,
                               divxland, local, or auto.
                               Defaults to apkpure.
-  APK_VERSION_SOURCE         recommended, latest, or an explicit version. Defaults to recommended.
+  APK_VERSION_SOURCE         recommended, latest, or an explicit version such as
+                             20.47.62 or 11.91.0-release.0. Defaults to recommended.
   APK_FALLBACK_TO_LATEST     Set to 1 to fall back to latest if the recommended APK is unavailable.
   MORPHE_INCLUDE_EXPERIMENTAL_TARGETS
                              Set to 1 to allow experimental Morphe patch target versions.
@@ -2711,6 +2692,49 @@ function downloadApkmirrorVariant(app, { outputDir, requestedLabel, type, arch, 
 function uptodownDownloadPage(app) {
   const slug = app.uptodownSlug || (app.baseId || app.id);
   return `https://${slug}.en.uptodown.com/android/download`;
+}
+
+function uptodownVersionsPage(app) {
+  const slug = app.uptodownSlug || (app.baseId || app.id);
+  return `https://${slug}.en.uptodown.com/android/versions`;
+}
+
+async function uptodownExactDownloadPage(app, selectedVersion) {
+  const versionsPage = uptodownVersionsPage(app);
+  const page = await fetchText(versionsPage, uptodownHeaders());
+  const versions = parseUptodownVersionsPage(app, versionsPage, page);
+  const selected = versions.find((item) => item.version === selectedVersion);
+  if (!selected) {
+    const sample = versions.slice(0, 20).map((item) => item.version).filter(Boolean).join(", ");
+    throw new Error(`${app.label}: Uptodown version ${selectedVersion} was not found. Available sample: ${sample || "none"}.`);
+  }
+  return selected.downloadPage;
+}
+
+function parseUptodownVersionsPage(app, sourcePage, page) {
+  const versions = [];
+  const rows = [...page.matchAll(/<div\b(?=[^>]*\bdata-version-id=)[^>]*>[\s\S]*?<\/div>/gi)];
+
+  for (const row of rows) {
+    const block = row[0];
+    const version = firstMatch(block, /<span[^>]+class=["'][^"']*\bversion\b[^"']*["'][^>]*>\s*([^<]+)/i);
+    const versionId = htmlAttribute(block, "data-version-id");
+    const baseUrl = htmlAttribute(block, "data-url");
+    const extraUrl = htmlAttribute(block, "data-extra-url") || "download";
+    if (!version || !versionId || !baseUrl) continue;
+
+    versions.push({
+      version,
+      versionId,
+      downloadPage: `${baseUrl.replace(/\/$/, "")}/${extraUrl.replace(/^\/|\/$/g, "")}/${versionId}`,
+    });
+  }
+
+  if (!versions.length) {
+    throw new Error(`${app.label}: Uptodown versions were not found at ${sourcePage}.`);
+  }
+
+  return versions;
 }
 
 function parseUptodownDownloadPage(app, sourcePage, page) {

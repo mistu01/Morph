@@ -23,7 +23,7 @@ on:
         description: "Fall back to latest available APK if the recommended APK version disappears"
         required: true
         type: boolean
-        default: true
+        default: false
       force_patch:
         description: "Pass --force to skip Morphe APK version compatibility checks"
         required: true
