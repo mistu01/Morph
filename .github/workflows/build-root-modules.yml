@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "Comma-separated targets: youtube,youtube-music,reddit"
+        description: "Comma-separated targets: youtube,youtube-music,reddit. YouTube targets expand to arm64-v8a and arm-v7a root modules."
         required: true
         default: "youtube,youtube-music"
       cli_version:

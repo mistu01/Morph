@@ -41,6 +41,10 @@ const rootStockInputExtensions = new Set([".apk", ".xapk", ".apkm", ".apks"]);
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
 const rootBuild = truthy(env("ROOT_BUILD"));
 const defaultTargets = ["youtube", "youtube-music", "reddit"];
+const youtubeAbiVariants = [
+  { artifactAbi: "arm64-v8a", apkmirrorArch: "arm64-v8a" },
+  { artifactAbi: "arm-v7a", apkmirrorArch: "armeabi-v7a" },
+];
 const deRevancedSupportedApps = [
   ["amazon-shopping", { label: "Amazon Shopping", packageName: "com.amazon.mShop.android.shopping" }],
   ["amazon-music", { label: "Amazon Music", packageName: "com.amazon.mp3" }],
@@ -80,7 +84,7 @@ const deRevancedSupportedApps = [
 const deRevancedTargetIds = deRevancedSupportedApps.map(([id]) => id);
 
 const appConfigs = {
-  youtube: {
+  ...youtubeAbiAppConfigs({
     id: "youtube",
     label: "YouTube",
     apkpureName: "YouTube",
@@ -89,22 +93,11 @@ const appConfigs = {
     apkpurePage: "https://apkpure.com/youtube-2025/com.google.android.youtube",
     apkmirrorOrg: "google-inc",
     apkmirrorRepo: "youtube",
-    apkmirrorType: env("YOUTUBE_APKMIRROR_TYPE") || env("APKMIRROR_TYPE") || "bundle",
-    apkmirrorArch: env("YOUTUBE_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a,armeabi-v7a",
-    apkmirrorFallbackArch: env("YOUTUBE_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "universal",
-    apkmirrorDpi: env("YOUTUBE_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "any",
-    patchedPackageName: env("YOUTUBE_PATCHED_PACKAGE_NAME") || "com.mistu.android.youtube",
-    requestedVersion: env("YOUTUBE_APK_VERSION"),
-    input: envPath("YOUTUBE_APK", "input/youtube.apk"),
-    url: env("YOUTUBE_APK_URL"),
-    output: envPath("YOUTUBE_OUT", rootBuild ? "output/root/youtube-root.apk" : "output/youtube-patched.apk"),
-    options: envPath("YOUTUBE_OPTIONS", rootBuild ? "config/root/youtube-options.json" : "config/youtube-options.json"),
-    result: envPath("YOUTUBE_RESULT", rootBuild ? "output/root/youtube-result.json" : "output/youtube-result.json"),
     rootModuleId: "mistu_youtube_root",
     rootModuleName: "Mistu YouTube Root",
     rootApkPath: "system/product/app/YouTube/YouTube.apk",
-  },
-  "youtube-music": {
+  }),
+  ...youtubeAbiAppConfigs({
     id: "youtube-music",
     label: "YouTube Music",
     apkpureName: "YouTube Music",
@@ -113,21 +106,10 @@ const appConfigs = {
     apkpurePage: "https://apkpure.com/youtube-music/com.google.android.apps.youtube.music",
     apkmirrorOrg: "google-inc",
     apkmirrorRepo: "youtube-music",
-    apkmirrorType: env("YOUTUBE_MUSIC_APKMIRROR_TYPE") || env("APKMIRROR_TYPE") || "bundle",
-    apkmirrorArch: env("YOUTUBE_MUSIC_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a,armeabi-v7a",
-    apkmirrorFallbackArch: env("YOUTUBE_MUSIC_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "universal",
-    apkmirrorDpi: env("YOUTUBE_MUSIC_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "any",
-    patchedPackageName: env("YOUTUBE_MUSIC_PATCHED_PACKAGE_NAME") || "com.mistu.android.youtube.music",
-    requestedVersion: env("YOUTUBE_MUSIC_APK_VERSION"),
-    input: envPath("YOUTUBE_MUSIC_APK", "input/youtube-music.apk"),
-    url: env("YOUTUBE_MUSIC_APK_URL"),
-    output: envPath("YOUTUBE_MUSIC_OUT", rootBuild ? "output/root/youtube-music-root.apk" : "output/youtube-music-patched.apk"),
-    options: envPath("YOUTUBE_MUSIC_OPTIONS", rootBuild ? "config/root/youtube-music-options.json" : "config/youtube-music-options.json"),
-    result: envPath("YOUTUBE_MUSIC_RESULT", rootBuild ? "output/root/youtube-music-result.json" : "output/youtube-music-result.json"),
     rootModuleId: "mistu_youtube_music_root",
     rootModuleName: "Mistu YouTube Music Root",
     rootApkPath: "system/product/app/YouTubeMusic/YouTubeMusic.apk",
-  },
+  }),
   reddit: {
     id: "reddit",
     label: "Reddit",
@@ -204,6 +186,8 @@ const appConfigs = {
 };
 
 const targetAliases = {
+  youtube: youtubeAbiVariants.map((variant) => youtubeAbiTargetId("youtube", variant)),
+  "youtube-music": youtubeAbiVariants.map((variant) => youtubeAbiTargetId("youtube-music", variant)),
   "de-revanced": deRevancedTargetIds,
   "de-revanced-all": deRevancedTargetIds,
   derevanced: deRevancedTargetIds,
@@ -270,6 +254,62 @@ function apkOnlyAppConfig(id, config) {
   };
 }
 
+function youtubeAbiAppConfigs(config) {
+  return Object.fromEntries(youtubeAbiVariants.map((variant) => {
+    const id = youtubeAbiTargetId(config.id, variant);
+    const envPrefix = envPrefixFor(config.id);
+    const variantEnvPrefix = envPrefixFor(id);
+    const rootOutput = `output/root/${id}-root.apk`;
+    const standardOutput = `output/${id}-patched.apk`;
+    const rootResult = `output/root/${id}-result.json`;
+    const standardResult = `output/${id}-result.json`;
+
+    return [id, {
+      ...config,
+      id,
+      label: `${config.label} (${variant.artifactAbi})`,
+      baseId: config.id,
+      baseLabel: config.label,
+      artifactAbi: variant.artifactAbi,
+      apkmirrorArch: env(`${variantEnvPrefix}_APKMIRROR_ARCH`)
+        || env(`${envPrefix}_APKMIRROR_ARCH`)
+        || env("APKMIRROR_ARCH")
+        || variant.apkmirrorArch,
+      apkmirrorType: env(`${variantEnvPrefix}_APKMIRROR_TYPE`)
+        || env(`${envPrefix}_APKMIRROR_TYPE`)
+        || env("APKMIRROR_TYPE")
+        || "bundle",
+      apkmirrorFallbackArch: env(`${variantEnvPrefix}_APKMIRROR_FALLBACK_ARCH`)
+        || env(`${envPrefix}_APKMIRROR_FALLBACK_ARCH`)
+        || env("APKMIRROR_FALLBACK_ARCH")
+        || "universal",
+      apkmirrorDpi: env(`${variantEnvPrefix}_APKMIRROR_DPI`)
+        || env(`${envPrefix}_APKMIRROR_DPI`)
+        || env("APKMIRROR_DPI")
+        || "any",
+      patchedPackageName: env(`${variantEnvPrefix}_PATCHED_PACKAGE_NAME`)
+        || env(`${envPrefix}_PATCHED_PACKAGE_NAME`)
+        || (config.id === "youtube" ? "com.mistu.android.youtube" : "com.mistu.android.youtube.music"),
+      requestedVersion: env(`${variantEnvPrefix}_APK_VERSION`) || env(`${envPrefix}_APK_VERSION`),
+      input: envPathValue(env(`${variantEnvPrefix}_APK`) || env(`${envPrefix}_APK`) || `input/${id}.apk`),
+      url: env(`${variantEnvPrefix}_APK_URL`) || env(`${envPrefix}_APK_URL`),
+      output: envPath(`${variantEnvPrefix}_OUT`, rootBuild ? rootOutput : standardOutput),
+      options: envPathValue(
+        env(`${variantEnvPrefix}_OPTIONS`)
+        || env(`${envPrefix}_OPTIONS`)
+        || (rootBuild ? `config/root/${config.id}-options.json` : `config/${config.id}-options.json`),
+      ),
+      result: envPath(`${variantEnvPrefix}_RESULT`, rootBuild ? rootResult : standardResult),
+      rootModuleId: `${config.rootModuleId}_${variant.artifactAbi.replaceAll("-", "_")}`,
+      rootModuleName: `${config.rootModuleName} (${variant.artifactAbi})`,
+    }];
+  }));
+}
+
+function youtubeAbiTargetId(baseId, variant) {
+  return `${baseId}-${variant.artifactAbi}`;
+}
+
 main().catch((error) => {
   console.error(`\nerror: ${error.message}`);
   process.exit(1);
@@ -294,6 +334,9 @@ async function main() {
       break;
     case "release-notes":
       await printReleaseNotes();
+      break;
+    case "release-check":
+      await checkReleaseOutputs();
       break;
     case "root-modules":
       await packageRootModules();
@@ -334,6 +377,38 @@ async function build() {
     console.warn("warning: one or more Morphe targets failed:");
     for (const failure of failures) console.warn(`warning: - ${failure}`);
   }
+}
+
+async function checkReleaseOutputs() {
+  const missing = [];
+
+  for (const app of selectedApps()) {
+    await resolveRootPatchedOutput(app);
+    const result = await readJson(app.result);
+    const output = result?.output ? resolveMaybeRoot(result.output) : app.output;
+
+    if (!result) {
+      missing.push(`${app.label}: missing result JSON at ${relative(app.result)}`);
+      continue;
+    }
+    if (result.success === false) {
+      missing.push(`${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""}`);
+      continue;
+    }
+    if (!result.artifactName) {
+      missing.push(`${app.label}: result JSON is missing artifactName`);
+      continue;
+    }
+    if (!usableFile(output)) {
+      missing.push(`${app.label}: missing artifact file ${relative(output)}`);
+    }
+  }
+
+  if (missing.length) {
+    throw new Error(`Release outputs are incomplete:\n- ${missing.join("\n- ")}`);
+  }
+
+  console.log(`Release outputs complete for ${selectedApps().map((app) => app.label).join(", ")}.`);
 }
 
 async function buildApp(app, tools) {
@@ -387,7 +462,9 @@ async function writeBuildFailure(app, error) {
   await writeJson(app.result, {
     ...(existing || {}),
     app: app.id,
+    baseApp: app.baseId || app.id,
     label: app.label,
+    artifactAbi: app.artifactAbi,
     packageName: existing?.packageName || app.packageName,
     success: false,
     error: existing?.error || error.message,
@@ -442,6 +519,8 @@ async function updateBuildResultOutput(app) {
     ...result,
     output: relative(app.output),
     artifactName: basename(app.output),
+    artifactAbi: app.artifactAbi,
+    baseApp: app.baseId || app.id,
   });
 }
 
@@ -505,7 +584,10 @@ async function packageRootModules() {
     modules: packaged.map(({ file }) => relative(file)),
     targets: packaged.map(({ app, appVersion, file }) => ({
       id: app.id,
+      baseId: app.baseId || app.id,
       label: app.label,
+      abi: app.artifactAbi,
+      apkMirrorArch: app.apkmirrorArch,
       version: appVersion,
       packageName: app.packageName,
       modulePath: app.rootApkPath,
@@ -751,6 +833,7 @@ async function printReleaseNotes() {
   const apps = selectedApps();
   const cliMeta = await readJson(releaseAssets.cli.meta);
   const patchesMeta = await readJson(releaseAssets.patches.meta);
+  const rootModulesMeta = rootBuild ? await readJson(join(paths.rootModules, "root-modules.json")) : null;
   const patchArgs = parseJsonArrayEnv("MORPHE_EXTRA_ARGS_JSON");
   const lines = [];
 
@@ -794,8 +877,15 @@ async function printReleaseNotes() {
 
     lines.push(`- ${app.label} ${apkVersion}: ${buildResult}; patches ${applied.length} ok, ${failed.length} failed`);
     lines.push(`  - Package: ${packageName}${sourcePackageName !== packageName ? ` (source ${sourcePackageName})` : ""}`);
+    if (app.artifactAbi || result?.artifactAbi || apkMeta?.arch) {
+      const abi = app.artifactAbi || result?.artifactAbi || apkMeta?.arch;
+      const sourceArch = apkMeta?.arch && apkMeta.arch !== abi ? `; source arch ${apkMeta.arch}` : "";
+      lines.push(`  - ABI: ${abi}${sourceArch}`);
+    }
     if (rootBuild) lines.push(`  - Module path: /${app.rootApkPath}`);
     if (result?.artifactName) lines.push(`  - Artifact: ${result.artifactName}`);
+    const rootModule = rootModulesMeta?.targets?.find((target) => target.id === app.id);
+    if (rootModule?.module) lines.push(`  - Root module: ${basename(rootModule.module)}`);
     if (sourceParts.length) lines.push(`  - Source: ${sourceParts.join("; ")}`);
     lines.push(`  - Applied: ${formatPatchList(applied)}`);
     if (failed.length) lines.push(`  - Failed: ${failed.map(formatFailedPatch).join("; ")}`);
@@ -1580,9 +1670,10 @@ function releaseVersionCode() {
 }
 
 async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
-  const sources = apkSources().filter((source) => source !== "local");
+  const sources = apkDownloadSourcesFor(app);
   if (!sources.length) {
-    throw new Error(`${app.label}: APK_SOURCE does not include a downloadable source.`);
+    const requirement = app.artifactAbi ? " ABI-specific APK downloads require APK_SOURCE to include apkmirror." : "";
+    throw new Error(`${app.label}: APK_SOURCE does not include a downloadable source.${requirement}`);
   }
 
   mkdirSync(paths.apks, { recursive: true });
@@ -1635,6 +1726,13 @@ function shouldFallbackToLatest(app) {
   return !app.requestedVersion
     && (env("APK_VERSION_SOURCE") || "recommended").toLowerCase() === "recommended"
     && truthy(env("APK_FALLBACK_TO_LATEST"));
+}
+
+function apkDownloadSourcesFor(app) {
+  const sources = apkSources().filter((source) => source !== "local");
+  return app.artifactAbi
+    ? sources.filter((source) => source === "apkmirror")
+    : sources;
 }
 
 async function downloadExactApkFromSource(source, app, options) {
@@ -1740,6 +1838,8 @@ async function downloadApkpureDirectLatestApp(
 
   await writeJson(metadataFile, {
     app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
     packageName: app.packageName,
     sourcePage: app.apkpurePage,
     source: "apkpure-direct",
@@ -1846,6 +1946,8 @@ async function downloadWithPythonApkmirror(
 
   await writeJson(metadataFile, {
     app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
     packageName: app.packageName,
     sourcePage: metadata.sourcePage,
     source: "apkmirror",
@@ -1948,6 +2050,8 @@ async function downloadWithPythonApkpure(
 
   await writeJson(metadataFile, {
     app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
     packageName: app.packageName,
     sourcePage: app.apkpurePage,
     source: "apkpure-python",
@@ -2021,6 +2125,8 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
 
   await writeJson(metadataFile, {
     app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
     packageName: app.packageName,
     sourcePage: app.apkpurePage,
     source: "apkeep",
@@ -2238,11 +2344,13 @@ function printHelp() {
   node scripts/morphe.mjs tools [--refresh-tools]
   node scripts/morphe.mjs versions
   node scripts/morphe.mjs release-notes
+  node scripts/morphe.mjs release-check
   node scripts/morphe.mjs root-modules
   node scripts/morphe.mjs clean
 
 Environment:
   BUILD_TARGETS              Comma-separated targets. Defaults to youtube,youtube-music,reddit.
+                             youtube and youtube-music expand to arm64-v8a and arm-v7a artifacts.
                              Use de-revanced-all to build every De-ReVanced supported app.
   MORPHE_CLI_VERSION         Release tag such as v1.7.0, or latest.
   MORPHE_PATCHES_VERSION     stable, dev, latest, or a release tag such as v1.24.0.
@@ -2267,9 +2375,19 @@ Environment:
                              are combined when APKMIRROR_TYPE is bundle.
   APKMIRROR_DPI              Optional APKMirror DPI override. Defaults vary by target.
   APKMIRROR_TYPE             Optional APKMirror type override: apk or bundle.
-  YOUTUBE_APKMIRROR_ARCH     YouTube APKMirror architecture. Defaults to arm64-v8a,armeabi-v7a.
+  YOUTUBE_APKMIRROR_ARCH     YouTube APKMirror architecture override for both ABI artifacts.
+                             Defaults to arm64-v8a and armeabi-v7a as separate builds.
+  YOUTUBE_ARM64_V8A_APKMIRROR_ARCH
+                             YouTube arm64-v8a APKMirror architecture override.
+  YOUTUBE_ARM_V7A_APKMIRROR_ARCH
+                             YouTube arm-v7a APKMirror architecture override.
   YOUTUBE_MUSIC_APKMIRROR_ARCH
-                              YouTube Music APKMirror architecture. Defaults to arm64-v8a,armeabi-v7a.
+                              YouTube Music APKMirror architecture override for both ABI artifacts.
+                              Defaults to arm64-v8a and armeabi-v7a as separate builds.
+  YOUTUBE_MUSIC_ARM64_V8A_APKMIRROR_ARCH
+                              YouTube Music arm64-v8a APKMirror architecture override.
+  YOUTUBE_MUSIC_ARM_V7A_APKMIRROR_ARCH
+                              YouTube Music arm-v7a APKMirror architecture override.
   REDDIT_APKMIRROR_TYPE      Reddit APKMirror file type. Defaults to bundle.
   REDDIT_APKMIRROR_ARCH      Reddit APKMirror architecture. Defaults to universal.
   REDDIT_APKMIRROR_DPI       Reddit APKMirror DPI. Defaults to 120-640dpi.
@@ -2383,6 +2501,10 @@ function env(name) {
 
 function envPath(name, fallback) {
   return resolveMaybeRoot(env(name) || fallback);
+}
+
+function envPathValue(value) {
+  return resolveMaybeRoot(value);
 }
 
 function resolveMaybeRoot(value) {

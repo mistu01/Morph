@@ -1,8 +1,6 @@
 name: Build De-ReVanced patched APKs
 
 on:
-  schedule:
-    - cron: "37 2 * * 1"
   workflow_dispatch:
     inputs:
       targets:
@@ -222,7 +220,7 @@ jobs:
         run: node scripts/morphe.mjs build
 
       - name: Prepare release metadata
-        if: ${{ github.event_name == 'schedule' || inputs.create_release }}
+        if: ${{ inputs.create_release }}
         env:
           BUILD_TARGETS: ${{ inputs.targets || 'de-revanced-all' }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source || 'recommended' }}
@@ -262,7 +260,7 @@ jobs:
           node scripts/morphe.mjs release-notes > release-notes.md
 
       - name: Detect De-ReVanced outputs
-        if: ${{ github.event_name == 'schedule' || inputs.create_release || inputs.upload_artifact }}
+        if: ${{ inputs.create_release || inputs.upload_artifact }}
         run: |
           shopt -s nullglob
           apks=(output/*.apk)
@@ -281,7 +279,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        if: ${{ (github.event_name == 'schedule' || inputs.create_release) && env.HAS_DEREVANCED_APKS == 'true' }}
+        if: ${{ inputs.create_release && env.HAS_DEREVANCED_APKS == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -297,7 +295,7 @@ jobs:
             --notes-file release-notes.md
 
       - name: Upload De-ReVanced patched APKs
-        if: ${{ (github.event_name == 'schedule' || inputs.upload_artifact) && env.HAS_DEREVANCED_ARTIFACTS == 'true' }}
+        if: ${{ inputs.upload_artifact && env.HAS_DEREVANCED_ARTIFACTS == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: de-revanced-patched-apks

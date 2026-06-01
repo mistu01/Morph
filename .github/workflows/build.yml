@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "Comma-separated targets: youtube,youtube-music,reddit"
+        description: "Comma-separated targets: youtube,youtube-music,reddit. YouTube targets expand to arm64-v8a and arm-v7a artifacts."
         required: true
         default: "youtube,youtube-music,reddit"
       cli_version:
@@ -215,6 +215,12 @@ jobs:
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           SIGNER_NAME: Mistu
         run: node scripts/morphe.mjs build
+
+      - name: Validate release outputs
+        if: ${{ inputs.create_release }}
+        env:
+          BUILD_TARGETS: ${{ inputs.targets }}
+        run: node scripts/morphe.mjs release-check
 
       - name: Prepare release metadata
         if: ${{ inputs.create_release }}

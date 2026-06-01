@@ -55,14 +55,28 @@ jobs:
               fi
 
               release_body="$(gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' 2>/dev/null || true)"
+              release_assets="$(gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
               if printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches: ${patches_tag}" &&
-                 printf '%s\n' "$release_body" | grep -Fq -- "- Build variant: ${build_variant}"; then
+                 printf '%s\n' "$release_body" | grep -Fq -- "- Build variant: ${build_variant}" &&
+                 ! printf '%s\n' "$release_body" | grep -Fq -- "completed with patch failures" &&
+                 has_release_asset "$release_assets" "youtube-arm64-v8a-" &&
+                 has_release_asset "$release_assets" "youtube-arm-v7a-" &&
+                 has_release_asset "$release_assets" "youtube-music-arm64-v8a-" &&
+                 has_release_asset "$release_assets" "youtube-music-arm-v7a-" &&
+                 has_release_asset "$release_assets" "reddit-"; then
                 printf '%s\n' "$release_tag"
                 return 0
               fi
             done <<< "$release_tags"
 
             return 1
+          }
+
+          has_release_asset() {
+            local assets="$1"
+            local prefix="$2"
+
+            printf '%s\n' "$assets" | grep -Eq "^${prefix}.*\\.apk$"
           }
 
           trigger_normal_build_patched_apks() {
