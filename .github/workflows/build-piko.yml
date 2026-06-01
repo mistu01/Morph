@@ -19,6 +19,11 @@ on:
         description: "APK version source: recommended, latest, or an explicit version"
         required: true
         default: "latest"
+      apk_fallback_to_latest:
+        description: "Fall back to latest available APK if the recommended APK version disappears"
+        required: true
+        type: boolean
+        default: true
       force_patch:
         description: "Pass --force to skip Morphe APK version compatibility checks"
         required: true
@@ -204,6 +209,7 @@ jobs:
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           APK_SOURCE: apkmirror,apkpure,uptodown,divxland
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           TWITTER_APK_URL: ${{ secrets.TWITTER_APK_URL }}
           INSTAGRAM_APK_URL: ${{ secrets.INSTAGRAM_APK_URL }}
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
@@ -212,11 +218,18 @@ jobs:
           SIGNER_NAME: Mistu
         run: node scripts/morphe.mjs build
 
+      - name: Validate release outputs
+        if: ${{ inputs.create_release || inputs.upload_artifact }}
+        env:
+          BUILD_TARGETS: ${{ inputs.targets }}
+        run: node scripts/morphe.mjs release-check
+
       - name: Prepare release metadata
         if: ${{ inputs.create_release }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           GH_TOKEN: ${{ github.token }}
           PATCHES_VERSION: ${{ inputs.patches_version }}
         run: |

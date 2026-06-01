@@ -42,12 +42,16 @@ jobs:
           esac
 
           stable="$(gh api 'repos/MorpheApp/morphe-patches/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == false))[0].tag_name')"
+          piko_stable="$(gh api 'repos/crimera/piko/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == false))[0].tag_name')"
           release_tags="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName')"
           triggered="0"
 
           find_existing_release() {
             local patches_tag="$1"
             local build_variant="$2"
+            local patches_repo="$3"
+            shift 3
+            local required_assets=("$@")
 
             while IFS= read -r release_tag; do
               if [ -z "$release_tag" ]; then
@@ -58,18 +62,27 @@ jobs:
               release_assets="$(gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
               if printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches: ${patches_tag}" &&
                  printf '%s\n' "$release_body" | grep -Fq -- "- Build variant: ${build_variant}" &&
+                 printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches repo: ${patches_repo}" &&
                  ! printf '%s\n' "$release_body" | grep -Fq -- "completed with patch failures" &&
-                 has_release_asset "$release_assets" "youtube-arm64-v8a-" &&
-                 has_release_asset "$release_assets" "youtube-arm-v7a-" &&
-                 has_release_asset "$release_assets" "youtube-music-arm64-v8a-" &&
-                 has_release_asset "$release_assets" "youtube-music-arm-v7a-" &&
-                 has_release_asset "$release_assets" "reddit-"; then
+                 has_all_release_assets "$release_assets" "${required_assets[@]}"; then
                 printf '%s\n' "$release_tag"
                 return 0
               fi
             done <<< "$release_tags"
 
             return 1
+          }
+
+          has_all_release_assets() {
+            local assets="$1"
+            shift
+
+            local prefix
+            for prefix in "$@"; do
+              has_release_asset "$assets" "$prefix" || return 1
+            done
+
+            return 0
           }
 
           has_release_asset() {
@@ -100,7 +113,28 @@ jobs:
             echo "Triggered normal Build patched APKs workflow for ${channel} Morphe patches ${patches_tag}."
           }
 
-          check_channel() {
+          trigger_piko_build_patched_apks() {
+            local channel="$1"
+            local patches_tag="$2"
+
+            gh workflow run build-piko.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref "${GITHUB_REF_NAME}" \
+              -f targets="twitter,instagram" \
+              -f cli_version="latest" \
+              -f patches_version="${patches_tag}" \
+              -f apk_version_source="latest" \
+              -f apk_fallback_to_latest="true" \
+              -f force_patch="true" \
+              -f continue_on_error="true" \
+              -f create_release="true" \
+              -f upload_artifact="true"
+
+            triggered="1"
+            echo "Triggered Build Piko patched APKs workflow for ${channel} Piko patches ${patches_tag}."
+          }
+
+          check_morphe_channel() {
             local channel="$1"
             local patches_tag="$2"
 
@@ -111,15 +145,34 @@ jobs:
 
             echo "Latest ${channel} Morphe patches release: ${patches_tag}"
 
-            standard_release="$(find_existing_release "$patches_tag" "standard APK" || true)"
+            standard_release="$(find_existing_release "$patches_tag" "standard APK" "MorpheApp/morphe-patches" "youtube-arm64-v8a-" "youtube-arm-v7a-" "youtube-music-arm64-v8a-" "youtube-music-arm-v7a-" "reddit-" || true)"
             echo "Existing standard APK release for ${patches_tag}: ${standard_release:-none}"
             if [ -z "$standard_release" ]; then
               trigger_normal_build_patched_apks "$channel" "$patches_tag"
             fi
           }
 
-          check_channel "stable" "$stable"
+          check_piko_channel() {
+            local channel="$1"
+            local patches_tag="$2"
+
+            if [ -z "$patches_tag" ] || [ "$patches_tag" = "null" ]; then
+              echo "No ${channel} Piko patch release found."
+              return
+            fi
+
+            echo "Latest ${channel} Piko patches release: ${patches_tag}"
+
+            piko_release="$(find_existing_release "$patches_tag" "standard APK" "crimera/piko" "twitter-" "instagram-" || true)"
+            echo "Existing Piko standard APK release for ${patches_tag}: ${piko_release:-none}"
+            if [ -z "$piko_release" ]; then
+              trigger_piko_build_patched_apks "$channel" "$patches_tag"
+            fi
+          }
+
+          check_morphe_channel "stable" "$stable"
+          check_piko_channel "stable" "$piko_stable"
 
           if [ "$triggered" = "0" ]; then
-            echo "No new Morphe stable patch build needed."
+            echo "No new Morphe or Piko stable patch build needed."
           fi

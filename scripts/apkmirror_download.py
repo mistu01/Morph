@@ -34,6 +34,7 @@ def main() -> int:
     parser.add_argument("--package-name", required=True)
     parser.add_argument("--org", required=True)
     parser.add_argument("--repo", required=True)
+    parser.add_argument("--slug", default="")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--version", default="latest")
     parser.add_argument("--arch", default="universal")
@@ -43,7 +44,7 @@ def main() -> int:
     parser.add_argument("--out-file", default="")
     args = parser.parse_args()
 
-    version_page = select_version_page(args.org, args.repo, args.version)
+    version_page = select_version_page(args.org, args.repo, args.version, args.slug)
     variants = select_variants(version_page, args)
 
     out_dir = Path(args.out_dir).resolve()
@@ -237,9 +238,10 @@ def safe_filename(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9._-]+", "_", value).strip("._-") or "variant"
 
 
-def select_version_page(org: str, repo: str, requested: str) -> dict[str, str]:
+def select_version_page(org: str, repo: str, requested: str, slug: str = "") -> dict[str, str]:
     if requested and requested not in {"latest", "stable"}:
-        url = f"{BASE_URL}/apk/{org}/{repo}/{repo}-{requested.replace('.', '-')}-release/"
+        release_slug = slug or repo
+        url = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested.replace('.', '-')}-release/"
         ensure_page_exists(url)
         return {"name": requested, "url": url}
 

@@ -150,11 +150,12 @@ const appConfigs = {
     uptodownSlug: "twitter",
     divxlandSlug: "x",
     apkmirrorOrg: "x-corp",
-    apkmirrorRepo: "x-formerly-twitter",
+    apkmirrorRepo: "twitter",
+    apkmirrorSlug: "x",
     apkmirrorType: env("TWITTER_APKMIRROR_TYPE") || "bundle",
     apkmirrorArch: env("TWITTER_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "universal",
     apkmirrorFallbackArch: env("TWITTER_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "arm64-v8a",
-    apkmirrorDpi: env("TWITTER_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "nodpi",
+    apkmirrorDpi: env("TWITTER_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "120-640dpi",
     patchedPackageName: env("TWITTER_PATCHED_PACKAGE_NAME"),
     requestedVersion: env("TWITTER_APK_VERSION"),
     input: envPath("TWITTER_APK", "input/twitter.apkm"),
@@ -249,6 +250,7 @@ function apkOnlyAppConfig(id, config) {
     divxlandSlug: env(`${envPrefix}_DIVXLAND_SLUG`) || config.divxlandSlug || id,
     apkmirrorOrg: config.apkmirrorOrg,
     apkmirrorRepo: config.apkmirrorRepo,
+    apkmirrorSlug: config.apkmirrorSlug,
     apkmirrorType: env(`${envPrefix}_APKMIRROR_TYPE`) || config.apkmirrorType,
     apkmirrorArch: env(`${envPrefix}_APKMIRROR_ARCH`) || env("APKMIRROR_ARCH") || config.apkmirrorArch || "universal",
     apkmirrorFallbackArch: env(`${envPrefix}_APKMIRROR_FALLBACK_ARCH`) || env("APKMIRROR_FALLBACK_ARCH") || config.apkmirrorFallbackArch,
@@ -411,6 +413,10 @@ async function checkReleaseOutputs() {
     }
     if (!result.artifactName) {
       missing.push(`${app.label}: result JSON is missing artifactName`);
+      continue;
+    }
+    if (patchesFrom(result.appliedPatches).length === 0) {
+      missing.push(`${app.label}: no patches were applied`);
       continue;
     }
     if (!usableFile(output)) {
@@ -1712,18 +1718,33 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
 
   if (desiredVersion) {
     const exactErrors = [];
-    for (const source of sources) {
-      try {
-        return await downloadExactApkFromSource(source, app, {
-          selectedVersion: desiredVersion,
-          force,
-          patchesList,
-          metadataFile,
-          existing,
-          desiredVersion,
-        });
-      } catch (error) {
-        exactErrors.push(`${apkSourceLabel(source)}: ${error.message}`);
+    const versionCandidates = apkVersionCandidates(desiredVersion);
+    for (const selectedVersion of versionCandidates) {
+      const aliasReason = selectedVersion === desiredVersion
+        ? ""
+        : `using mirror version alias ${selectedVersion} for recommended ${desiredVersion}`;
+
+      for (const source of sources) {
+        try {
+          if (aliasReason) {
+            console.warn(`${app.label}: ${aliasReason}; enabling --force for patching.`);
+            app.forcePatch = true;
+          }
+
+          return await downloadExactApkFromSource(source, app, {
+            selectedVersion,
+            force,
+            patchesList,
+            metadataFile,
+            existing,
+            desiredVersion,
+            fallbackFromVersion: aliasReason ? desiredVersion : "",
+            fallbackReason: aliasReason,
+            forcePatchRequired: Boolean(aliasReason),
+          });
+        } catch (error) {
+          exactErrors.push(`${apkSourceLabel(source)}${selectedVersion === desiredVersion ? "" : ` ${selectedVersion}`}: ${error.message}`);
+        }
       }
     }
 
@@ -1747,6 +1768,13 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
   }
 
   return downloadLatestApkFromSources(app, { sources, force, patchesList, metadataFile, existing, desiredVersion });
+}
+
+function apkVersionCandidates(version) {
+  const candidates = [version];
+  const withoutRipped = String(version).replace("-ripped", "");
+  if (withoutRipped !== version) candidates.push(withoutRipped);
+  return [...new Set(candidates)];
 }
 
 function shouldFallbackToLatest(app) {
@@ -2655,6 +2683,7 @@ function downloadApkmirrorVariant(app, { outputDir, requestedLabel, type, arch, 
     app.apkmirrorOrg,
     "--repo",
     app.apkmirrorRepo,
+    ...(app.apkmirrorSlug ? ["--slug", app.apkmirrorSlug] : []),
     "--out-dir",
     outputDir,
     "--version",
@@ -2987,16 +3016,26 @@ function firstReasonLine(reason) {
 }
 
 function compareVersions(a, b) {
-  const left = String(a).split(".").map(Number);
-  const right = String(b).split(".").map(Number);
+  const left = versionSortParts(a);
+  const right = versionSortParts(b);
   const length = Math.max(left.length, right.length);
 
   for (let index = 0; index < length; index += 1) {
-    const diff = (left[index] || 0) - (right[index] || 0);
-    if (diff !== 0) return diff;
+    const leftPart = left[index] ?? 0;
+    const rightPart = right[index] ?? 0;
+    if (leftPart === rightPart) continue;
+    if (typeof leftPart === "number" && typeof rightPart === "number") return leftPart - rightPart;
+    return String(leftPart).localeCompare(String(rightPart));
   }
 
   return 0;
+}
+
+function versionSortParts(version) {
+  return String(version)
+    .split(/(\d+)/)
+    .filter(Boolean)
+    .map((part) => (/^\d+$/.test(part) ? Number(part) : part.toLowerCase()));
 }
 
 function safeVersionForFile(version) {
