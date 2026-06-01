@@ -2028,7 +2028,7 @@ async function downloadWithPythonApkmirror(
     metadata.artifactAbiFallback = "universal-apk";
   }
 
-  if (selectedVersion && metadata.version !== selectedVersion) {
+  if (selectedVersion && !versionsMatch(metadata.version, selectedVersion)) {
     throw new Error(`${app.label}: APKMirror downloaded ${metadata.version}, expected ${selectedVersion}.`);
   }
 
@@ -2128,7 +2128,7 @@ async function downloadWithPythonApkpure(
     ...(selectedVersion ? ["--version", selectedVersion] : []),
   ]);
 
-  if (selectedVersion && metadata.version !== selectedVersion) {
+  if (selectedVersion && !versionsMatch(metadata.version, selectedVersion)) {
     throw new Error(`${app.label}: Python apkpure downloaded ${metadata.version}, expected ${selectedVersion}.`);
   }
 
@@ -2196,7 +2196,7 @@ async function downloadWithUptodown(
   const page = await fetchText(sourcePage, uptodownHeaders());
   const selected = parseUptodownDownloadPage(app, sourcePage, page);
 
-  if (selectedVersion && selected.version !== selectedVersion) {
+  if (selectedVersion && !versionsMatch(selected.version, selectedVersion)) {
     throw new Error(`${app.label}: Uptodown downloaded page version ${selected.version || "unknown"}, expected ${selectedVersion}.`);
   }
 
@@ -2278,7 +2278,7 @@ async function downloadWithDivxland(
     throw new Error(`${app.label}: DivxLand download key metadata was not found at ${selected.downloadPage}.`);
   }
 
-  if (selectedVersion && selected.version !== selectedVersion) {
+  if (selectedVersion && !versionsMatch(selected.version, selectedVersion)) {
     throw new Error(`${app.label}: DivxLand only exposed ${selected.version || "unknown"} on its download page, expected exact version ${selectedVersion}.`);
   }
 
@@ -3091,6 +3091,38 @@ function compareVersions(a, b) {
   }
 
   return 0;
+}
+
+function versionsMatch(v1, v2) {
+  if (!v1 || !v2) return false;
+  const s1 = String(v1).trim().toLowerCase();
+  const s2 = String(v2).trim().toLowerCase();
+  if (s1 === s2) return true;
+
+  const clean = (v) => {
+    return v
+      .replace(/[-_]/g, ".")
+      .replace(/\b(release|stable|beta|alpha|ripped|prod|final|android)\b/g, "")
+      .replace(/\.+/g, ".")
+      .replace(/^\.|\.$/g, "");
+  };
+
+  const c1 = clean(s1);
+  const c2 = clean(s2);
+  if (c1 === c2) return true;
+
+  const parts1 = c1.split(".").filter((x) => /^\d+$/.test(x));
+  const parts2 = c2.split(".").filter((x) => /^\d+$/.test(x));
+  if (parts1.length && parts2.length) {
+    const minLen = Math.min(parts1.length, parts2.length);
+    if (minLen >= 3 && parts1.slice(0, 3).join(".") === parts2.slice(0, 3).join(".")) {
+      return true;
+    }
+    if (minLen >= 2 && parts1.slice(0, minLen).join(".") === parts2.slice(0, minLen).join(".")) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function versionSortParts(version) {

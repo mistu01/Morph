@@ -103,11 +103,47 @@ def get_versions(api: ApkPure, source_page: str) -> list[dict[str, str]]:
 
 
 def select_version(versions: list[dict[str, str]], requested: str) -> dict[str, str] | None:
+    import re
     if not versions:
         return None
     if not requested or requested == "latest":
         return versions[0]
-    return next((item for item in versions if item["version"] == requested), None)
+    
+    # Exact match first
+    for item in versions:
+        if item["version"].strip().lower() == requested.strip().lower():
+            return item
+
+    # Normalized match helper
+    def clean(v: str) -> str:
+        v = v.lower().strip()
+        v = re.sub(r'[-_]', '.', v)
+        v = re.sub(r'\b(release|stable|beta|alpha|ripped|prod|final|android)\b', '', v)
+        v = re.sub(r'\.+', '.', v)
+        v = v.strip('.')
+        return v
+
+    clean_requested = clean(requested)
+    
+    # Check normalized matches
+    for item in versions:
+        if clean(item["version"]) == clean_requested:
+            return item
+
+    # Base version match (first 3 digit parts)
+    req_parts = [p for p in clean_requested.split('.') if p.isdigit()]
+    if req_parts:
+        for item in versions:
+            item_parts = [p for p in clean(item["version"]).split('.') if p.isdigit()]
+            if item_parts:
+                min_len = min(len(req_parts), len(item_parts))
+                if min_len >= 3 and req_parts[:3] == item_parts[:3]:
+                    return item
+                if min_len >= 2 and req_parts[:min_len] == item_parts[:min_len]:
+                    return item
+
+    return None
+
 
 
 if __name__ == "__main__":

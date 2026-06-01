@@ -241,9 +241,51 @@ def safe_filename(value: str) -> str:
 def select_version_page(org: str, repo: str, requested: str, slug: str = "") -> dict[str, str]:
     if requested and requested not in {"latest", "stable"}:
         release_slug = slug or repo
-        url = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested.replace('.', '-')}-release/"
-        ensure_page_exists(url)
-        return {"name": requested, "url": url}
+        # Try primary URL pattern with -release suffix
+        url1 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested.replace('.', '-')}-release/"
+        # Try secondary URL pattern without -release suffix
+        url2 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested.replace('.', '-')}/"
+        # Try tertiary URL pattern with clean version replacing dots with dashes
+        clean_requested = requested.replace('.', '-')
+        url3 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{clean_requested}/"
+        
+        errors = []
+        for url in [url1, url2, url3]:
+            try:
+                ensure_page_exists(url)
+                return {"name": requested, "url": url}
+            except Exception as e:
+                errors.append(str(e))
+                
+        # Scrape and search if direct URLs return 404
+        try:
+            list_url = f"{BASE_URL}/apk/{org}/{repo}/"
+            soup = soup_from_url(list_url)
+            version_list = soup.select_one('.listWidget:has(a[name="all_versions"])')
+            if version_list:
+                for row in version_list.select(".table-row"):
+                    link = row.select_one(".table-cell:nth-of-type(2) a[href]")
+                    if not link:
+                        continue
+                    name = link.get_text(" ", strip=True)
+                    href = link.get("href")
+                    if name and href:
+                        import re
+                        def clean(v: str) -> str:
+                            v = v.lower().strip()
+                            v = re.sub(r'[-_]', '.', v)
+                            v = re.sub(r'\b(release|stable|beta|alpha|ripped|prod|final|android)\b', '', v)
+                            v = re.sub(r'\.+', '.', v)
+                            v = v.strip('.')
+                            return v
+                        if clean(name) == clean(requested) or clean(requested) in clean(name):
+                            return {"name": name, "url": absolute_url(href)}
+        except Exception as scrape_err:
+            errors.append(f"Scrape fallback failed: {scrape_err}")
+            
+        raise RuntimeError(f"Could not resolve APKMirror version page for {requested}. Tried: " + " | ".join(errors))
+
+
 
     url = f"{BASE_URL}/apk/{org}/{repo}/"
     soup = soup_from_url(url)
