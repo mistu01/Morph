@@ -819,16 +819,20 @@ async function printVersions() {
 }
 
 async function desiredApkVersion(app, patchesList = null) {
-  if (app.requestedVersion) return app.requestedVersion;
+  return (await desiredApkVersions(app, patchesList))[0] || "";
+}
+
+async function desiredApkVersions(app, patchesList = null) {
+  if (app.requestedVersion) return [app.requestedVersion];
 
   const source = (env("APK_VERSION_SOURCE") || "recommended").toLowerCase();
-  if (source === "latest") return "";
+  if (source === "latest") return [];
   if (source === "recommended") {
     const list = patchesList || await fetchPatchesList();
     const compatible = recommendedVersionsFor(app, list);
-    return compatible[0] || "";
+    return compatible;
   }
-  if (/^\d+(?:\.\d+)+(?:[-+][A-Za-z0-9._-]+)?$/.test(source)) return source;
+  if (/^\d+(?:\.\d+)+(?:[-+][A-Za-z0-9._-]+)?$/.test(source)) return [source];
 
   throw new Error(`Unsupported APK_VERSION_SOURCE "${source}". Use recommended, latest, or an explicit version like 20.47.62 or 11.91.0-release.0.`);
 }
@@ -1718,33 +1722,40 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
   mkdirSync(paths.apks, { recursive: true });
   mkdirSync(dirname(app.input), { recursive: true });
 
-  const desiredVersion = await desiredApkVersion(app, patchesList);
+  const desiredVersions = await desiredApkVersions(app, patchesList);
+  const desiredVersion = desiredVersions[0] || "";
   const metadataFile = metadataFileFor(app);
   const existing = await readApkMetadata(app);
 
-  if (desiredVersion) {
+  if (desiredVersions.length) {
     const exactErrors = [];
-    for (const source of sources) {
-      try {
-        return await downloadExactApkFromSource(source, app, {
-          selectedVersion: desiredVersion,
-          force,
-          patchesList,
-          metadataFile,
-          existing,
-          desiredVersion,
-        });
-      } catch (error) {
-        exactErrors.push(`${apkSourceLabel(source)}: ${error.message}`);
+    for (const selectedVersion of desiredVersions) {
+      if (selectedVersion !== desiredVersion) {
+        console.warn(`${app.label}: trying next compatible recommended APK version ${selectedVersion}.`);
+      }
+
+      for (const source of sources) {
+        try {
+          return await downloadExactApkFromSource(source, app, {
+            selectedVersion,
+            force,
+            patchesList,
+            metadataFile,
+            existing,
+            desiredVersion: selectedVersion,
+          });
+        } catch (error) {
+          exactErrors.push(`${apkSourceLabel(source)} ${selectedVersion}: ${error.message}`);
+        }
       }
     }
 
     if (!shouldFallbackToLatest(app)) {
-      throw new Error(`${app.label}: exact APK ${desiredVersion} could not be downloaded. ${exactErrors.join(" | ")}`);
+      throw new Error(`${app.label}: no exact compatible APK could be downloaded for ${desiredVersions.join(", ")}. ${exactErrors.join(" | ")}`);
     }
 
     const fallbackReason = exactErrors.join(" | ");
-    console.warn(`${app.label}: exact APK ${desiredVersion} could not be downloaded from configured sources: ${fallbackReason}`);
+    console.warn(`${app.label}: exact compatible APK could not be downloaded from configured sources: ${fallbackReason}`);
     console.warn(`${app.label}: falling back to the latest available APK and enabling --force for patching.`);
     app.forcePatch = true;
     return downloadLatestApkFromSources(app, {
