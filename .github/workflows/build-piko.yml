@@ -48,7 +48,7 @@ on:
 env:
   MORPHE_PATCHES_REPO: crimera/piko
   MORPHE_PATCHES_VERSION: "dev"
-  APK_SOURCE: apkmirror
+  APK_SOURCE: apkmirror,apkpure
   APK_VERSION_SOURCE: recommended
   APK_FALLBACK_TO_LATEST: "false"
   TWITTER_APK_VERSION: "11.81.0-release.0"
@@ -253,7 +253,7 @@ jobs:
             "## Build summary",
             "",
             `- Patches: ${process.env.MORPHE_PATCHES_REPO} ${patchesMeta?.tag || process.env.MORPHE_PATCHES_VERSION || "dev"} (beta)`,
-            "- APK source: APKMirror",
+            "- APK source: APKMirror, then APKPure exact-version fallback",
             "- Patch flags: `--force`",
             "",
           ];
