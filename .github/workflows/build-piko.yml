@@ -12,20 +12,20 @@ on:
         required: true
         default: "latest"
       patches_version:
-        description: "Piko patches: stable, dev, latest, or an explicit tag (e.g. v3.2.0)"
+        description: "Ignored; this workflow always uses the latest beta Piko patches"
         required: true
-        default: "latest"
+        default: "dev"
       apk_version_source:
-        description: "APK version source: recommended, latest, or an explicit version"
+        description: "Ignored; this workflow pins X and Instagram APK versions"
         required: true
-        default: "latest"
+        default: "recommended"
       apk_fallback_to_latest:
-        description: "Fall back to latest available APK if the recommended APK version disappears"
+        description: "Ignored; pinned APK versions must be available on APKMirror"
         required: true
         type: boolean
-        default: true
+        default: false
       force_patch:
-        description: "Pass --force to skip Morphe APK version compatibility checks"
+        description: "Ignored; --force is always enabled"
         required: true
         type: boolean
         default: true
@@ -47,6 +47,14 @@ on:
 
 env:
   MORPHE_PATCHES_REPO: crimera/piko
+  MORPHE_PATCHES_VERSION: "dev"
+  APK_SOURCE: apkmirror
+  APK_VERSION_SOURCE: recommended
+  APK_FALLBACK_TO_LATEST: "false"
+  TWITTER_APK_VERSION: "11.81.0-release.0"
+  TWITTER_APKMIRROR_TYPE: bundle
+  INSTAGRAM_APK_VERSION: "426.0.0.37.68"
+  INSTAGRAM_APKMIRROR_TYPE: bundle
 
 jobs:
   build:
@@ -82,7 +90,6 @@ jobs:
       - name: Download Morphe tools
         env:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
-          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
         run: node scripts/morphe.mjs tools
 
       - name: Restore optional signing keystore
@@ -192,13 +199,11 @@ jobs:
 
       - name: Configure Morphe patch flags
         env:
-          FORCE_PATCH: ${{ inputs.force_patch }}
           CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
         run: |
           node <<'NODE' >> "$GITHUB_ENV"
-          const args = [];
-          if (process.env.FORCE_PATCH === 'true') args.push('--force');
-          if (process.env.CONTINUE_ON_ERROR === 'true') args.push('--continue-on-error');
+          const args = ["--force"];
+          if (process.env.CONTINUE_ON_ERROR === "true") args.push("--continue-on-error");
           console.log(`MORPHE_EXTRA_ARGS_JSON=${JSON.stringify(args)}`);
           NODE
 
@@ -206,18 +211,11 @@ jobs:
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
-          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
-          APK_SOURCE: apkmirror,apkpure,uptodown,divxland
-          APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
-          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
-          TWITTER_APK_URL: ${{ secrets.TWITTER_APK_URL }}
-          INSTAGRAM_APK_URL: ${{ secrets.INSTAGRAM_APK_URL }}
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           SIGNER_NAME: Mistu
         run: node scripts/morphe.mjs build
-
 
       - name: Validate release outputs
         if: ${{ inputs.create_release || inputs.upload_artifact }}
@@ -226,59 +224,73 @@ jobs:
           MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
         run: node scripts/morphe.mjs release-check
 
-
-      - name: Prepare release metadata
-        if: ${{ inputs.create_release }}
+      - name: Prepare release summary
+        if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
-          APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
-          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
-          GH_TOKEN: ${{ github.token }}
-          PATCHES_VERSION: ${{ inputs.patches_version }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
-          tag="piko-${release_stamp}-${GITHUB_RUN_NUMBER}"
-          release_prerelease_flag=""
-          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
 
-          case "${PATCHES_VERSION,,}" in
-            dev|pre|preview|prerelease|pre-release)
-              release_prerelease_flag="--prerelease"
-              ;;
-            stable|latest)
-              release_prerelease_flag=""
-              ;;
-            *)
-              patches_tag="$PATCHES_VERSION"
-              if [[ "$patches_tag" != v* ]]; then
-                patches_tag="v${patches_tag}"
-              fi
-              if [ "$(gh api "repos/${MORPHE_PATCHES_REPO}/releases/tags/${patches_tag}" --jq '.prerelease' 2>/dev/null || echo false)" = "true" ]; then
-                release_prerelease_flag="--prerelease"
-              fi
-              ;;
-          esac
-
-          echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=piko-${release_stamp}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=Piko patched APKs ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
-          echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
+          echo "RELEASE_PRERELEASE_FLAG=--prerelease" >> "$GITHUB_ENV"
 
-          node scripts/morphe.mjs release-notes > release-notes.md
+          node <<'NODE' > release-notes.md
+          const fs = require("node:fs");
+          const path = require("node:path");
+
+          const targets = (process.env.BUILD_TARGETS || "twitter,instagram")
+            .split(/[,\s]+/)
+            .filter(Boolean);
+          const versions = {
+            twitter: process.env.TWITTER_APK_VERSION,
+            instagram: process.env.INSTAGRAM_APK_VERSION,
+          };
+          const patchesMeta = readJson(".cache/tools/patches.json");
+          const lines = [
+            "## Build summary",
+            "",
+            `- Patches: ${process.env.MORPHE_PATCHES_REPO} ${patchesMeta?.tag || process.env.MORPHE_PATCHES_VERSION || "dev"} (beta)`,
+            "- APK source: APKMirror",
+            "- Patch flags: `--force`",
+            "",
+          ];
+
+          for (const target of targets) {
+            const result = readJson(path.join("output", `${target}-result.json`));
+            const apks = fs.existsSync("output")
+              ? fs.readdirSync("output").filter((file) => file.startsWith(`${target}-`) && file.endsWith(".apk"))
+              : [];
+            const applied = Array.isArray(result?.appliedPatches) ? result.appliedPatches.length : 0;
+            const failed = Array.isArray(result?.failedPatches) ? result.failedPatches.length : 0;
+            lines.push(`- ${target}: APK ${versions[target] || "configured"}, ${apks.join(", ") || "no APK output"}, patches ${applied} ok / ${failed} failed`);
+          }
+
+          lines.push("");
+          lines.push(`Commit: ${process.env.GITHUB_SHA}`);
+          console.log(lines.join("\n"));
+
+          function readJson(file) {
+            try {
+              return JSON.parse(fs.readFileSync(file, "utf8"));
+            } catch {
+              return null;
+            }
+          }
+          NODE
+
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          release_args=()
-          if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then
-            release_args+=("$RELEASE_PRERELEASE_FLAG")
-          fi
-
           gh release create "$RELEASE_TAG" \
             output/*.apk \
-            "${release_args[@]}" \
+            "$RELEASE_PRERELEASE_FLAG" \
             --title "$RELEASE_NAME" \
             --notes-file release-notes.md
 
@@ -290,5 +302,6 @@ jobs:
           path: |
             output/*.apk
             output/*-result.json
+            release-notes.md
           if-no-files-found: error
           retention-days: 1
