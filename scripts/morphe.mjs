@@ -318,6 +318,8 @@ async function build() {
 async function checkReleaseOutputs() {
   const missing = [];
   const continueOnError = shouldContinueBuildOnError();
+  const successfulLabels = [];
+  const skippedLabels = [];
   let successCount = 0;
 
   for (const app of selectedApps()) {
@@ -332,6 +334,7 @@ async function checkReleaseOutputs() {
     if (result.success === false) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""} — skipping from release (continue-on-error is set).`);
+        skippedLabels.push(app.label);
         continue;
       }
       missing.push(`${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""}`);
@@ -346,6 +349,7 @@ async function checkReleaseOutputs() {
     if (appliedPatches.length === 0) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: no patches were applied — skipping from release (continue-on-error is set).`);
+        skippedLabels.push(app.label);
         continue;
       }
       missing.push(`${app.label}: no patches were applied`);
@@ -354,6 +358,7 @@ async function checkReleaseOutputs() {
     if (failedPatches.length > appliedPatches.length) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed) — skipping from release (continue-on-error is set).`);
+        skippedLabels.push(app.label);
         continue;
       }
       missing.push(`${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed)`);
@@ -364,6 +369,7 @@ async function checkReleaseOutputs() {
       continue;
     }
     successCount += 1;
+    successfulLabels.push(app.label);
   }
 
   if (continueOnError && successCount === 0) {
@@ -374,7 +380,10 @@ async function checkReleaseOutputs() {
     throw new Error(`Release outputs are incomplete:\n- ${missing.join("\n- ")}`);
   }
 
-  console.log(`Release outputs complete for ${selectedApps().map((app) => app.label).join(", ")}.`);
+  const summary = successfulLabels.length
+    ? `Release outputs complete for ${successfulLabels.join(", ")}.`
+    : "No release outputs were produced.";
+  console.log(skippedLabels.length ? `${summary} Skipped ${skippedLabels.join(", ")}.` : summary);
 }
 
 

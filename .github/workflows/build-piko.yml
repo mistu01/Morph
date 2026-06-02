@@ -263,6 +263,17 @@ jobs:
             const apks = fs.existsSync("output")
               ? fs.readdirSync("output").filter((file) => file.startsWith(`${target}-`) && file.endsWith(".apk"))
               : [];
+
+            if (!result) {
+              lines.push(`- ${target}: APK ${versions[target] || "configured"}, failed: missing result JSON`);
+              continue;
+            }
+
+            if (result.success === false) {
+              lines.push(`- ${target}: APK ${versions[target] || "configured"}, failed: ${firstReasonLine(result.error || "unknown error")}`);
+              continue;
+            }
+
             const applied = Array.isArray(result?.appliedPatches) ? result.appliedPatches.length : 0;
             const failed = Array.isArray(result?.failedPatches) ? result.failedPatches.length : 0;
             lines.push(`- ${target}: APK ${versions[target] || "configured"}, ${apks.join(", ") || "no APK output"}, patches ${applied} ok / ${failed} failed`);
@@ -278,6 +289,10 @@ jobs:
             } catch {
               return null;
             }
+          }
+
+          function firstReasonLine(message) {
+            return String(message).split(/\r?\n/)[0];
           }
           NODE
 
