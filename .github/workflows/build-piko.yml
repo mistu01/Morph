@@ -12,7 +12,7 @@ on:
         required: true
         default: "latest"
       patches_version:
-        description: "Ignored; this workflow always uses the latest beta Piko patches"
+        description: "Piko patches channel: dev or stable"
         required: true
         default: "dev"
       apk_version_source:
@@ -47,7 +47,6 @@ on:
 
 env:
   MORPHE_PATCHES_REPO: crimera/piko
-  MORPHE_PATCHES_VERSION: "dev"
   APK_SOURCE: apkmirror,apkpure
   APK_VERSION_SOURCE: recommended
   APK_FALLBACK_TO_LATEST: "false"
@@ -67,6 +66,19 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Validate Piko patch channel
+        env:
+          PATCHES_VERSION: ${{ inputs.patches_version }}
+        run: |
+          case "${PATCHES_VERSION}" in
+            dev|stable)
+              ;;
+            *)
+              echo "::error::patches_version must be dev or stable."
+              exit 1
+              ;;
+          esac
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -90,6 +102,7 @@ jobs:
       - name: Download Morphe tools
         env:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
         run: node scripts/morphe.mjs tools
 
       - name: Restore optional signing keystore
@@ -211,6 +224,7 @@ jobs:
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
@@ -249,10 +263,12 @@ jobs:
             instagram: process.env.INSTAGRAM_APK_VERSION,
           };
           const patchesMeta = readJson(".cache/tools/patches.json");
+          const patchChannel = process.env.MORPHE_PATCHES_VERSION || "dev";
+          const patchLabel = patchChannel === "dev" ? "beta" : patchChannel;
           const lines = [
             "## Build summary",
             "",
-            `- Patches: ${process.env.MORPHE_PATCHES_REPO} ${patchesMeta?.tag || process.env.MORPHE_PATCHES_VERSION || "dev"} (beta)`,
+            `- Patches: ${process.env.MORPHE_PATCHES_REPO} ${patchesMeta?.tag || patchChannel} (${patchLabel})`,
             "- APK source: APKMirror, then APKPure exact-version fallback",
             "- Patch flags: `--force`",
             "",
