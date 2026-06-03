@@ -1227,6 +1227,37 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     copyFileSync(app.output, patchedDestination);
     stageRootStockFiles(app, stockDestination);
   }
+
+  const commonDir = join(moduleDir, "common");
+  if (existsSync(commonDir)) {
+    console.log(`\n==> Compressing module resources as tar.xz (highest compression)...`);
+    const archivePath = join(moduleDir, "common.tar.xz");
+
+    const tarVersion = runCapture("tar", ["--version"]) || "";
+    const isBsdtar = tarVersion.toLowerCase().includes("bsdtar") || tarVersion.toLowerCase().includes("libarchive");
+
+    const tarArgs = ["-c", "-J", "-f", archivePath];
+    if (isBsdtar) {
+      tarArgs.push("--options", "compression-level=9");
+    }
+    tarArgs.push("common");
+
+    const tarEnv = { ...process.env };
+    if (!isBsdtar) {
+      tarEnv.XZ_OPT = "-9";
+    }
+
+    const result = spawnSync("tar", tarArgs, {
+      cwd: moduleDir,
+      env: tarEnv,
+      stdio: "inherit",
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) {
+      throw new Error(`tar exited with status ${result.status} while compressing module APKs.`);
+    }
+    rmSync(commonDir, { recursive: true, force: true });
+  }
 }
 
 function stageRootStockFiles(app, destinationDir) {
@@ -1328,6 +1359,12 @@ function rootCustomizeScript(apps) {
     "",
     "DATA_DIR=/data/adb/mistu-root/${MODPATH##*/}",
     "mkdir -p \"$DATA_DIR\"",
+    "",
+    "if [ -f \"$MODPATH/common.tar.xz\" ]; then",
+    "  ui_print \"  Extracting APK resources (tar.xz)...\"",
+    "  tar -xf \"$MODPATH/common.tar.xz\" -C \"$MODPATH\" || abort \"Failed to extract APK resources\"",
+    "  rm -f \"$MODPATH/common.tar.xz\"",
+    "fi",
     "",
     "pmex() {",
     "  local out",
