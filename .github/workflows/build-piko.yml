@@ -50,6 +50,7 @@ env:
   APK_SOURCE: apkmirror,apkpure
   APK_VERSION_SOURCE: recommended
   APK_FALLBACK_TO_LATEST: "false"
+  APKMIRROR_ARCH: arm64-v8a
   TWITTER_APK_VERSION: "11.81.0-release.0"
   TWITTER_APKMIRROR_TYPE: bundle
   INSTAGRAM_APK_VERSION: "430.0.0.53.80"
