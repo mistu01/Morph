@@ -5,6 +5,7 @@ import contextlib
 import json
 import os
 import sys
+import urllib.parse as urlparse
 from pathlib import Path
 
 from apkpure.apkpure import ApkPure
@@ -18,6 +19,7 @@ def main() -> int:
     parser.add_argument("--source-page", required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--version", default="")
+    parser.add_argument("--arch", default="")
     args = parser.parse_args()
 
     api = ApkPure()
@@ -28,6 +30,35 @@ def main() -> int:
         requested = args.version or "latest"
         print(f"{args.app_name}: APKPure version {requested} was not found. Available sample: {available or 'none'}", file=sys.stderr)
         return 2
+
+    # If architecture is requested, try to resolve the specific variant version code from the download page
+    if args.arch and selected.get("download_link"):
+        try:
+            print(f"Resolving variant for arch '{args.arch}' from: {selected['download_link']}", file=sys.stderr)
+            resp = api.get_response(url=selected["download_link"])
+            if resp:
+                soup = BeautifulSoup(resp.text, "html.parser")
+                normalized_arch = args.arch.lower().replace('_', '-')
+                found_code = None
+                for el in soup.find_all("a"):
+                    href = el.get("href") or ""
+                    if "versionCode=" in href:
+                        parent_text = el.parent.text.strip().lower().replace('_', '-')
+                        if normalized_arch in parent_text:
+                            parsed = urlparse.urlparse(href)
+                            params = urlparse.parse_qs(parsed.query)
+                            codes = params.get("versionCode")
+                            if codes:
+                                found_code = codes[0]
+                                print(f"Found matching arch variant: {el.parent.text.strip().replace('\n', ' ')}", file=sys.stderr)
+                                break
+                if found_code:
+                    selected["version_code"] = found_code
+                    print(f"Using variant version code: {found_code}", file=sys.stderr)
+                else:
+                    print(f"No variant found matching arch '{args.arch}'. Using default version code.", file=sys.stderr)
+        except Exception as e:
+            print(f"Error resolving variant: {e}", file=sys.stderr)
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)

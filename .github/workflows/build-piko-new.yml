@@ -225,6 +225,10 @@ jobs:
           - Date: $(date -u)
           EOF
 
+          if [ -f output/build-summary.md ]; then
+            cat output/build-summary.md >> release-notes.md
+          fi
+
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
         env:

@@ -287,6 +287,7 @@ async function build() {
         "--source-page", app.apkpurePage || `https://apkpure.com/${app.id}/${app.packageName}`,
         "--out-dir", paths.input,
         "--version", version,
+        "--arch", app.apkmirrorArch || "arm64-v8a",
       ];
 
       console.log(`Running APKPure downloader: python ${apkpureArgs.join(" ")}`);
@@ -381,4 +382,57 @@ async function build() {
       console.log(`Patched APK output: ${app.output}`);
     }
   }
+
+  // 4. Generate and write build summary
+  console.log(`\n==================================================`);
+  console.log(`Piko Build Run Summary`);
+  console.log(`==================================================`);
+
+  let summaryMd = `### Patching Results\n\n`;
+
+  for (const targetId of targets) {
+    const app = appConfigs[targetId];
+    if (!app) continue;
+
+    summaryMd += `#### ${app.label}\n`;
+    const success = existsSync(app.output);
+    if (success) {
+      console.log(`- ${app.label}: SUCCESS`);
+      summaryMd += `- **Status**: Success\n`;
+    } else {
+      console.log(`- ${app.label}: FAILED`);
+      summaryMd += `- **Status**: Failed (Patched APK not generated)\n`;
+    }
+
+    if (existsSync(app.result)) {
+      try {
+        const resultJson = JSON.parse(readFileSync(app.result, "utf8"));
+        const appliedCount = Array.isArray(resultJson.appliedPatches) ? resultJson.appliedPatches.length : 0;
+        const failedCount = Array.isArray(resultJson.failedPatches) ? resultJson.failedPatches.length : 0;
+        console.log(`  Stats: ${appliedCount} patches applied, ${failedCount} patches failed.`);
+        summaryMd += `- **Patches Applied**: ${appliedCount}\n`;
+        summaryMd += `- **Patches Failed**: ${failedCount}\n`;
+
+        if (failedCount > 0) {
+          summaryMd += `  <details><summary>Click to view failed patches</summary>\n\n  \`\`\`\n`;
+          for (const entry of resultJson.failedPatches) {
+            const name = entry?.patch?.name || entry?.patch || "Unknown";
+            const reason = entry?.reason || "No reason provided";
+            summaryMd += `  - ${name}: ${reason.split('\n')[0]}\n`;
+          }
+          summaryMd += `  \`\`\`\n  </details>\n`;
+        }
+      } catch (err) {
+        console.error(`  Error parsing result file: ${err.message}`);
+        summaryMd += `- **Error**: Failed to parse patch results JSON: ${err.message}\n`;
+      }
+    } else {
+      console.log(`  Stats: No results file found.`);
+      summaryMd += `- **Error**: Result JSON not found\n`;
+    }
+    summaryMd += `\n`;
+  }
+
+  writeFileSync(fromRoot("output/build-summary.md"), summaryMd);
+  console.log(`\nWritten build summary to output/build-summary.md`);
 }
