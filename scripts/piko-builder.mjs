@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from "node:fs";
+import { basename, dirname, join, resolve, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -39,6 +39,9 @@ const appConfigs = {
     input: fromRoot("input/instagram.apkm"),
     output: fromRoot("output/instagram-patched.apk"),
     result: fromRoot("output/instagram-result.json"),
+    apkpureName: "Instagram",
+    apkpureSlug: "instagram",
+    apkpurePage: "https://apkpure.com/instagram/com.instagram.android",
   },
   twitter: {
     id: "twitter",
@@ -55,6 +58,9 @@ const appConfigs = {
     input: fromRoot("input/twitter.apkm"),
     output: fromRoot("output/twitter-patched.apk"),
     result: fromRoot("output/twitter-result.json"),
+    apkpureName: "X",
+    apkpureSlug: "x",
+    apkpurePage: "https://apkpure.com/x/com.twitter.android",
   },
 };
 
@@ -245,8 +251,11 @@ async function build() {
       throw new Error(`Could not resolve version for ${app.label}. Please specify ${app.id.toUpperCase()}_APK_VERSION.`);
     }
 
-    // 2. Download APK/APKM from APKMirror
-    console.log(`Downloading ${app.label} v${version} (${app.apkmirrorArch})...`);
+    // 2. Download APK/APKM from APKMirror (with APKPure fallback)
+    let downloadSucceeded = false;
+    let actualInputPath = app.input;
+
+    console.log(`Downloading ${app.label} v${version} (${app.apkmirrorArch}) from APKMirror...`);
     const downloadArgs = [
       join(root, "scripts/apkmirror_download.py"),
       "--app-name", app.label,
@@ -267,11 +276,56 @@ async function build() {
     }
 
     const downloadProc = spawnSync("python", downloadArgs, { stdio: "inherit" });
-    if (downloadProc.status !== 0) {
-      throw new Error(`Failed to download ${app.label} APK/APKM from APKMirror.`);
+    if (downloadProc.status === 0 && existsSync(app.input)) {
+      downloadSucceeded = true;
+    } else {
+      console.warn(`APKMirror download failed for ${app.label} v${version}. Trying APKPure fallback...`);
+      const apkpureArgs = [
+        join(root, "scripts/apkpure_download.py"),
+        "--app-name", app.apkpureName || app.label,
+        "--package-name", app.packageName,
+        "--source-page", app.apkpurePage || `https://apkpure.com/${app.id}/${app.packageName}`,
+        "--out-dir", paths.input,
+        "--version", version,
+      ];
+
+      console.log(`Running APKPure downloader: python ${apkpureArgs.join(" ")}`);
+      const apkpureProc = spawnSync("python", apkpureArgs, { stdio: ["inherit", "pipe", "inherit"] });
+      if (apkpureProc.status === 0) {
+        try {
+          const stdoutStr = apkpureProc.stdout.toString().trim();
+          const jsonMatch = stdoutStr.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const metadata = JSON.parse(jsonMatch[0]);
+            if (metadata.path && existsSync(metadata.path)) {
+              const ext = extname(metadata.path).toLowerCase() || ".apk";
+              const targetPath = app.input.slice(0, app.input.length - extname(app.input).length) + ext;
+              if (existsSync(targetPath)) {
+                rmSync(targetPath, { force: true });
+              }
+              renameSync(metadata.path, targetPath);
+              actualInputPath = targetPath;
+              downloadSucceeded = true;
+              console.log(`Successfully downloaded ${app.label} v${metadata.version} from APKPure: ${actualInputPath}`);
+            } else {
+              console.error(`APKPure download path ${metadata.path} does not exist.`);
+            }
+          } else {
+            console.error(`APKPure stdout did not contain JSON: ${stdoutStr}`);
+          }
+        } catch (err) {
+          console.error(`Error parsing APKPure download output: ${err.message}`);
+        }
+      } else {
+        console.error(`APKPure downloader process failed with exit code ${apkpureProc.status}`);
+      }
     }
 
-    console.log(`APK/APKM downloaded to ${app.input}`);
+    if (!downloadSucceeded) {
+      throw new Error(`Failed to download ${app.label} APK/APKM from both APKMirror and APKPure.`);
+    }
+
+    console.log(`Using input file: ${actualInputPath}`);
 
     // 3. Patch the APK
     const temporaryFilesPath = join(paths.tmp, app.id);
@@ -299,12 +353,12 @@ async function build() {
       patchArgs.push(
         "--keystore", keystoreFile,
         "--keystore-password", keystorePassword,
-        "--key-alias", keystoreAlias,
-        "--key-password", keystoreEntryPassword || keystorePassword
+        "--keystore-entry-alias", keystoreAlias,
+        "--keystore-entry-password", keystoreEntryPassword || keystorePassword
       );
     }
 
-    patchArgs.push(app.input);
+    patchArgs.push(actualInputPath);
 
     console.log(`\nRunning Morphe CLI patcher: java ${patchArgs.join(" ")}`);
     const patchProc = spawnSync("java", patchArgs, { stdio: "inherit" });

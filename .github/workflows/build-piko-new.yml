@@ -30,6 +30,14 @@ on:
         required: true
         type: boolean
         default: true
+      instagram_apk_version:
+        description: "Instagram APK Version (leave blank for recommended version)"
+        required: false
+        default: "430.0.0.53.80"
+      twitter_apk_version:
+        description: "Twitter APK Version (leave blank for recommended version)"
+        required: false
+        default: "11.81.0-release.0"
 
 env:
   MORPHE_PATCHES_REPO: crimera/piko
@@ -192,6 +200,8 @@ jobs:
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          INSTAGRAM_APK_VERSION: ${{ inputs.instagram_apk_version }}
+          TWITTER_APK_VERSION: ${{ inputs.twitter_apk_version }}
         run: node scripts/piko-builder.mjs build
 
       - name: Prepare release summary
