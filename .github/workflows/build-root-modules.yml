@@ -1,4 +1,4 @@
-name: Build root modules
+name: Morphe Root Module Builder
 
 on:
   workflow_dispatch:
@@ -57,7 +57,7 @@ on:
 
 jobs:
   build-root:
-    name: Build root modules
+    name: Morphe Root Module Builder
     runs-on: ubuntu-latest
     permissions:
       actions: write

@@ -1,4 +1,4 @@
-name: Build patched APKs
+name: Morphe APK Builder
 
 on:
   workflow_dispatch:
@@ -47,7 +47,7 @@ on:
 
 jobs:
   build:
-    name: Build
+    name: Morphe APK Builder
     runs-on: ubuntu-latest
     permissions:
       actions: write
