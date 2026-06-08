@@ -6,6 +6,7 @@
   "description": "Automation wrapper for patching Android APKs with Morphe patch bundles.",
   "scripts": {
     "build": "node scripts/morphe.mjs build",
+    "anddea": "node scripts/anddea-builder.mjs build",
     "download": "node scripts/morphe.mjs download",
     "options": "node scripts/morphe.mjs options",
     "root-modules": "node scripts/morphe.mjs root-modules",

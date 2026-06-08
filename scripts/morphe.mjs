@@ -40,6 +40,7 @@ const rootEnabledPatches = new Set([
 const rootStockInputExtensions = new Set([".apk", ".xapk", ".apkm", ".apks"]);
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
 const rootBuild = truthy(env("ROOT_BUILD"));
+const packageNameOptionsDisabled = truthy(env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS"));
 const defaultTargets = ["youtube", "youtube-music", "reddit"];
 const youtubeAbiVariants = [
   { artifactAbi: "arm64-v8a", apkmirrorArch: "arm64-v8a" },
@@ -92,7 +93,7 @@ const appConfigs = {
     apkmirrorArch: env("REDDIT_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a",
     apkmirrorFallbackArch: env("REDDIT_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "universal",
     apkmirrorDpi: env("REDDIT_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "120-640dpi",
-    patchedPackageName: env("REDDIT_PATCHED_PACKAGE_NAME"),
+    patchedPackageName: packageNameOptionsDisabled ? "" : env("REDDIT_PATCHED_PACKAGE_NAME"),
     requestedVersion: env("REDDIT_APK_VERSION"),
     input: envPath("REDDIT_APK", "input/reddit.apk"),
     url: env("REDDIT_APK_URL"),
@@ -170,7 +171,7 @@ function youtubeAbiAppConfigs(config) {
         || env(`${envPrefix}_APKMIRROR_DPI`)
         || env("APKMIRROR_DPI")
         || "any",
-      patchedPackageName: env(`${variantEnvPrefix}_PATCHED_PACKAGE_NAME`)
+      patchedPackageName: packageNameOptionsDisabled ? "" : env(`${variantEnvPrefix}_PATCHED_PACKAGE_NAME`)
         || env(`${envPrefix}_PATCHED_PACKAGE_NAME`)
         || (config.id === "youtube" ? "com.mistu.android.youtube" : "com.mistu.android.youtube.music"),
       requestedVersion: env(`${variantEnvPrefix}_APK_VERSION`) || env(`${envPrefix}_APK_VERSION`),
@@ -579,7 +580,7 @@ async function ensureTools(force = false) {
 }
 
 async function downloadReleaseAsset(config, force) {
-  if (!force && usableFile(config.output)) {
+  if (!force && await cachedReleaseAssetUsable(config)) {
     return config.output;
   }
 
@@ -603,6 +604,13 @@ async function downloadReleaseAsset(config, force) {
   });
 
   return config.output;
+}
+
+async function cachedReleaseAssetUsable(config) {
+  if (!usableFile(config.output)) return false;
+
+  const meta = await readJson(config.meta);
+  return meta?.repo === config.repo;
 }
 
 async function ensureApkeep(force = false) {
@@ -2588,6 +2596,9 @@ Environment:
                               Defaults to com.mistu.android.youtube.music.
   REDDIT_PATCHED_PACKAGE_NAME
                               Optional; only works if the selected patch bundle supports it.
+  MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS
+                              Set to 1 to skip generated package rename options for patch bundles
+                              that manage clone package names through other patches.
   ROOT_BUILD                  Set to 1 for root module builds that keep original package names.
   ROOT_ALLOW_OPTIONS_FILE     Set to 1 to pass root build options files. Defaults to off.
   ROOT_MODULE_VERSION         Optional module version label. Defaults to current UTC date.
