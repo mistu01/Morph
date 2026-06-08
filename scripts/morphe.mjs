@@ -282,6 +282,7 @@ async function checkReleaseOutputs() {
     if (result.success === false) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""} — skipping from release (continue-on-error is set).`);
+        discardReleaseOutput(output, app.label);
         skippedLabels.push(app.label);
         continue;
       }
@@ -297,6 +298,7 @@ async function checkReleaseOutputs() {
     if (appliedPatches.length === 0) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: no patches were applied — skipping from release (continue-on-error is set).`);
+        discardReleaseOutput(output, app.label);
         skippedLabels.push(app.label);
         continue;
       }
@@ -306,6 +308,7 @@ async function checkReleaseOutputs() {
     if (failedPatches.length > appliedPatches.length) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed) — skipping from release (continue-on-error is set).`);
+        discardReleaseOutput(output, app.label);
         skippedLabels.push(app.label);
         continue;
       }
@@ -332,6 +335,12 @@ async function checkReleaseOutputs() {
     ? `Release outputs complete for ${successfulLabels.join(", ")}.`
     : "No release outputs were produced.";
   console.log(skippedLabels.length ? `${summary} Skipped ${skippedLabels.join(", ")}.` : summary);
+}
+
+function discardReleaseOutput(output, label) {
+  if (!output || !existsSync(output)) return;
+  rmSync(output, { force: true });
+  console.warn(`warning: ${label}: removed skipped release output ${relative(output)}.`);
 }
 
 
@@ -801,7 +810,11 @@ async function printReleaseNotes() {
     const failed = failedPatchesFrom(result?.failedPatches);
     const stepFailures = stepFailuresFrom(result?.patchingSteps);
     const buildResult = result
-      ? result.success === false ? "completed with patch failures" : "successful"
+      ? result.success === false
+        ? "completed with patch failures"
+        : applied.length === 0
+          ? "completed without applied patches"
+          : "successful"
       : "unknown; result file missing";
 
     const sourceParts = [];
@@ -1730,9 +1743,11 @@ function shouldFallbackToLatest(app) {
 
 function apkDownloadSourcesFor(app) {
   const sources = apkSources().filter((source) => source !== "local");
-  return app.artifactAbi
-    ? sources.filter((source) => ["apkmirror", "uptodown", "divxland"].includes(source))
-    : sources;
+  if (!app.artifactAbi) return sources;
+
+  const allowed = ["apkmirror", "uptodown", "divxland"];
+  if (truthy(env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI"))) allowed.push("apkpure");
+  return sources.filter((source) => allowed.includes(source));
 }
 
 async function downloadExactApkFromSource(source, app, options) {
@@ -2054,6 +2069,7 @@ async function downloadWithPythonApkpure(
     app.apkpurePage,
     "--out-dir",
     outputDir,
+    ...(app.apkmirrorArch ? ["--arch", app.apkmirrorArch] : []),
     ...(selectedVersion ? ["--version", selectedVersion] : []),
   ]);
 

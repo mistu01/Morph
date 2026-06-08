@@ -11,9 +11,10 @@ const args = process.argv.slice(3);
 const childEnv = {
   ...process.env,
   BUILD_TARGETS: env("BUILD_TARGETS") || "youtube,youtube-music,reddit",
-  APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure,uptodown,divxland",
+  APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
   APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
   APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
+  MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
   MORPHE_PATCHES_REPO: env("ANDDEA_PATCHES_REPO") || "anddea/revanced-patches",
   MORPHE_PATCHES_VERSION: env("ANDDEA_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
   MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
