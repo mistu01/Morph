@@ -16,7 +16,11 @@ const childEnv = {
   APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
   MORPHE_PATCHES_REPO: env("ANDDEA_PATCHES_REPO") || "anddea/revanced-patches",
   MORPHE_PATCHES_VERSION: env("ANDDEA_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
+  MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
   MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
+  YOUTUBE_OPTIONS: env("YOUTUBE_OPTIONS") || "config/anddea/youtube-options.json",
+  YOUTUBE_MUSIC_OPTIONS: env("YOUTUBE_MUSIC_OPTIONS") || "config/anddea/youtube-music-options.json",
+  REDDIT_OPTIONS: env("REDDIT_OPTIONS") || "config/anddea/reddit-options.json",
 };
 
 if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {

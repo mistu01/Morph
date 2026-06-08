@@ -822,6 +822,7 @@ async function printReleaseNotes() {
     const rootModule = rootModulesMeta?.targets?.find((target) => target.id === app.id);
     if (rootModule?.module) lines.push(`  - Root module: ${basename(rootModule.module)}`);
     if (sourceParts.length) lines.push(`  - Source: ${sourceParts.join("; ")}`);
+    if (result?.success === false && result?.error) lines.push(`  - Error: ${firstReasonLine(result.error)}`);
     lines.push(`  - Applied: ${formatPatchList(applied)}`);
     if (failed.length) lines.push(`  - Failed: ${failed.map(formatFailedPatch).join("; ")}`);
     if (stepFailures.length) lines.push(`  - Failed steps: ${stepFailures.join("; ")}`);
@@ -952,6 +953,13 @@ function patchArgsFor(app) {
 async function ensurePatchOptions(app, tools = null) {
   if (rootBuild) {
     await ensureRootPatchArgs(app);
+    return;
+  }
+  if (packageNameOptionsDisabled) {
+    if (truthy(env("MORPHE_CREATE_DEFAULT_OPTIONS"))) {
+      const activeTools = tools || await ensureTools(flag("refresh-tools"));
+      createDefaultOptionsFile(app, activeTools);
+    }
     return;
   }
   await ensurePackageNameOptions(app, tools);
@@ -2599,6 +2607,8 @@ Environment:
   MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS
                               Set to 1 to skip generated package rename options for patch bundles
                               that manage clone package names through other patches.
+  MORPHE_CREATE_DEFAULT_OPTIONS
+                              Set to 1 to create and pass default patch option files.
   ROOT_BUILD                  Set to 1 for root module builds that keep original package names.
   ROOT_ALLOW_OPTIONS_FILE     Set to 1 to pass root build options files. Defaults to off.
   ROOT_MODULE_VERSION         Optional module version label. Defaults to current UTC date.
