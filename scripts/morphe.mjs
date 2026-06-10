@@ -800,6 +800,9 @@ async function printReleaseNotes() {
   lines.push("## App Results");
   lines.push("");
 
+  let totalApplied = 0;
+  let totalFailed = 0;
+
   for (const app of apps) {
     const result = await readJson(app.result);
     const apkMeta = await readApkMetadata(app);
@@ -809,6 +812,8 @@ async function printReleaseNotes() {
     const applied = patchesFrom(result?.appliedPatches);
     const failed = failedPatchesFrom(result?.failedPatches);
     const stepFailures = stepFailuresFrom(result?.patchingSteps);
+    totalApplied += applied.length;
+    totalFailed += failed.length;
     const buildResult = result
       ? result.success === false
         ? "completed with patch failures"
@@ -823,7 +828,7 @@ async function printReleaseNotes() {
     if (apkMeta?.fallbackFromVersion) sourceParts.push(`fallback from ${apkMeta.fallbackFromVersion}`);
     if (apkMeta?.forcePatchRequired) sourceParts.push("--force");
 
-    lines.push(`- ${app.label} ${apkVersion}: ${buildResult}; patches ${applied.length} ok, ${failed.length} failed`);
+    lines.push(`- ${app.label} ${apkVersion}: ${buildResult}; patches ${applied.length} succeeded, ${failed.length} failed`);
     lines.push(`  - Package: ${packageName}${sourcePackageName !== packageName ? ` (source ${sourcePackageName})` : ""}`);
     if (app.artifactAbi || result?.artifactAbi || apkMeta?.arch) {
       const abi = app.artifactAbi || result?.artifactAbi || apkMeta?.arch;
@@ -836,10 +841,12 @@ async function printReleaseNotes() {
     if (rootModule?.module) lines.push(`  - Root module: ${basename(rootModule.module)}`);
     if (sourceParts.length) lines.push(`  - Source: ${sourceParts.join("; ")}`);
     if (result?.success === false && result?.error) lines.push(`  - Error: ${firstReasonLine(result.error)}`);
-    lines.push(`  - Applied: ${formatPatchList(applied)}`);
-    if (failed.length) lines.push(`  - Failed: ${failed.map(formatFailedPatch).join("; ")}`);
+    if (failed.length) lines.push(`  - Failed patches: ${formatFailedPatchList(failed)}`);
     if (stepFailures.length) lines.push(`  - Failed steps: ${stepFailures.join("; ")}`);
   }
+
+  lines.push("");
+  lines.push(`Patch totals: ${totalApplied} succeeded, ${totalFailed} failed.`);
 
   if (patchArgs.includes("--continue-on-error")) {
     lines.push("");
@@ -3008,14 +3015,12 @@ function formatFailedPatch(entry) {
   return entry.reason ? `${entry.name} (${entry.reason})` : entry.name;
 }
 
-function formatPatchList(names, limit = 8) {
-  if (!names.length) return "none";
-
-  const shown = names.slice(0, limit);
-  const remaining = names.length - shown.length;
+function formatFailedPatchList(entries, limit = 5) {
+  const shown = entries.slice(0, limit).map(formatFailedPatch);
+  const remaining = entries.length - shown.length;
   return remaining > 0
-    ? `${shown.join(", ")}, +${remaining} more`
-    : shown.join(", ");
+    ? `${shown.join("; ")}; +${remaining} more`
+    : shown.join("; ");
 }
 
 function firstReasonLine(reason) {
