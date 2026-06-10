@@ -1,0 +1,309 @@
+name: Build Anddea root modules
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Comma-separated targets: youtube,youtube-music,reddit. YouTube targets expand to arm64-v8a and arm-v7a root modules."
+        required: true
+        default: "youtube,youtube-music"
+      cli_version:
+        description: "Morphe CLI tag, or latest"
+        required: true
+        default: "latest"
+      patches_version:
+        description: "Anddea patches: stable, dev, latest, or an explicit tag"
+        required: true
+        default: "stable"
+      apk_version_source:
+        description: "APK version source: recommended, latest, or an explicit version"
+        required: true
+        default: "recommended"
+      apk_fallback_to_latest:
+        description: "Fall back to latest available APK if the recommended APK version disappears"
+        required: true
+        type: boolean
+        default: false
+      force_patch:
+        description: "Pass --force to skip APK version compatibility checks"
+        required: true
+        type: boolean
+        default: true
+      continue_on_error:
+        description: "Pass --continue-on-error so compatible patches can still be applied if one patch fails"
+        required: true
+        type: boolean
+        default: true
+      create_release:
+        description: "Create a GitHub Release and attach Magisk/KernelSU/KernelSU Next/APatch module ZIPs"
+        required: true
+        type: boolean
+        default: true
+      upload_artifact:
+        description: "Upload root module ZIPs as a short-lived workflow artifact"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  build-root:
+    name: Build Anddea root modules
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Download Anddea tools
+        env:
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+        run: node scripts/anddea-builder.mjs tools
+
+      - name: Restore optional signing keystore
+        env:
+          APK_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          APK_KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          APK_KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+        run: |
+          if [ -n "$APK_KEYSTORE_B64" ]; then
+            if [ -z "$APK_KEYSTORE_PASSWORD" ] || [ -z "$APK_KEYSTORE_ENTRY_PASSWORD" ]; then
+              echo "::error::APK_KEYSTORE_B64 is set, but APK_KEYSTORE_PASSWORD or APK_KEYSTORE_ENTRY_PASSWORD is missing."
+              exit 1
+            fi
+            mkdir -p .secrets
+            printf '%s' "$APK_KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > .secrets/mistu-release-source.jks
+
+            cat > .secrets/ConvertKeystore.java <<'JAVA'
+            import java.io.InputStream;
+            import java.io.OutputStream;
+            import java.nio.file.Files;
+            import java.nio.file.Path;
+            import java.security.Key;
+            import java.security.KeyStore;
+            import java.security.Provider;
+            import java.security.Security;
+            import java.security.cert.Certificate;
+            import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+            public final class ConvertKeystore {
+              private record LoadedStore(KeyStore store, String type) {}
+
+              public static void main(String[] args) throws Exception {
+                Path input = Path.of(args[0]);
+                Path output = Path.of(args[1]);
+                char[] storePassword = requiredEnv("APK_KEYSTORE_PASSWORD").toCharArray();
+                char[] entryPassword = envOr("APK_KEYSTORE_ENTRY_PASSWORD", requiredEnv("APK_KEYSTORE_PASSWORD")).toCharArray();
+                String alias = envOr("APK_KEYSTORE_ALIAS", "mistu");
+
+                Provider bc = new BouncyCastleProvider();
+                if (Security.getProvider(bc.getName()) == null) Security.addProvider(bc);
+
+                LoadedStore loaded = loadStore(input, storePassword);
+                Key key = loaded.store().getKey(alias, entryPassword);
+                if (key == null) {
+                  throw new IllegalStateException("Signing key alias not found in " + loaded.type() + " keystore: " + alias);
+                }
+
+                Certificate[] chain = loaded.store().getCertificateChain(alias);
+                if (chain == null) {
+                  Certificate certificate = loaded.store().getCertificate(alias);
+                  if (certificate == null) {
+                    throw new IllegalStateException("No certificate found for signing key alias: " + alias);
+                  }
+                  chain = new Certificate[] { certificate };
+                }
+
+                KeyStore bks = KeyStore.getInstance("BKS", "BC");
+                bks.load(null, storePassword);
+                bks.setKeyEntry(alias, key, entryPassword, chain);
+
+                try (OutputStream stream = Files.newOutputStream(output)) {
+                  bks.store(stream, storePassword);
+                }
+              }
+
+              private static LoadedStore loadStore(Path path, char[] password) throws Exception {
+                Exception last = null;
+                for (String type : new String[] { "JKS", "PKCS12", "BKS" }) {
+                  try {
+                    KeyStore store = "BKS".equals(type)
+                      ? KeyStore.getInstance(type, "BC")
+                      : KeyStore.getInstance(type);
+                    try (InputStream stream = Files.newInputStream(path)) {
+                      store.load(stream, password);
+                    }
+                    return new LoadedStore(store, type);
+                  } catch (Exception error) {
+                    last = error;
+                  }
+                }
+
+                throw new IllegalStateException("Could not load signing keystore as JKS, PKCS12, or BKS.", last);
+              }
+
+              private static String requiredEnv(String name) {
+                String value = System.getenv(name);
+                if (value == null || value.isEmpty()) {
+                  throw new IllegalStateException(name + " is required");
+                }
+                return value;
+              }
+
+              private static String envOr(String name, String fallback) {
+                String value = System.getenv(name);
+                return value == null || value.isEmpty() ? fallback : value;
+              }
+            }
+          JAVA
+
+            javac -cp .cache/tools/morphe-cli.jar .secrets/ConvertKeystore.java
+            java -cp ".cache/tools/morphe-cli.jar:.secrets" ConvertKeystore \
+              .secrets/mistu-release-source.jks \
+              .secrets/mistu-release.jks
+            echo "KEYSTORE_FILE=.secrets/mistu-release.jks" >> "$GITHUB_ENV"
+          fi
+
+      - name: Configure Anddea patch flags
+        env:
+          FORCE_PATCH: ${{ inputs.force_patch }}
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+        run: |
+          node <<'NODE' >> "$GITHUB_ENV"
+          const args = [];
+          if (process.env.FORCE_PATCH === 'true') args.push('--force');
+          if (process.env.CONTINUE_ON_ERROR === 'true') args.push('--continue-on-error');
+          console.log(`MORPHE_EXTRA_ARGS_JSON=${JSON.stringify(args)}`);
+          NODE
+
+      - name: Build root APK variants
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: ${{ inputs.targets }}
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          APK_SOURCE: apkmirror,apkpure
+          APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
+          YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
+          YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
+          REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
+          YOUTUBE_OUT: output/root/youtube-root.apk
+          YOUTUBE_RESULT: output/root/youtube-result.json
+          YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
+          YOUTUBE_MUSIC_RESULT: output/root/youtube-music-result.json
+          REDDIT_OUT: output/root/reddit-root.apk
+          REDDIT_RESULT: output/root/reddit-result.json
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          SIGNER_NAME: Mistu
+        run: node scripts/anddea-builder.mjs build
+
+      - name: Package root modules
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: ${{ inputs.targets }}
+          YOUTUBE_OUT: output/root/youtube-root.apk
+          YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
+          REDDIT_OUT: output/root/reddit-root.apk
+        run: node scripts/morphe.mjs root-modules
+
+      - name: Prepare release metadata
+        if: ${{ inputs.create_release || inputs.upload_artifact }}
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: ${{ inputs.targets }}
+          APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
+          GH_TOKEN: ${{ github.token }}
+          PATCHES_VERSION: ${{ inputs.patches_version }}
+          YOUTUBE_OUT: output/root/youtube-root.apk
+          YOUTUBE_RESULT: output/root/youtube-result.json
+          YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
+          YOUTUBE_MUSIC_RESULT: output/root/youtube-music-result.json
+          REDDIT_OUT: output/root/reddit-root.apk
+          REDDIT_RESULT: output/root/reddit-result.json
+        run: |
+          release_date="$(date -u +'%Y-%m-%d')"
+          release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
+          tag="anddea-root-${release_stamp}-${GITHUB_RUN_NUMBER}"
+          release_prerelease_flag=""
+          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+
+          case "${PATCHES_VERSION,,}" in
+            dev|pre|preview|prerelease|pre-release)
+              release_prerelease_flag="--prerelease"
+              ;;
+            stable|latest)
+              release_prerelease_flag=""
+              ;;
+            *)
+              patches_tag="$PATCHES_VERSION"
+              if [[ "$patches_tag" != v* ]]; then
+                patches_tag="v${patches_tag}"
+              fi
+              if [ "$(gh api "repos/anddea/revanced-patches/releases/tags/${patches_tag}" --jq '.prerelease' 2>/dev/null || echo false)" = "true" ]; then
+                release_prerelease_flag="--prerelease"
+              fi
+              ;;
+          esac
+
+          echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=Anddea root modules ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
+
+          node scripts/anddea-builder.mjs release-notes > release-notes.md
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_args=()
+          if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then
+            release_args+=("$RELEASE_PRERELEASE_FLAG")
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            output/root-modules/*-root-module.zip \
+            "${release_args[@]}" \
+            --title "$RELEASE_NAME" \
+            --notes-file release-notes.md
+
+      - name: Upload root modules
+        if: ${{ inputs.upload_artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: anddea-root-modules
+          path: |
+            output/root-modules/*-root-module.zip
+            output/root-modules/root-modules.json
+            output/root/*.apk
+            output/root/*-result.json
+            release-notes.md
+          if-no-files-found: error
+          retention-days: 1
