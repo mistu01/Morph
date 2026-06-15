@@ -4,9 +4,17 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "Comma-separated targets: youtube,youtube-music,reddit. YouTube targets expand to arm64-v8a and arm-v7a root modules."
+        description: "Comma-separated targets: youtube,youtube-music,reddit. YouTube targets expand according to YouTube ABIs."
         required: true
         default: "youtube,youtube-music"
+      youtube_abis:
+        description: "YouTube/YouTube Music ABI artifacts to build"
+        required: true
+        type: choice
+        default: "arm64-v8a,arm-v7a"
+        options:
+          - "arm64-v8a,arm-v7a"
+          - "arm64-v8a"
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
@@ -203,6 +211,7 @@ jobs:
         env:
           ROOT_BUILD: "1"
           BUILD_TARGETS: ${{ inputs.targets }}
+          YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           APK_SOURCE: apkmirror,apkpure
@@ -227,6 +236,7 @@ jobs:
         env:
           ROOT_BUILD: "1"
           BUILD_TARGETS: ${{ inputs.targets }}
+          YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           YOUTUBE_OUT: output/root/youtube-root.apk
           YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
           REDDIT_OUT: output/root/reddit-root.apk
@@ -237,6 +247,7 @@ jobs:
         env:
           ROOT_BUILD: "1"
           BUILD_TARGETS: ${{ inputs.targets }}
+          YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           GH_TOKEN: ${{ github.token }}

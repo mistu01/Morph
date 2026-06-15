@@ -231,7 +231,8 @@ jobs:
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
-          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = "dev"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_patches_url="$(node -e 'const fs = require("node:fs"); const repo = "crimera/piko"; let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; let url = `https://github.com/${repo}/releases`; try { const meta = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")); tag = meta.tag || tag; url = meta.url || `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`; } catch {} process.stdout.write(url);')"
 
           echo "RELEASE_TAG=piko-new-${release_stamp}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=Piko patched APKs (New) ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
@@ -240,7 +241,7 @@ jobs:
           cat <<EOF > release-notes.md
           ## Piko Build Summary (New Builder)
           
-          - Patches: crimera/piko (New Piko Builder)
+          - Patches: [crimera/piko ${resolved_patches_tag}](${resolved_patches_url}) (New Piko Builder)
           - Architecture: arm64-v8a
           - Instagram APK Version: ${{ inputs.instagram_apk_version || '430.0.0.53.80' }}
           - Twitter APK Version: ${{ inputs.twitter_apk_version || '11.81.0-release.0' }}

@@ -174,6 +174,7 @@ async function downloadTools() {
 
   const cliDest = join(paths.tools, "morphe-cli.jar");
   const patchesDest = join(paths.tools, "piko-patches.mpp");
+  const patchesMetaDest = join(paths.tools, "piko-patches.json");
   const patchesListDest = join(paths.tools, "patches-list.json");
 
   console.log(`Downloading morphe-cli ${cliRelease.tag_name} -> ${cliDest}`);
@@ -181,6 +182,13 @@ async function downloadTools() {
 
   console.log(`Downloading piko-patches ${patchesRelease.tag_name} -> ${patchesDest}`);
   await downloadFile(patchesAsset.browser_download_url, patchesDest);
+  writeFileSync(patchesMetaDest, JSON.stringify({
+    repo: patchesRepo,
+    tag: patchesRelease.tag_name,
+    url: patchesRelease.html_url || `https://github.com/${patchesRepo}/releases/tag/${patchesRelease.tag_name}`,
+    asset: patchesAsset.name,
+    downloadedAt: new Date().toISOString(),
+  }, null, 2));
 
   console.log("Downloading patches-list.json...");
   const patchesListUrl = `https://raw.githubusercontent.com/${patchesRepo}/${patchesRelease.tag_name}/patches-list.json`;
@@ -379,6 +387,10 @@ async function build() {
       }
     } else {
       console.log(`\nSuccessfully patched ${app.label}!`);
+    }
+
+    await renameVersionedBuildOutput(app, version);
+    if (existsSync(app.output)) {
       console.log(`Patched APK output: ${app.output}`);
     }
   }
@@ -435,4 +447,49 @@ async function build() {
 
   writeFileSync(fromRoot("output/build-summary.md"), summaryMd);
   console.log(`\nWritten build summary to output/build-summary.md`);
+}
+
+async function renameVersionedBuildOutput(app, version) {
+  if (!existsSync(app.output)) return;
+
+  const safeVersion = safeNamePart(version || "unknown");
+  const safeArch = safeNamePart(displayArch(app.apkmirrorArch || env("APKMIRROR_ARCH") || "arm64-v8a"));
+  const destination = join(dirname(app.output), `${app.id}-${safeVersion}-${safeArch}-patched.apk`);
+
+  if (resolve(destination) !== resolve(app.output)) {
+    rmSync(destination, { force: true });
+    renameSync(app.output, destination);
+    app.output = destination;
+    console.log(`${app.label}: renamed APK output to ${app.output}`);
+  }
+
+  updateBuildResultOutput(app, version, displayArch(app.apkmirrorArch || env("APKMIRROR_ARCH") || "arm64-v8a"));
+}
+
+function updateBuildResultOutput(app, version, arch) {
+  if (!existsSync(app.result)) return;
+
+  try {
+    const result = JSON.parse(readFileSync(app.result, "utf8"));
+    writeFileSync(app.result, JSON.stringify({
+      ...result,
+      packageVersion: result.packageVersion || version,
+      artifactArch: arch,
+      output: app.output,
+      artifactName: basename(app.output),
+    }, null, 2));
+  } catch (error) {
+    console.warn(`Could not update result metadata for ${app.label}: ${error.message}`);
+  }
+}
+
+function displayArch(arch) {
+  return arch === "armeabi-v7a" ? "arm-v7a" : arch;
+}
+
+function safeNamePart(value) {
+  return String(value || "unknown")
+    .trim()
+    .replace(/[^A-Za-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "unknown";
 }

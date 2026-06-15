@@ -59,7 +59,7 @@ jobs:
 
               release_body="$(gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' 2>/dev/null || true)"
               release_assets="$(gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null || true)"
-              if printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches: ${patches_tag}" &&
+              if has_patch_release_note "$release_body" "$patches_tag" "$patches_repo" &&
                  printf '%s\n' "$release_body" | grep -Fq -- "- Build variant: ${build_variant}" &&
                  printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches repo: ${patches_repo}" &&
                  ! printf '%s\n' "$release_body" | grep -Fq -- "completed with patch failures" &&
@@ -70,6 +70,15 @@ jobs:
             done <<< "$release_tags"
 
             return 1
+          }
+
+          has_patch_release_note() {
+            local release_body="$1"
+            local patches_tag="$2"
+            local patches_repo="$3"
+
+            printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches: ${patches_tag}" ||
+              printf '%s\n' "$release_body" | grep -Fq -- "- Morphe patches: [${patches_repo} ${patches_tag}]("
           }
 
           has_all_release_assets() {

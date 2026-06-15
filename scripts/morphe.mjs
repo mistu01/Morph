@@ -42,10 +42,11 @@ const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
 const rootBuild = truthy(env("ROOT_BUILD"));
 const packageNameOptionsDisabled = truthy(env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS"));
 const defaultTargets = ["youtube", "youtube-music", "reddit"];
-const youtubeAbiVariants = [
+const allYoutubeAbiVariants = [
   { artifactAbi: "arm64-v8a", apkmirrorArch: "arm64-v8a" },
   { artifactAbi: "arm-v7a", apkmirrorArch: "armeabi-v7a" },
 ];
+const youtubeAbiVariants = selectedYoutubeAbiVariants();
 
 const appConfigs = {
   ...youtubeAbiAppConfigs({
@@ -192,6 +193,33 @@ function youtubeAbiAppConfigs(config) {
 
 function youtubeAbiTargetId(baseId, variant) {
   return `${baseId}-${variant.artifactAbi}`;
+}
+
+function selectedYoutubeAbiVariants() {
+  const raw = env("YOUTUBE_ABIS") || env("MORPHE_YOUTUBE_ABIS") || "arm64-v8a,arm-v7a";
+  const requested = raw
+    .split(/[,\s]+/)
+    .map(normalizeYoutubeAbi)
+    .filter(Boolean);
+  const selected = requested.includes("all")
+    ? allYoutubeAbiVariants.map((variant) => variant.artifactAbi)
+    : requested.length ? [...new Set(requested)] : allYoutubeAbiVariants.map((variant) => variant.artifactAbi);
+  const known = new Set(allYoutubeAbiVariants.map((variant) => variant.artifactAbi));
+  const unknown = selected.filter((abi) => !known.has(abi));
+  if (unknown.length) {
+    throw new Error(`Unknown YouTube ABI selection: ${unknown.join(", ")}. Valid values: arm64-v8a, arm-v7a.`);
+  }
+
+  return allYoutubeAbiVariants.filter((variant) => selected.includes(variant.artifactAbi));
+}
+
+function normalizeYoutubeAbi(value) {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (!normalized) return "";
+  if (["all", "both", "arm64-v8a+arm-v7a", "arm64-v8a,arm-v7a"].includes(normalized)) return "all";
+  if (["arm64", "arm64-v8a", "arm-v8a", "v8a", "v8a-only", "arm64-only"].includes(normalized)) return "arm64-v8a";
+  if (["armeabi-v7a", "arm-v7a", "v7a", "arm32"].includes(normalized)) return "arm-v7a";
+  return normalized;
 }
 
 main().catch((error) => {
@@ -608,6 +636,7 @@ async function downloadReleaseAsset(config, force) {
   await writeJson(config.meta, {
     repo: config.repo,
     tag: release.tag_name,
+    url: release.html_url || githubReleaseUrl(config.repo, release.tag_name),
     asset: asset.name,
     downloadedAt: new Date().toISOString(),
   });
@@ -673,6 +702,14 @@ async function githubReleaseForVersion(repo, version = "latest", { prereleaseKey
   }
 
   return githubJson(`https://api.github.com/repos/${repo}/releases/tags/${normalizeTag(version)}`);
+}
+
+function githubReleaseUrl(repo, tag, fallbackUrl = "") {
+  if (fallbackUrl) return fallbackUrl;
+  if (!tag || ["latest", "stable", "dev", "pre", "preview", "prerelease", "pre-release"].includes(String(tag).toLowerCase())) {
+    return `https://github.com/${repo}/releases`;
+  }
+  return `https://github.com/${repo}/releases/tag/${encodeURIComponent(normalizeTag(tag))}`;
 }
 
 async function fetchPatchesList() {
@@ -776,9 +813,12 @@ function compatibleVersionsFor(app, patchesList, { defaultOnly = false, includeE
 async function printReleaseNotes() {
   const apps = selectedApps();
   const cliMeta = await readJson(releaseAssets.cli.meta);
-  const patchesMeta = await readJson(releaseAssets.patches.meta);
+  const rawPatchesMeta = await readJson(releaseAssets.patches.meta);
+  const patchesMeta = rawPatchesMeta?.repo === releaseAssets.patches.repo ? rawPatchesMeta : null;
   const rootModulesMeta = rootBuild ? await readJson(join(paths.rootModules, "root-modules.json")) : null;
   const patchArgs = parseJsonArrayEnv("MORPHE_EXTRA_ARGS_JSON");
+  const patchesTag = patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest";
+  const patchesUrl = githubReleaseUrl(releaseAssets.patches.repo, patchesTag, patchesMeta?.url);
   const lines = [];
 
   lines.push(rootBuild ? "Automated root module build." : "Automated patched APK build.");
@@ -788,8 +828,9 @@ async function printReleaseNotes() {
   lines.push(`- Targets: ${apps.map((app) => app.label).join(", ")}`);
   lines.push(`- Morphe CLI: ${cliMeta?.tag || env("MORPHE_CLI_VERSION") || "latest"}`);
   lines.push(`- Morphe patches repo: ${releaseAssets.patches.repo}`);
-  lines.push(`- Morphe patches: ${patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest"}`);
+  lines.push(`- Morphe patches: [${releaseAssets.patches.repo} ${patchesTag}](${patchesUrl})`);
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
+  lines.push(`- YouTube ABIs: ${youtubeAbiVariants.map((variant) => variant.artifactAbi).join(", ")}`);
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
   lines.push(`- Recommended APK fallback to latest: ${truthy(env("APK_FALLBACK_TO_LATEST")) ? "enabled" : "disabled"}`);
   lines.push(`- Patch args: ${patchArgs.length ? patchArgs.join(" ") : "none"}`);
@@ -2632,7 +2673,9 @@ function printHelp() {
 
 Environment:
   BUILD_TARGETS              Comma-separated targets. Defaults to youtube,youtube-music,reddit.
-                             youtube and youtube-music expand to arm64-v8a and arm-v7a artifacts.
+                             youtube and youtube-music expand according to YOUTUBE_ABIS.
+  YOUTUBE_ABIS               YouTube/YouTube Music ABI artifacts. Defaults to
+                             arm64-v8a,arm-v7a. Use arm64-v8a for v8a-only builds.
   MORPHE_CLI_VERSION         Release tag such as v1.7.0, or latest.
   MORPHE_PATCHES_VERSION     stable, dev, latest, or a release tag such as v1.24.0.
   MORPHE_PATCHES_REPO        Patch bundle repo. Defaults to MorpheApp/morphe-patches.
