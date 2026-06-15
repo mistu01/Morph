@@ -89,10 +89,12 @@ jobs:
           APK_KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
         run: |
           if [ -n "$APK_KEYSTORE_B64" ]; then
-            if [ -z "$APK_KEYSTORE_PASSWORD" ] || [ -z "$APK_KEYSTORE_ENTRY_PASSWORD" ]; then
-              echo "::error::APK_KEYSTORE_B64 is set, but APK_KEYSTORE_PASSWORD or APK_KEYSTORE_ENTRY_PASSWORD is missing."
+            if [ -z "$APK_KEYSTORE_PASSWORD" ]; then
+              echo "::error::APK_KEYSTORE_B64 is set, but APK_KEYSTORE_PASSWORD is missing."
               exit 1
             fi
+            export APK_KEYSTORE_ENTRY_PASSWORD="${APK_KEYSTORE_ENTRY_PASSWORD:-$APK_KEYSTORE_PASSWORD}"
+
             mkdir -p .secrets
             printf '%s' "$APK_KEYSTORE_B64" | tr -d '[:space:]' | base64 -d > .secrets/mistu-release-source.jks
 
@@ -127,14 +129,7 @@ jobs:
                   throw new IllegalStateException("Signing key alias not found in " + loaded.type() + " keystore: " + alias);
                 }
 
-                Certificate[] chain = loaded.store().getCertificateChain(alias);
-                if (chain == null) {
-                  Certificate certificate = loaded.store().getCertificate(alias);
-                  if (certificate == null) {
-                    throw new IllegalStateException("No certificate found for signing key alias: " + alias);
-                  }
-                  chain = new Certificate[] { certificate };
-                }
+                Certificate[] chain = certificateChain(loaded.store(), alias);
 
                 KeyStore bks = KeyStore.getInstance("BKS", "BC");
                 bks.load(null, storePassword);
@@ -162,6 +157,33 @@ jobs:
                 }
 
                 throw new IllegalStateException("Could not load signing keystore as JKS, PKCS12, or BKS.", last);
+              }
+
+              private static Certificate[] certificateChain(KeyStore store, String alias) throws Exception {
+                try {
+                  Certificate[] chain = store.getCertificateChain(alias);
+                  if (chain != null && chain.length > 0) {
+                    return chain;
+                  }
+                } catch (Exception error) {
+                  System.err.println("Warning: could not read certificate chain for alias " + alias + ": " + error.getMessage());
+                }
+
+                Certificate certificate = store.getCertificate(alias);
+                if (certificate != null) {
+                  return new Certificate[] { certificate };
+                }
+
+                for (java.util.Enumeration<String> aliases = store.aliases(); aliases.hasMoreElements(); ) {
+                  String candidate = aliases.nextElement();
+                  certificate = store.getCertificate(candidate);
+                  if (certificate != null) {
+                    System.err.println("Warning: using certificate from alias " + candidate + " for signing key alias " + alias);
+                    return new Certificate[] { certificate };
+                  }
+                }
+
+                throw new IllegalStateException("No certificate found for signing key alias: " + alias);
               }
 
               private static String requiredEnv(String name) {
