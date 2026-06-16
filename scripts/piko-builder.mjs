@@ -473,6 +473,12 @@ async function renameVersionedBuildOutput(app, version) {
 }
 
 async function downloadGofileInput(app) {
+  if (isGofileShareUrl(app.gofileUrl)) {
+    const metadata = downloadGofileInputWithBrowser(app);
+    app.input = metadata.path;
+    return metadata.path;
+  }
+
   const selected = await resolveGofileDownload(app);
   const extension = packageExtension(selected.fileName || selected.url) || packageExtension(app.input) || ".apk";
   const destination = replaceExtension(app.input, extension);
@@ -491,6 +497,45 @@ async function downloadGofileInput(app) {
 
   app.input = destination;
   return destination;
+}
+
+function downloadGofileInputWithBrowser(app) {
+  const python = env("PYTHON_BIN") || "python";
+  const args = [
+    join(root, "scripts/gofile_download.py"),
+    "--url", app.gofileUrl,
+    "--out-dir", paths.input,
+    "--out-file", basename(app.input),
+  ];
+  if (app.gofilePassword) {
+    args.push("--password", app.gofilePassword);
+  }
+
+  console.log(`Downloading custom ${app.label} input from Gofile with browser fallback...`);
+  const proc = spawnSync(python, args, {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (proc.stderr?.trim()) {
+    console.error(proc.stderr.trim());
+  }
+  if (proc.status !== 0) {
+    throw new Error(`Gofile browser download failed for ${app.label}.`);
+  }
+
+  const stdout = proc.stdout?.trim() || "";
+  const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error(`Gofile browser download did not return JSON metadata. Output: ${stdout}`);
+  }
+
+  const metadata = JSON.parse(jsonMatch[0]);
+  if (!metadata.path || !existsSync(metadata.path)) {
+    throw new Error(`Gofile browser download reported a missing file: ${metadata.path || "unknown"}`);
+  }
+  console.log(`Downloaded ${app.label} from Gofile browser fallback: ${metadata.path}`);
+  return metadata;
 }
 
 async function resolveGofileDownload(app) {
@@ -638,6 +683,16 @@ function gofileContentId(url) {
     return "";
   } catch {
     return "";
+  }
+}
+
+function isGofileShareUrl(url) {
+  try {
+    const parsed = new URL(url);
+    if (!/^(www\.)?gofile\.(io|co)$/i.test(parsed.hostname)) return false;
+    return Boolean(gofileContentId(url));
+  } catch {
+    return false;
   }
 }
 
