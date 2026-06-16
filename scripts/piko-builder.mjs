@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, createWriteStream, statSync } from "node:fs";
 import { basename, dirname, join, resolve, extname } from "node:path";
 import { Readable } from "node:stream";
@@ -60,9 +59,6 @@ const appConfigs = {
     requestedVersion: env("TWITTER_APK_VERSION"),
     googleDriveUrl: env("TWITTER_GOOGLE_DRIVE_URL") || env("TWITTER_GDRIVE_URL"),
     googleDriveFileId: env("TWITTER_GOOGLE_DRIVE_FILE_ID") || env("TWITTER_GDRIVE_FILE_ID"),
-    gofileUrl: env("TWITTER_GOFILE_URL") || env("TWITTER_APK_URL"),
-    gofilePassword: env("TWITTER_GOFILE_PASSWORD") || env("GOFILE_PASSWORD"),
-    gofileToken: env("TWITTER_GOFILE_TOKEN") || env("GOFILE_TOKEN"),
     input: fromRoot("input/twitter.apkm"),
     output: fromRoot("output/twitter-patched.apk"),
     result: fromRoot("output/twitter-result.json"),
@@ -226,6 +222,17 @@ function resolveRecommendedVersion(patchesListPath, packageName) {
   }
 }
 
+function resolveConfiguredVersion(app, patchesListPath) {
+  if (app.requestedVersion) {
+    console.log(`Using user-requested version: ${app.requestedVersion}`);
+    return app.requestedVersion;
+  }
+
+  const version = resolveRecommendedVersion(patchesListPath, app.packageName);
+  console.log(`Resolved recommended version for ${app.label}: ${version}`);
+  return version;
+}
+
 async function build() {
   const tools = await downloadTools();
 
@@ -245,31 +252,47 @@ async function build() {
     console.log(`Building ${app.label}`);
     console.log(`==================================================`);
 
-    // 1. Resolve APK version
-    let version = app.requestedVersion;
-    if (!version) {
-      version = resolveRecommendedVersion(tools.patchesList, app.packageName);
-      console.log(`Resolved recommended version for ${app.label}: ${version}`);
+    const hasCustomGoogleDriveInput = Boolean(app.googleDriveUrl || app.googleDriveFileId);
+
+    // 1. Resolve APK version. Custom Google Drive inputs override this after download.
+    let version = "";
+    if (hasCustomGoogleDriveInput) {
+      if (app.requestedVersion) {
+        console.log(`Custom Google Drive input provided for ${app.label}; configured version ${app.requestedVersion} will only be used if package metadata is unavailable.`);
+      } else {
+        console.log(`Custom Google Drive input provided for ${app.label}; package metadata will determine the version.`);
+      }
     } else {
-      console.log(`Using user-requested version: ${version}`);
+      version = resolveConfiguredVersion(app, tools.patchesList);
     }
 
-    if (!version) {
+    if (!hasCustomGoogleDriveInput && !version) {
       throw new Error(`Could not resolve version for ${app.label}. Please specify ${app.id.toUpperCase()}_APK_VERSION.`);
     }
 
-    // 2. Download APK/APKM from a custom Google Drive/Gofile link, APKMirror, or APKPure fallback.
+    // 2. Download APK/APKM from a custom Google Drive link, APKMirror, or APKPure fallback.
     let downloadSucceeded = false;
     let actualInputPath = app.input;
 
-    if (app.googleDriveUrl || app.googleDriveFileId) {
+    if (hasCustomGoogleDriveInput) {
       actualInputPath = downloadGoogleDriveInput(app);
       downloadSucceeded = true;
       console.log(`Using custom Google Drive input for ${app.label}: ${actualInputPath}`);
-    } else if (app.gofileUrl) {
-      actualInputPath = await downloadGofileInput(app);
-      downloadSucceeded = true;
-      console.log(`Using custom Gofile input for ${app.label}: ${actualInputPath}`);
+      const inputMetadata = readCustomInputMetadata(app, actualInputPath);
+      if (inputMetadata.packageName && inputMetadata.packageName !== app.packageName) {
+        throw new Error(`${app.label}: Google Drive input package name is ${inputMetadata.packageName}, expected ${app.packageName}.`);
+      }
+      if (inputMetadata.version) {
+        version = inputMetadata.version;
+        console.log(`${app.label}: overriding configured version with Google Drive package version ${version}.`);
+      } else {
+        version = resolveConfiguredVersion(app, tools.patchesList);
+        console.warn(`${app.label}: could not detect a package version from the Google Drive input; using configured version ${version || "unknown"}.`);
+      }
+    }
+
+    if (!version) {
+      throw new Error(`Could not resolve version for ${app.label}. Please specify ${app.id.toUpperCase()}_APK_VERSION or provide package metadata in the custom input.`);
     }
 
     if (!downloadSucceeded) {
@@ -532,276 +555,175 @@ function googleDriveSource(app) {
   throw new Error(`${app.label}: Google Drive input must be a Drive URL or file ID.`);
 }
 
-async function downloadGofileInput(app) {
-  if (isGofileShareUrl(app.gofileUrl)) {
-    const metadata = downloadGofileInputWithGofileDl(app);
-    app.input = metadata.path;
-    return metadata.path;
-  }
-
-  const selected = await resolveGofileDownload(app);
-  const extension = packageExtension(selected.fileName || selected.url) || packageExtension(app.input) || ".apk";
-  const destination = replaceExtension(app.input, extension);
-
-  console.log(`Downloading custom ${app.label} input from Gofile (${selected.fileName || "direct file"})...`);
-  rmSync(destination, { force: true });
-  const downloaded = await downloadFile(selected.url, destination, gofileDownloadHeaders(selected.token));
-  const contentType = downloaded.headers.get("content-type") || "";
-  if (/text\/html/i.test(contentType)) {
-    rmSync(destination, { force: true });
-    throw new Error(
-      `${app.label}: the Gofile link returned an HTML page instead of an APK/APKM file. ` +
-      `Use a public share link like https://gofile.io/d/... or a direct file download link.`
-    );
-  }
-
-  app.input = destination;
-  return destination;
-}
-
-function downloadGofileInputWithGofileDl(app) {
+function readCustomInputMetadata(app, filePath) {
   const python = env("PYTHON_BIN") || "python";
-  const args = [
-    join(root, "scripts/gofile_download.py"),
-    "--url", app.gofileUrl,
-    "--out-dir", paths.input,
-    "--out-file", basename(app.input),
-  ];
-  if (app.gofilePassword) {
-    args.push("--password", app.gofilePassword);
-  }
+  const script = String.raw`
+import json
+import struct
+import sys
+import zipfile
+from pathlib import Path
 
-  console.log(`Downloading custom ${app.label} input from Gofile with martadams89/gofile-dl...`);
-  const proc = spawnSync(python, args, {
+path = Path(sys.argv[1])
+
+def text_value(data, *keys):
+    for key in keys:
+        value = data.get(key)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return ""
+
+def metadata_from_json(data, source):
+    return {
+        "source": source,
+        "packageName": text_value(data, "pname", "package_name", "packageName", "package"),
+        "version": text_value(data, "release_version", "version_name", "versionName", "version"),
+        "versionCode": text_value(data, "versioncode", "version_code", "versionCode"),
+        "title": text_value(data, "apk_title", "release_title", "name"),
+    }
+
+def read_length8(data, offset):
+    value = data[offset]
+    offset += 1
+    if value & 0x80:
+        value = ((value & 0x7f) << 8) | data[offset]
+        offset += 1
+    return value, offset
+
+def read_length16(data, offset):
+    value = struct.unpack_from("<H", data, offset)[0]
+    offset += 2
+    if value & 0x8000:
+        value = ((value & 0x7fff) << 16) | struct.unpack_from("<H", data, offset)[0]
+        offset += 2
+    return value, offset
+
+def parse_string_pool(data, offset):
+    chunk_start = offset
+    _, header_size, chunk_size = struct.unpack_from("<HHI", data, offset)
+    string_count, _, flags, strings_start, _ = struct.unpack_from("<IIIII", data, offset + 8)
+    offsets_start = offset + header_size
+    is_utf8 = bool(flags & 0x100)
+    strings = []
+
+    for index in range(string_count):
+        string_offset = struct.unpack_from("<I", data, offsets_start + index * 4)[0]
+        cursor = chunk_start + strings_start + string_offset
+        if is_utf8:
+            _, cursor = read_length8(data, cursor)
+            byte_length, cursor = read_length8(data, cursor)
+            strings.append(data[cursor:cursor + byte_length].decode("utf-8", "replace"))
+        else:
+            char_length, cursor = read_length16(data, cursor)
+            byte_length = char_length * 2
+            strings.append(data[cursor:cursor + byte_length].decode("utf-16le", "replace"))
+
+    return strings, chunk_start + chunk_size
+
+def string_at(strings, index):
+    if index == 0xffffffff or index < 0 or index >= len(strings):
+        return ""
+    return strings[index]
+
+def typed_value(strings, raw_value, data_type, value):
+    raw = string_at(strings, raw_value)
+    if raw:
+        return raw
+    if data_type == 0x03:
+        return string_at(strings, value)
+    if data_type in (0x10, 0x11):
+        return str(value)
+    if data_type == 0x12:
+        return "true" if value else "false"
+    return str(value) if value else ""
+
+def parse_binary_manifest(manifest):
+    try:
+        _, _, file_size = struct.unpack_from("<HHI", manifest, 0)
+        offset = 8
+        strings = []
+
+        while offset < min(file_size, len(manifest)):
+            chunk_type, header_size, chunk_size = struct.unpack_from("<HHI", manifest, offset)
+            if chunk_size <= 0:
+                break
+            if chunk_type == 0x0001:
+                strings, offset = parse_string_pool(manifest, offset)
+                continue
+            if chunk_type == 0x0102:
+                element_offset = offset + header_size
+                name_index = struct.unpack_from("<I", manifest, element_offset + 4)[0]
+                element_name = string_at(strings, name_index)
+                if element_name == "manifest":
+                    attr_start, attr_size, attr_count = struct.unpack_from("<HHH", manifest, element_offset + 8)
+                    attrs = {}
+                    attrs_offset = element_offset + attr_start
+                    for index in range(attr_count):
+                        attr_offset = attrs_offset + index * attr_size
+                        attr_name = string_at(strings, struct.unpack_from("<I", manifest, attr_offset + 4)[0])
+                        raw_value = struct.unpack_from("<I", manifest, attr_offset + 8)[0]
+                        data_type = manifest[attr_offset + 15]
+                        value = struct.unpack_from("<I", manifest, attr_offset + 16)[0]
+                        attrs[attr_name] = typed_value(strings, raw_value, data_type, value)
+                    return {
+                        "source": "AndroidManifest.xml",
+                        "packageName": attrs.get("package", ""),
+                        "version": attrs.get("versionName", ""),
+                        "versionCode": attrs.get("versionCode", ""),
+                    }
+            offset += chunk_size
+    except Exception:
+        return {}
+    return {}
+
+metadata = {}
+try:
+    with zipfile.ZipFile(path) as archive:
+        names = archive.namelist()
+        preferred = ["info.json", "manifest.json"]
+        candidates = []
+        for wanted in preferred:
+            candidates.extend(name for name in names if name.lower() == wanted)
+        candidates.extend(name for name in names if name.lower().endswith(".json") and name not in candidates)
+
+        for name in candidates:
+            try:
+                data = json.loads(archive.read(name).decode("utf-8"))
+            except Exception:
+                continue
+
+            candidate = metadata_from_json(data, name)
+            if candidate.get("version") or candidate.get("packageName"):
+                metadata = {key: value for key, value in candidate.items() if value}
+                break
+        if not metadata and "AndroidManifest.xml" in names:
+            metadata = {key: value for key, value in parse_binary_manifest(archive.read("AndroidManifest.xml")).items() if value}
+except zipfile.BadZipFile:
+    pass
+
+print(json.dumps(metadata))
+`;
+
+  const proc = spawnSync(python, ["-c", script, filePath], {
     cwd: root,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
+
   if (proc.stderr?.trim()) {
-    console.error(proc.stderr.trim());
+    console.warn(`${app.label}: package metadata reader warning: ${proc.stderr.trim()}`);
   }
   if (proc.status !== 0) {
-    throw new Error(`gofile-dl download failed for ${app.label}.`);
+    console.warn(`${app.label}: package metadata reader exited with ${proc.status}.`);
+    return {};
   }
 
-  const stdout = proc.stdout?.trim() || "";
-  const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error(`gofile-dl did not return JSON metadata. Output: ${stdout}`);
-  }
-
-  const metadata = JSON.parse(jsonMatch[0]);
-  if (!metadata.path || !existsSync(metadata.path)) {
-    throw new Error(`gofile-dl reported a missing file: ${metadata.path || "unknown"}`);
-  }
-  console.log(`Downloaded ${app.label} from Gofile with gofile-dl: ${metadata.path}`);
-  return metadata;
-}
-
-async function resolveGofileDownload(app) {
-  const contentId = gofileContentId(app.gofileUrl);
-  if (!contentId) {
-    console.log(`Treating ${app.label} Gofile input as a direct download URL.`);
-    return { url: app.gofileUrl, fileName: basenameFromUrl(app.gofileUrl), token: app.gofileToken };
-  }
-
-  console.log(`Resolving ${app.label} Gofile share link ${redactGofileUrl(app.gofileUrl)}...`);
-  if (!app.gofileToken) {
-    throw new Error(
-      `${app.label}: Gofile share links now require a Gofile account API token for metadata access. ` +
-      `Add TWITTER_GOFILE_TOKEN or GOFILE_TOKEN as a repository secret, or provide a direct file download URL instead.`
-    );
-  }
-
-  const token = app.gofileToken;
-  const passwordHash = app.gofilePassword
-    ? createHash("sha256").update(app.gofilePassword).digest("hex")
-    : "";
-  const params = new URLSearchParams({
-    contentFilter: "",
-    page: "1",
-    pageSize: "1000",
-    sortField: "name",
-    sortDirection: "1",
-    ...(passwordHash ? { password: passwordHash } : {}),
-  });
-  const response = await gofileJson(`https://api.gofile.io/contents/${encodeURIComponent(contentId)}?${params}`, {
-    token,
-  });
-  const file = findGofilePackage(response.data);
-  if (!file?.link) {
-    const names = gofilePackageCandidateNames(response.data);
-    throw new Error(
-      `${app.label}: no APK/APKM/XAPK/APKS file was found in the Gofile link.` +
-      (names.length ? ` Files seen: ${names.join(", ")}` : "")
-    );
-  }
-
-  return {
-    url: file.link,
-    fileName: file.name || basenameFromUrl(file.link),
-    token,
-  };
-}
-
-async function gofileJson(url, { method = "GET", token = "" } = {}) {
-  const response = await fetch(url, {
-    method,
-    headers: gofileApiHeaders(token),
-  });
-
-  const data = await readGofileJson(response);
-  if (data.status !== "ok") {
-    throw new Error(gofileErrorMessage(data.status, url, response.status));
-  }
-  if (!response.ok) {
-    throw new Error(`Gofile request failed (${response.status}) for ${url}`);
-  }
-  return data;
-}
-
-async function readGofileJson(response) {
   try {
-    return await response.json();
-  } catch {
-    if (!response.ok) {
-      throw new Error(`Gofile request failed (${response.status}) for ${response.url}`);
-    }
-    throw new Error("Gofile returned an invalid JSON response.");
+    return JSON.parse(proc.stdout || "{}") || {};
+  } catch (error) {
+    console.warn(`${app.label}: could not parse package metadata: ${error.message}`);
+    return {};
   }
-}
-
-function gofileErrorMessage(status, url, httpStatus) {
-  if (status === "error-notPremium") {
-    return (
-      `Gofile request failed (${httpStatus}) with error-notPremium for ${url}. ` +
-      `Use a premium-capable Gofile account token in TWITTER_GOFILE_TOKEN or GOFILE_TOKEN, ` +
-      `or provide a direct file download URL.`
-    );
-  }
-
-  return `Gofile request failed (${httpStatus}) with ${status || "unknown error"} for ${url}`;
-}
-
-function gofileApiHeaders(token = "") {
-  const userAgent = "Mozilla/5.0 piko-builder";
-  return {
-    Accept: "application/json,*/*",
-    "Accept-Encoding": "gzip",
-    "User-Agent": userAgent,
-    Origin: "https://gofile.io",
-    Referer: "https://gofile.io/",
-    "X-BL": "en-US",
-    "X-Website-Token": gofileWebsiteToken(userAgent, token),
-    ...(token ? {
-      Authorization: `Bearer ${token}`,
-      Cookie: `accountToken=${token}`,
-    } : {}),
-  };
-}
-
-function gofileDownloadHeaders(token = "") {
-  const userAgent = "Mozilla/5.0 piko-builder";
-  return {
-    Accept: "application/vnd.android.package-archive,application/octet-stream,*/*",
-    "User-Agent": userAgent,
-    Origin: "https://gofile.io",
-    Referer: "https://gofile.io/",
-    ...(token ? {
-      Authorization: `Bearer ${token}`,
-      Cookie: `accountToken=${token}`,
-      "X-BL": "en-US",
-      "X-Website-Token": gofileWebsiteToken(userAgent, token),
-    } : {}),
-  };
-}
-
-function gofileWebsiteToken(userAgent, token) {
-  const timeSlot = Math.floor(Date.now() / 1000 / 14400);
-  return createHash("sha256")
-    .update(`${userAgent}::en-US::${token}::${timeSlot}::5d4f7g8sd45fsd`)
-    .digest("hex");
-}
-
-function gofileContentId(url) {
-  try {
-    const parsed = new URL(url);
-    if (!/(^|\.)gofile\.(io|co)$/i.test(parsed.hostname)) return "";
-    const parts = parsed.pathname.split("/").filter(Boolean);
-    const marker = parts.findIndex((part) => ["d", "f", "download"].includes(part.toLowerCase()));
-    if (marker >= 0 && parts[marker + 1]) return parts[marker + 1];
-
-    for (const key of ["c", "file", "id", "contentId", "contentid"]) {
-      const value = parsed.searchParams.get(key);
-      if (value) return value;
-    }
-
-    if (parts.length === 1 && /^[A-Za-z0-9_-]{6,}$/.test(parts[0])) {
-      return parts[0];
-    }
-
-    return "";
-  } catch {
-    return "";
-  }
-}
-
-function isGofileShareUrl(url) {
-  try {
-    const parsed = new URL(url);
-    if (!/^(www\.)?gofile\.(io|co)$/i.test(parsed.hostname)) return false;
-    return Boolean(gofileContentId(url));
-  } catch {
-    return false;
-  }
-}
-
-function findGofilePackage(rootContent) {
-  const candidates = [];
-  const visit = (content) => {
-    if (!content) return;
-    if (content.type === "folder") {
-      const children = Array.isArray(content.children) ? content.children : Object.values(content.children || {});
-      for (const child of children) visit(child);
-      return;
-    }
-
-    const extension = packageExtension(content.name || content.link || "");
-    if (extension) candidates.push(content);
-  };
-
-  visit(rootContent);
-  return candidates.sort((a, b) => packagePriority(a) - packagePriority(b))[0];
-}
-
-function packagePriority(content) {
-  const name = String(content.name || content.link || "").toLowerCase();
-  const extension = packageExtension(name);
-  const extensionRank = { ".apkm": 0, ".xapk": 1, ".apks": 2, ".apk": 3 }[extension] ?? 9;
-  const nameRank = /\btwitter\b|\bx\b/.test(name) ? 0 : 1;
-  return nameRank * 10 + extensionRank;
-}
-
-function gofilePackageCandidateNames(rootContent) {
-  const names = [];
-  const visit = (content) => {
-    if (!content) return;
-    if (content.type === "folder") {
-      const children = Array.isArray(content.children) ? content.children : Object.values(content.children || {});
-      for (const child of children) visit(child);
-      return;
-    }
-
-    if (content.name) names.push(content.name);
-  };
-
-  visit(rootContent);
-  return names.slice(0, 10);
-}
-
-function redactGofileUrl(url) {
-  const id = gofileContentId(url);
-  return id ? `https://gofile.io/d/${id.slice(0, 4)}...` : "provided URL";
 }
 
 function updateBuildResultOutput(app, version, arch) {
@@ -833,28 +755,6 @@ function buildResultVersion(app) {
     return result.packageVersion || "";
   } catch {
     return "";
-  }
-}
-
-function replaceExtension(file, extension) {
-  return file.slice(0, file.length - extname(file).length) + extension;
-}
-
-function packageExtension(value) {
-  try {
-    const parsed = new URL(value);
-    return packageExtension(parsed.pathname);
-  } catch {}
-
-  const extension = extname(String(value || "")).toLowerCase();
-  return [".apk", ".apkm", ".xapk", ".apks"].includes(extension) ? extension : "";
-}
-
-function basenameFromUrl(url) {
-  try {
-    return basename(new URL(url).pathname);
-  } catch {
-    return basename(String(url || ""));
   }
 }
 

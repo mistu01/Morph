@@ -42,10 +42,6 @@ on:
         description: "Custom Twitter APK/APKM Google Drive link or file ID (optional; overrides normal download)"
         required: false
         default: ""
-      twitter_gofile_url:
-        description: "Custom Twitter APK/APKM Gofile download link (optional; overrides normal download)"
-        required: false
-        default: ""
 
 env:
   MORPHE_PATCHES_REPO: crimera/piko
@@ -233,18 +229,20 @@ jobs:
           INSTAGRAM_APK_VERSION: ${{ inputs.instagram_apk_version }}
           TWITTER_APK_VERSION: ${{ inputs.twitter_apk_version }}
           TWITTER_GOOGLE_DRIVE_URL: ${{ inputs.twitter_google_drive_url }}
-          TWITTER_GOFILE_URL: ${{ inputs.twitter_gofile_url }}
-          TWITTER_GOFILE_TOKEN: ${{ secrets.TWITTER_GOFILE_TOKEN || secrets.GOFILE_TOKEN }}
-          TWITTER_GOFILE_PASSWORD: ${{ secrets.TWITTER_GOFILE_PASSWORD || secrets.GOFILE_PASSWORD }}
         run: node scripts/piko-builder.mjs build
 
       - name: Prepare release summary
         if: ${{ inputs.create_release || inputs.upload_artifact }}
+        env:
+          INSTAGRAM_APK_VERSION_INPUT: ${{ inputs.instagram_apk_version || '430.0.0.53.80' }}
+          TWITTER_APK_VERSION_INPUT: ${{ inputs.twitter_apk_version || '11.81.0-release.0' }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
           resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
           resolved_patches_url="$(node -e 'const fs = require("node:fs"); const repo = "crimera/piko"; let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; let url = `https://github.com/${repo}/releases`; try { const meta = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")); tag = meta.tag || tag; url = meta.url || `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`; } catch {} process.stdout.write(url);')"
+          resolved_instagram_version="$(node -e 'const fs = require("node:fs"); let version = process.env.INSTAGRAM_APK_VERSION_INPUT || "430.0.0.53.80"; try { version = JSON.parse(fs.readFileSync("output/instagram-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
+          resolved_twitter_version="$(node -e 'const fs = require("node:fs"); let version = process.env.TWITTER_APK_VERSION_INPUT || "11.81.0-release.0"; try { version = JSON.parse(fs.readFileSync("output/twitter-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
 
           echo "RELEASE_TAG=piko-new-${release_stamp}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=Piko patched APKs (New) ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
@@ -255,10 +253,9 @@ jobs:
           
           - Patches: [crimera/piko ${resolved_patches_tag}](${resolved_patches_url}) (New Piko Builder)
           - Architecture: arm64-v8a
-          - Instagram APK Version: ${{ inputs.instagram_apk_version || '430.0.0.53.80' }}
-          - Twitter APK Version: ${{ inputs.twitter_apk_version || '11.81.0-release.0' }}
+          - Instagram APK Version: ${resolved_instagram_version}
+          - Twitter APK Version: ${resolved_twitter_version}
           - Twitter Custom Google Drive Link: ${{ inputs.twitter_google_drive_url != '' && 'provided' || 'not provided' }}
-          - Twitter Custom Gofile Link: ${{ inputs.twitter_gofile_url != '' && 'provided' || 'not provided' }}
           - Date: $(date -u)
           EOF
 
