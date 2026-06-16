@@ -24,7 +24,7 @@ on:
         required: true
         default: "stable"
       apk_version_source:
-        description: "APK version source: recommended, latest, or an explicit version"
+        description: "APK version source: recommended, latest-compatible, latest, or an explicit version"
         required: true
         default: "recommended"
       apk_fallback_to_latest:
@@ -215,6 +215,7 @@ jobs:
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           APK_SOURCE: apkmirror,apkpure,uptodown,divxland
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_LATEST_COMPATIBLE_ONLY: "1"
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
@@ -238,6 +239,7 @@ jobs:
           BUILD_TARGETS: ${{ inputs.targets }}
           YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_LATEST_COMPATIBLE_ONLY: "1"
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           GH_TOKEN: ${{ github.token }}
           PATCHES_VERSION: ${{ inputs.patches_version }}

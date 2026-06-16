@@ -33,11 +33,11 @@ on:
       instagram_apk_version:
         description: "Instagram APK Version (leave blank for recommended version)"
         required: false
-        default: "430.0.0.53.80"
+        default: ""
       twitter_apk_version:
         description: "Twitter APK Version (leave blank for recommended version)"
         required: false
-        default: "11.81.0-release.0"
+        default: ""
       twitter_google_drive_url:
         description: "Custom Twitter APK/APKM Google Drive link or file ID (optional; overrides normal download)"
         required: false
@@ -49,9 +49,7 @@ env:
   APK_VERSION_SOURCE: recommended
   APK_FALLBACK_TO_LATEST: "false"
   APKMIRROR_ARCH: arm64-v8a
-  TWITTER_APK_VERSION: "11.81.0-release.0"
   TWITTER_APKMIRROR_TYPE: bundle
-  INSTAGRAM_APK_VERSION: "430.0.0.53.80"
   INSTAGRAM_APKMIRROR_TYPE: bundle
 
 jobs:
@@ -234,15 +232,15 @@ jobs:
       - name: Prepare release summary
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
-          INSTAGRAM_APK_VERSION_INPUT: ${{ inputs.instagram_apk_version || '430.0.0.53.80' }}
-          TWITTER_APK_VERSION_INPUT: ${{ inputs.twitter_apk_version || '11.81.0-release.0' }}
+          INSTAGRAM_APK_VERSION_INPUT: ${{ inputs.instagram_apk_version }}
+          TWITTER_APK_VERSION_INPUT: ${{ inputs.twitter_apk_version }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
           resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
           resolved_patches_url="$(node -e 'const fs = require("node:fs"); const repo = "crimera/piko"; let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; let url = `https://github.com/${repo}/releases`; try { const meta = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")); tag = meta.tag || tag; url = meta.url || `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`; } catch {} process.stdout.write(url);')"
-          resolved_instagram_version="$(node -e 'const fs = require("node:fs"); let version = process.env.INSTAGRAM_APK_VERSION_INPUT || "430.0.0.53.80"; try { version = JSON.parse(fs.readFileSync("output/instagram-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
-          resolved_twitter_version="$(node -e 'const fs = require("node:fs"); let version = process.env.TWITTER_APK_VERSION_INPUT || "11.81.0-release.0"; try { version = JSON.parse(fs.readFileSync("output/twitter-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
+          resolved_instagram_version="$(node -e 'const fs = require("node:fs"); let version = process.env.INSTAGRAM_APK_VERSION_INPUT || "auto"; try { version = JSON.parse(fs.readFileSync("output/instagram-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
+          resolved_twitter_version="$(node -e 'const fs = require("node:fs"); let version = process.env.TWITTER_APK_VERSION_INPUT || "auto"; try { version = JSON.parse(fs.readFileSync("output/twitter-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
 
           echo "RELEASE_TAG=piko-new-${release_stamp}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=Piko patched APKs (New) ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"

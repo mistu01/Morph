@@ -201,25 +201,57 @@ async function downloadTools() {
 function resolveRecommendedVersion(patchesListPath, packageName) {
   try {
     const list = JSON.parse(readFileSync(patchesListPath, "utf8"));
-    const versions = new Set();
-    for (const patch of list.patches || []) {
-      const compat = patch.compatiblePackages || [];
-      const entry = Array.isArray(compat)
-        ? compat.find((e) => e.packageName === packageName)
-        : compat[packageName];
-      if (entry && entry.targets) {
-        for (const target of entry.targets) {
-          if (target.version) {
-            versions.add(target.version);
-          }
-        }
-      }
-    }
-    return Array.from(versions).sort().reverse()[0] || "";
+    const defaultVersions = compatibleVersionsForPackage(list, packageName, { defaultOnly: true });
+    const versions = defaultVersions.length ? defaultVersions : compatibleVersionsForPackage(list, packageName);
+    return versions[0] || "";
   } catch (error) {
     console.warn(`Could not resolve recommended version from patches-list: ${error.message}`);
     return "";
   }
+}
+
+function compatibleVersionsForPackage(patchesList, packageName, { defaultOnly = false } = {}) {
+  const versions = new Set();
+  for (const patch of patchesList.patches || []) {
+    if (defaultOnly && patch.default !== true) continue;
+    for (const entry of compatiblePackageEntries(patch, packageName)) {
+      for (const version of compatibleVersionsFromEntry(entry)) {
+        versions.add(String(version));
+      }
+    }
+  }
+
+  return [...versions].sort(compareVersions).reverse();
+}
+
+function compatiblePackageEntries(patch, packageName) {
+  const compatible = patch?.compatiblePackages;
+  if (!compatible) return [];
+
+  if (Array.isArray(compatible)) {
+    return compatible.filter((entry) => entry?.packageName === packageName);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(compatible, packageName)) {
+    return [compatible[packageName]];
+  }
+
+  return [];
+}
+
+function compatibleVersionsFromEntry(entry) {
+  if (Array.isArray(entry?.targets)) {
+    return entry.targets
+      .filter((target) => !(target?.isExperimental || target?.experimental))
+      .map((target) => target?.version)
+      .filter(Boolean);
+  }
+
+  if (Array.isArray(entry)) {
+    return entry.filter(Boolean);
+  }
+
+  return [];
 }
 
 function resolveConfiguredVersion(app, patchesListPath) {
@@ -786,6 +818,29 @@ function buildResultVersion(app) {
   } catch {
     return "";
   }
+}
+
+function compareVersions(a, b) {
+  const left = versionSortParts(a);
+  const right = versionSortParts(b);
+  const length = Math.max(left.length, right.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const leftPart = left[index] ?? 0;
+    const rightPart = right[index] ?? 0;
+    if (leftPart === rightPart) continue;
+    if (typeof leftPart === "number" && typeof rightPart === "number") return leftPart - rightPart;
+    return String(leftPart).localeCompare(String(rightPart));
+  }
+
+  return 0;
+}
+
+function versionSortParts(version) {
+  return String(version)
+    .split(/(\d+)/)
+    .filter(Boolean)
+    .map((part) => (/^\d+$/.test(part) ? Number(part) : part.toLowerCase()));
 }
 
 function safeNamePart(value) {

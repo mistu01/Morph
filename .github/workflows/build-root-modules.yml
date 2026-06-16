@@ -34,7 +34,7 @@ on:
         required: false
         default: ""
       apk_version_source:
-        description: "APK version source: recommended, latest, or an explicit version"
+        description: "APK version source: recommended, latest-compatible, latest, or an explicit version"
         required: true
         default: "recommended"
       apk_fallback_to_latest:
