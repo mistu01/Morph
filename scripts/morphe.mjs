@@ -796,9 +796,9 @@ async function printVersions() {
   ]);
 
   console.log(`Morphe CLI latest: ${cliRelease.tag_name}`);
-  console.log(`Morphe patches repo: ${patchesRepo}`);
-  console.log(`Morphe patches stable: ${patchesRelease.tag_name}`);
-  console.log(`Morphe patches dev: ${patchesDevRelease?.tag_name || "none"}`);
+  console.log(`Patches repo: ${patchesRepo}`);
+  console.log(`Patches stable: ${patchesRelease.tag_name}`);
+  console.log(`Patches dev: ${patchesDevRelease?.tag_name || "none"}`);
   console.log(`Patch list version: ${patchesList.version}`);
 
   for (const app of Object.values(appConfigs)) {
@@ -885,13 +885,13 @@ async function printReleaseNotes() {
   lines.push("");
   lines.push(`- Targets: ${apps.map((app) => app.label).join(", ")}`);
   lines.push(`- Morphe CLI: ${cliMeta?.tag || env("MORPHE_CLI_VERSION") || "latest"}`);
-  lines.push(`- Morphe patches repo: ${releaseAssets.patches.repo}`);
-  lines.push(`- Morphe patches: [${releaseAssets.patches.repo} ${patchesTag}](${patchesUrl})`);
+  lines.push(`- Patches repo: ${releaseAssets.patches.repo}`);
+  lines.push(`- Patches: [${releaseAssets.patches.repo} ${patchesTag}](${patchesUrl})`);
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
   lines.push(`- YouTube ABIs: ${youtubeAbiVariants.map((variant) => variant.artifactAbi).join(", ")}`);
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
   if ((env("APK_VERSION_SOURCE") || "").toLowerCase() === "latest" && truthy(env("APK_LATEST_COMPATIBLE_ONLY"))) {
-    lines.push("- APK latest mode: constrained to Morphe-compatible versions");
+    lines.push("- APK latest mode: constrained to patch-compatible versions");
   }
   lines.push(`- Recommended APK fallback to latest: ${truthy(env("APK_FALLBACK_TO_LATEST")) ? "enabled" : "disabled"}`);
   lines.push(`- Patch args: ${patchArgs.length ? patchArgs.join(" ") : "none"}`);
@@ -1142,7 +1142,7 @@ async function ensurePackageNameOptions(app, tools = null) {
 
   const packageNameEntry = patchEntries[packageNamePatch];
   if (!packageNameEntry) {
-    throw new Error(`Morphe patches ${patchesList?.version || ""} did not include "${packageNamePatch}".`);
+    throw new Error(`Patches ${patchesList?.version || ""} from ${releaseAssets.patches.repo} did not include "${packageNamePatch}".`);
   }
 
   packageNameEntry.enabled = true;
@@ -1159,7 +1159,7 @@ async function ensurePackageNameOptions(app, tools = null) {
     meta: {
       created_at: existingBundle?.meta?.created_at || now,
       updated_at: now,
-      source: `morphe-patches ${patchesList?.version || env("MORPHE_PATCHES_VERSION") || "latest"}`,
+      source: `${releaseAssets.patches.repo} ${patchesList?.version || env("MORPHE_PATCHES_VERSION") || "latest"}`,
     },
     patches: patchEntries,
   }]);
@@ -2494,8 +2494,8 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
     throw new Error(
       `${app.label}: exact requested APK version ${selectedVersion} was not downloaded from APKPure. ` +
       `Checked exact APKPure page: ${exactPageUrl}. ` +
-      `Morphe top recommended version: ${topRecommendedVersion || "unknown"}. ` +
-      `Morphe compatible versions: ${compatible.join(", ") || "none"}. ` +
+      `Patch-list top recommended version: ${topRecommendedVersion || "unknown"}. ` +
+      `Patch-compatible versions: ${compatible.join(", ") || "none"}. ` +
       `APKPure-compatible recommended versions found: ${availableCompatible.join(", ") || "none"}. ` +
       `Set ${envNameFor(app.id)}_URL to a direct APK URL for exactly ${selectedVersion}, or deliberately set APK_VERSION_SOURCE=latest.`,
     );
@@ -2778,13 +2778,14 @@ Environment:
   APK_SOURCE                 Comma-separated source order: apkmirror, apkpure, uptodown,
                               divxland, local, or auto.
                               Defaults to apkpure.
-  APK_VERSION_SOURCE         recommended, latest, or an explicit version such as
-                             20.47.62 or 11.91.0-release.0. Defaults to recommended.
+  APK_VERSION_SOURCE         recommended, latest-compatible, latest, or an explicit
+                             version such as 20.47.62 or 11.91.0-release.0.
+                             Defaults to recommended.
   APK_LATEST_COMPATIBLE_ONLY Set to 1 with APK_VERSION_SOURCE=latest to use the newest
-                             Morphe-compatible APK instead of the newest available APK.
+                             patch-compatible APK instead of the newest available APK.
   APK_FALLBACK_TO_LATEST     Set to 1 to fall back to latest if the recommended APK is unavailable.
   MORPHE_INCLUDE_EXPERIMENTAL_TARGETS
-                             Set to 1 to allow experimental Morphe patch target versions.
+                             Set to 1 to allow experimental patch target versions.
   YOUTUBE_APK_VERSION        Explicit YouTube APK versionName override.
   YOUTUBE_MUSIC_APK_VERSION  Explicit YouTube Music APK versionName override.
   REDDIT_APK_VERSION         Explicit Reddit APK versionName override.

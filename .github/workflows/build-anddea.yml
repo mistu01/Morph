@@ -87,6 +87,7 @@ jobs:
       - name: Download Anddea tools
         env:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          ANDDEA_PATCHES_VERSION: ${{ inputs.patches_version }}
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
         run: node scripts/anddea-builder.mjs tools
 
@@ -212,6 +213,7 @@ jobs:
           BUILD_TARGETS: ${{ inputs.targets }}
           YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          ANDDEA_PATCHES_VERSION: ${{ inputs.patches_version }}
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           APK_SOURCE: apkmirror,apkpure
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
@@ -242,6 +244,7 @@ jobs:
           APK_LATEST_COMPATIBLE_ONLY: "1"
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           GH_TOKEN: ${{ github.token }}
+          ANDDEA_PATCHES_VERSION: ${{ inputs.patches_version }}
           PATCHES_VERSION: ${{ inputs.patches_version }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
