@@ -426,7 +426,7 @@ async function buildApp(app, tools) {
   args.push(...patchArgs, app.input);
 
   console.log(`\n==> Building ${app.label}`);
-  run("java", args);
+  run("java", args, { captureOutput: true });
   if (rootBuild) {
     await assertRootPackageName(app);
     await renameVersionedBuildOutput(app, "root");
@@ -447,6 +447,7 @@ async function writeBuildFailure(app, error) {
     packageName: existing?.packageName || app.packageName,
     success: false,
     error: existing?.error || error.message,
+    errorOutputTail: existing?.errorOutputTail || error.outputTail,
     input: app.input,
     output: app.output,
     builtAt: existing?.builtAt || new Date().toISOString(),
@@ -935,6 +936,7 @@ async function printReleaseNotes() {
     if (rootModule?.module) lines.push(`  - Root module: ${basename(rootModule.module)}`);
     if (sourceParts.length) lines.push(`  - Source: ${sourceParts.join("; ")}`);
     if (result?.success === false && result?.error) lines.push(`  - Error: ${firstReasonLine(result.error)}`);
+    if (result?.success === false && result?.errorOutputTail) lines.push(`  - Error output: ${firstReasonLine(result.errorOutputTail)}`);
     if (failed.length) lines.push(`  - Failed patches: ${formatFailedPatchList(failed)}`);
     if (stepFailures.length) lines.push(`  - Failed steps: ${stepFailures.join("; ")}`);
   }
@@ -2567,7 +2569,9 @@ function checkJava() {
   }
 }
 
-function run(commandName, args) {
+function run(commandName, args, { captureOutput = false } = {}) {
+  if (captureOutput) return runWithCapturedOutput(commandName, args);
+
   const result = spawnSync(commandName, args, {
     cwd: root,
     env: process.env,
@@ -2577,6 +2581,32 @@ function run(commandName, args) {
   if (result.error) throw result.error;
   if (result.status !== 0) {
     throw new Error(`${commandName} exited with status ${result.status}`);
+  }
+}
+
+function runWithCapturedOutput(commandName, args) {
+  const result = spawnSync(commandName, args, {
+    cwd: root,
+    env: process.env,
+    encoding: "utf8",
+    maxBuffer: 1024 * 1024 * 20,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  if (result.stdout) process.stdout.write(result.stdout);
+  if (result.stderr) process.stderr.write(result.stderr);
+
+  const output = `${result.stdout || ""}${result.stderr || ""}`;
+  if (result.error) {
+    result.error.outputTail = commandOutputTail(output);
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    const tail = commandOutputTail(output);
+    const summary = commandOutputSummary(tail);
+    const error = new Error(`${commandName} exited with status ${result.status}${summary ? `: ${summary}` : ""}`);
+    error.outputTail = tail;
+    throw error;
   }
 }
 
@@ -3181,6 +3211,24 @@ function firstReasonLine(reason) {
     .split(/\r?\n/)
     .map((line) => line.trim())
     .find(Boolean) || "";
+}
+
+function commandOutputTail(output, maxLines = 40) {
+  return String(output || "")
+    .split(/\r?\n/)
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim())
+    .slice(-maxLines)
+    .join("\n");
+}
+
+function commandOutputSummary(output) {
+  const lines = String(output || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !/^(info|debug|trace)\b/i.test(line));
+  return lines.at(-1) || "";
 }
 
 function compareVersions(a, b) {
