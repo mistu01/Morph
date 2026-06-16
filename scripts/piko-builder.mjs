@@ -501,7 +501,14 @@ async function resolveGofileDownload(app) {
   }
 
   console.log(`Resolving ${app.label} Gofile share link ${redactGofileUrl(app.gofileUrl)}...`);
-  const token = app.gofileToken || await createGofileGuestToken();
+  if (!app.gofileToken) {
+    throw new Error(
+      `${app.label}: Gofile share links now require a Gofile account API token for metadata access. ` +
+      `Add TWITTER_GOFILE_TOKEN or GOFILE_TOKEN as a repository secret, or provide a direct file download URL instead.`
+    );
+  }
+
+  const token = app.gofileToken;
   const passwordHash = app.gofilePassword
     ? createHash("sha256").update(app.gofilePassword).digest("hex")
     : "";
@@ -532,29 +539,43 @@ async function resolveGofileDownload(app) {
   };
 }
 
-async function createGofileGuestToken() {
-  const response = await gofileJson("https://api.gofile.io/accounts", { method: "POST" });
-  const token = response?.data?.token;
-  if (!token) {
-    throw new Error("Gofile guest account creation did not return an access token.");
-  }
-  return token;
-}
-
 async function gofileJson(url, { method = "GET", token = "" } = {}) {
   const response = await fetch(url, {
     method,
     headers: gofileApiHeaders(token),
   });
+
+  const data = await readGofileJson(response);
+  if (data.status !== "ok") {
+    throw new Error(gofileErrorMessage(data.status, url, response.status));
+  }
   if (!response.ok) {
     throw new Error(`Gofile request failed (${response.status}) for ${url}`);
   }
-
-  const data = await response.json();
-  if (data.status !== "ok") {
-    throw new Error(`Gofile request failed: ${data.status || "unknown error"}`);
-  }
   return data;
+}
+
+async function readGofileJson(response) {
+  try {
+    return await response.json();
+  } catch {
+    if (!response.ok) {
+      throw new Error(`Gofile request failed (${response.status}) for ${response.url}`);
+    }
+    throw new Error("Gofile returned an invalid JSON response.");
+  }
+}
+
+function gofileErrorMessage(status, url, httpStatus) {
+  if (status === "error-notPremium") {
+    return (
+      `Gofile request failed (${httpStatus}) with error-notPremium for ${url}. ` +
+      `Use a premium-capable Gofile account token in TWITTER_GOFILE_TOKEN or GOFILE_TOKEN, ` +
+      `or provide a direct file download URL.`
+    );
+  }
+
+  return `Gofile request failed (${httpStatus}) with ${status || "unknown error"} for ${url}`;
 }
 
 function gofileApiHeaders(token = "") {
