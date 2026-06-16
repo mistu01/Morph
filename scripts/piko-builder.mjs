@@ -506,8 +506,10 @@ async function resolveGofileDownload(app) {
     ? createHash("sha256").update(app.gofilePassword).digest("hex")
     : "";
   const params = new URLSearchParams({
-    cache: "true",
-    sortField: "createTime",
+    contentFilter: "",
+    page: "1",
+    pageSize: "1000",
+    sortField: "name",
     sortDirection: "1",
     ...(passwordHash ? { password: passwordHash } : {}),
   });
@@ -591,7 +593,7 @@ function gofileDownloadHeaders(token = "") {
 function gofileWebsiteToken(userAgent, token) {
   const timeSlot = Math.floor(Date.now() / 1000 / 14400);
   return createHash("sha256")
-    .update(`${userAgent}::en-US::${token}::${timeSlot}::g4f8fd9f12h14g`)
+    .update(`${userAgent}::en-US::${token}::${timeSlot}::5d4f7g8sd45fsd`)
     .digest("hex");
 }
 
