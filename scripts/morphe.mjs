@@ -105,6 +105,81 @@ const appConfigs = {
     rootModuleName: "Mistu Reddit Root",
     rootApkPath: "system/app/Reddit/Reddit.apk",
   },
+  ...externalPatchAppConfigs([
+    ["adguard", "AdGuard", "com.adguard.android"],
+    ["alltrails", "AllTrails", "com.alltrails.alltrails"],
+    ["avocards", "Avocards", "com.avocards"],
+    ["busuu", "Busuu", "com.busuu.android.enc"],
+    ["cake", "Cake", "me.mycake"],
+    ["camscanner", "CamScanner", "com.intsig.camscanner"],
+    ["daily-pocket", "Daily Pocket", "kr.co.yjteam.dailypay"],
+    ["duolingo", "Duolingo", "com.duolingo"],
+    ["eggbun", "Eggbun", "kr.eggbun.eggconvo"],
+    ["fotmob", "FotMob", "com.mobilefootie.wc2010"],
+    ["github", "GitHub", "com.github.android"],
+    ["hellochinese", "HelloChinese", "com.hellochinese"],
+    ["ibispaint-x", "IbisPaint X", "jp.ne.ibis.ibispaintx.app"],
+    ["icon-packer", "Icon Packer", "cn.ommiao.iconpacker"],
+    ["lingory", "Lingory", "org.languageapp.lingory"],
+    ["lyfta", "Lyfta", "com.lyfta"],
+    ["macrofactor", "MacroFactor", "com.sbs.diet"],
+    ["macrofactor-workouts", "MacroFactor Workouts", "com.sbs.train"],
+    ["meme-generator", "Meme Generator", "com.zombodroid.MemeGenerator"],
+    ["merriam-webster", "Merriam-Webster", "com.merriamwebster"],
+    ["mimo", "Mimo", "com.getmimo"],
+    ["mirinae", "Mirinae", "com.mirinae.mirinae"],
+    ["myexpenses", "MyExpenses", "org.totschnig.myexpenses"],
+    ["myfitnesspal", "MyFitnessPal", "com.myfitnesspal.android"],
+    ["niagara-launcher", "Niagara Launcher", "bitpit.launcher"],
+    ["nomone-desktop", "NOMone Desktop", "nom.vrd"],
+    ["nova-launcher", "Nova Launcher", "com.teslacoilsw.launcher"],
+    ["pandora", "Pandora", "com.pandora.android"],
+    ["podcast-addict", "Podcast Addict", "com.bambuna.podcastaddict"],
+    ["prime-video", "Prime Video", "com.amazon.avod.thirdpartyclient"],
+    ["proton-vpn", "Proton VPN", "ch.protonvpn.android", {
+      apkmirrorOrg: "proton-technologies-ag",
+      apkmirrorRepo: "protonvpn-secure-and-free-vpn",
+      apkmirrorType: "apk",
+      apkmirrorDpi: "nodpi",
+    }],
+    ["pydroid3", "PyDroid3", "ru.iiec.pydroid3"],
+    ["rp-hypertrophy", "RP Hypertrophy", "com.rp.hypertrophy"],
+    ["showly", "Showly", "com.michaldrabik.showly2"],
+    ["sleep-as-android", "Sleep as Android", "com.urbandroid.sleep"],
+    ["smart-launcher", "Smart Launcher", "ginlemon.flowerfree"],
+    ["snorelab", "SnoreLab", "com.snorelab.app"],
+    ["sofascore", "Sofascore", "com.sofascore.results"],
+    ["solid-explorer", "Solid Explorer", "pl.solidexplorer2"],
+    ["soundcloud", "SoundCloud", "com.soundcloud.android"],
+    ["teuida", "Teuida", "net.teuida.teuida"],
+    ["ttmik-stories", "TTMIK Stories", "app.ttmikstories.android"],
+    ["ventusky", "Ventusky", "cz.ackee.ventusky"],
+    ["wallcraft", "Wallcraft", "com.wallpaperscraft.wallpaper"],
+    ["windy", "Windy", "com.windyty.android"],
+    ["world-map-quiz", "World Map Quiz", "com.qbis.guessthecountry"],
+    ["wps-office", "WPS Office", "cn.wps.moffice_eng"],
+    ["xodo", "Xodo", "com.xodo.pdf.reader"],
+    ["xrecorder", "XRecorder", "videoeditor.videorecorder.screenrecorder"],
+    ["alarmo", "Alarmo", "com.bytesong.missionalarm"],
+    ["crex", "CREX - Just Cricket", "in.cricketexchange.app.cricketexchange"],
+    ["cricbuzz", "Cricbuzz", "com.cricbuzz.android"],
+    ["document-scanner", "Document Scanner", "com.cv.docscanner"],
+    ["eyecon", "Eyecon Caller ID & Spam Block", "com.eyecon.global"],
+    ["fing", "Fing", "com.overlook.android.fing"],
+    ["jiohotstar", "JioHotstar", "in.startv.hotstar"],
+    ["lumina-walls", "Lumina Walls", "com.lumina.wallpapers"],
+    ["macrodroid", "MacroDroid", "com.arlosoft.macrodroid"],
+    ["mark", "Mark", "com.markOne.ss_app"],
+    ["plus-messenger", "Plus Messenger", "org.telegram.plus"],
+    ["prompter-pal", "Prompter Pal", "com.solid.teleprompter"],
+    ["sd-maid-se", "SD Maid SE", "eu.darken.sdmse"],
+    ["starsense-explorer", "StarSense Explorer", "com.celestron.skybox"],
+    ["telegram", "Telegram", "org.telegram.messenger.web"],
+    ["ticktick", "TickTick", "com.ticktick.task"],
+    ["trackit", "TrackIt", "app.vinztech.trackit"],
+    ["truecaller", "Truecaller", "com.truecaller"],
+    ["vn", "VN", "com.frontrow.vlog"],
+  ]),
 };
 
 const targetAliases = {
@@ -122,6 +197,7 @@ const releaseAssets = {
   },
   patches: {
     repo: env("MORPHE_PATCHES_REPO") || "MorpheApp/morphe-patches",
+    provider: env("MORPHE_PATCHES_PROVIDER") || "github",
     versionEnv: "MORPHE_PATCHES_VERSION",
     assetPattern: /^patches-.+\.mpp$/,
     output: fromRoot(".cache/tools/patches.mpp"),
@@ -187,6 +263,37 @@ function youtubeAbiAppConfigs(config) {
       result: envPath(`${variantEnvPrefix}_RESULT`, rootBuild ? rootResult : standardResult),
       rootModuleId: `${config.rootModuleId}_${variant.artifactAbi.replaceAll("-", "_")}`,
       rootModuleName: `${config.rootModuleName} (${variant.artifactAbi})`,
+    }];
+  }));
+}
+
+function externalPatchAppConfigs(entries) {
+  return Object.fromEntries(entries.map(([id, label, packageName, overrides = {}]) => {
+    const envPrefix = envPrefixFor(id);
+    const apkpureSlug = overrides.apkpureSlug || id;
+
+    return [id, {
+      id,
+      label,
+      apkpureName: label,
+      packageName,
+      apkpureSlug,
+      apkpurePage: overrides.apkpurePage || `https://apkpure.com/${apkpureSlug}/${packageName}`,
+      uptodownSlug: overrides.uptodownSlug || id,
+      divxlandSlug: overrides.divxlandSlug || id,
+      apkmirrorOrg: overrides.apkmirrorOrg || "",
+      apkmirrorRepo: overrides.apkmirrorRepo || "",
+      apkmirrorSlug: overrides.apkmirrorSlug || "",
+      apkmirrorType: env(`${envPrefix}_APKMIRROR_TYPE`) || env("APKMIRROR_TYPE") || overrides.apkmirrorType || "apk",
+      apkmirrorArch: env(`${envPrefix}_APKMIRROR_ARCH`) || env("APKMIRROR_ARCH") || overrides.apkmirrorArch || "arm64-v8a",
+      apkmirrorFallbackArch: env(`${envPrefix}_APKMIRROR_FALLBACK_ARCH`) || env("APKMIRROR_FALLBACK_ARCH") || overrides.apkmirrorFallbackArch || "",
+      apkmirrorDpi: env(`${envPrefix}_APKMIRROR_DPI`) || env("APKMIRROR_DPI") || overrides.apkmirrorDpi || "nodpi",
+      requestedVersion: env(`${envPrefix}_APK_VERSION`),
+      input: envPath(`${envPrefix}_APK`, `input/${id}.apk`),
+      url: env(`${envPrefix}_APK_URL`),
+      output: envPath(`${envPrefix}_OUT`, `output/${id}-patched.apk`),
+      options: envPath(`${envPrefix}_OPTIONS`, `config/${id}-options.json`),
+      result: envPath(`${envPrefix}_RESULT`, `output/${id}-result.json`),
     }];
   }));
 }
@@ -676,7 +783,7 @@ async function downloadReleaseAsset(config, force) {
   }
 
   const version = env(config.versionEnv) || "latest";
-  const release = await githubReleaseForVersion(config.repo, version, {
+  const release = await releaseForVersion(config, version, {
     prereleaseKeyword: Boolean(config.prereleaseKeyword),
   });
   const asset = release.assets.find((item) => config.assetPattern.test(item.name));
@@ -689,8 +796,9 @@ async function downloadReleaseAsset(config, force) {
   await downloadFile(asset.browser_download_url, config.output);
   await writeJson(config.meta, {
     repo: config.repo,
+    provider: release.provider || config.provider || "github",
     tag: release.tag_name,
-    url: release.html_url || githubReleaseUrl(config.repo, release.tag_name),
+    url: release.html_url || releaseUrl(config, release.tag_name),
     asset: asset.name,
     downloadedAt: new Date().toISOString(),
   });
@@ -702,7 +810,7 @@ async function cachedReleaseAssetUsable(config) {
   if (!usableFile(config.output)) return false;
 
   const meta = await readJson(config.meta);
-  return meta?.repo === config.repo;
+  return meta?.repo === config.repo && (meta?.provider || "github") === (config.provider || "github");
 }
 
 async function ensureApkeep(force = false) {
@@ -758,6 +866,56 @@ async function githubReleaseForVersion(repo, version = "latest", { prereleaseKey
   return githubJson(`https://api.github.com/repos/${repo}/releases/tags/${normalizeTag(version)}`);
 }
 
+async function releaseForVersion(config, version = "latest", options = {}) {
+  const provider = config.provider || "github";
+  if (provider === "github") {
+    return {
+      ...await githubReleaseForVersion(config.repo, version, options),
+      provider,
+    };
+  }
+  if (provider === "gitlab") {
+    return gitlabReleaseForVersion(config.repo, version, options);
+  }
+  throw new Error(`Unsupported release provider "${provider}" for ${config.repo}`);
+}
+
+async function gitlabReleaseForVersion(project, version = "latest", { prereleaseKeyword = false } = {}) {
+  const normalized = String(version || "latest").toLowerCase();
+  const releases = await gitlabJson(`https://gitlab.com/api/v4/projects/${encodeURIComponent(project)}/releases?per_page=100`);
+  const stableRelease = (item) => !/(?:^|[.-])(?:dev|pre|preview|alpha|beta|rc)(?:[.-]|\d|$)/i.test(item.tag_name || "");
+  let release = null;
+
+  if (normalized === "latest" || normalized === "stable") {
+    release = releases.find(stableRelease) || releases[0];
+  } else if (prereleaseKeyword && ["dev", "pre", "preview", "prerelease", "pre-release"].includes(normalized)) {
+    release = releases.find((item) => !stableRelease(item));
+  } else {
+    const tag = normalizeTag(version);
+    release = releases.find((item) => item.tag_name === tag)
+      || await gitlabJson(`https://gitlab.com/api/v4/projects/${encodeURIComponent(project)}/releases/${encodeURIComponent(tag)}`);
+  }
+
+  if (!release) {
+    throw new Error(`No GitLab release found for ${project} ${version}`);
+  }
+
+  return normalizeGitlabRelease(project, release);
+}
+
+function normalizeGitlabRelease(project, release) {
+  const links = release?.assets?.links || [];
+  return {
+    provider: "gitlab",
+    tag_name: release.tag_name,
+    html_url: `https://gitlab.com/${project}/-/releases/${encodeURIComponent(release.tag_name)}`,
+    assets: links.map((link) => ({
+      name: link.name,
+      browser_download_url: link.direct_asset_url || link.url,
+    })),
+  };
+}
+
 function githubReleaseUrl(repo, tag, fallbackUrl = "") {
   if (fallbackUrl) return fallbackUrl;
   if (!tag || ["latest", "stable", "dev", "pre", "preview", "prerelease", "pre-release"].includes(String(tag).toLowerCase())) {
@@ -766,19 +924,40 @@ function githubReleaseUrl(repo, tag, fallbackUrl = "") {
   return `https://github.com/${repo}/releases/tag/${encodeURIComponent(normalizeTag(tag))}`;
 }
 
+function gitlabReleaseUrl(project, tag, fallbackUrl = "") {
+  if (fallbackUrl) return fallbackUrl;
+  if (!tag || ["latest", "stable", "dev", "pre", "preview", "prerelease", "pre-release"].includes(String(tag).toLowerCase())) {
+    return `https://gitlab.com/${project}/-/releases`;
+  }
+  return `https://gitlab.com/${project}/-/releases/${encodeURIComponent(normalizeTag(tag))}`;
+}
+
+function releaseUrl(config, tag, fallbackUrl = "") {
+  return (config.provider || "github") === "gitlab"
+    ? gitlabReleaseUrl(config.repo, tag, fallbackUrl)
+    : githubReleaseUrl(config.repo, tag, fallbackUrl);
+}
+
 async function fetchPatchesList() {
   patchesListPromise ||= (async () => {
     const tag = await selectedPatchReleaseTag();
-    return githubJson(`https://raw.githubusercontent.com/${releaseAssets.patches.repo}/${tag}/patches-list.json`);
+    return fetchPatchListForTag(releaseAssets.patches, tag);
   })();
   return patchesListPromise;
+}
+
+async function fetchPatchListForTag(config, tag) {
+  if ((config.provider || "github") === "gitlab") {
+    return gitlabJson(`https://gitlab.com/${config.repo}/-/raw/${encodeURIComponent(tag)}/patches-list.json`);
+  }
+  return githubJson(`https://raw.githubusercontent.com/${config.repo}/${tag}/patches-list.json`);
 }
 
 async function selectedPatchReleaseTag() {
   const version = env("MORPHE_PATCHES_VERSION") || "latest";
 
   selectedPatchReleaseTagPromise ||= (async () => {
-    const release = await githubReleaseForVersion(releaseAssets.patches.repo, version, {
+    const release = await releaseForVersion(releaseAssets.patches, version, {
       prereleaseKeyword: true,
     });
     return release.tag_name;
@@ -790,8 +969,8 @@ async function printVersions() {
   const patchesRepo = releaseAssets.patches.repo;
   const [cliRelease, patchesRelease, patchesDevRelease, patchesList] = await Promise.all([
     githubJson("https://api.github.com/repos/MorpheApp/morphe-cli/releases/latest"),
-    githubReleaseForVersion(patchesRepo, "stable"),
-    githubReleaseForVersion(patchesRepo, "dev", { prereleaseKeyword: true }).catch(() => null),
+    releaseForVersion(releaseAssets.patches, "stable"),
+    releaseForVersion(releaseAssets.patches, "dev", { prereleaseKeyword: true }).catch(() => null),
     fetchPatchesList(),
   ]);
 
@@ -876,7 +1055,7 @@ async function printReleaseNotes() {
   const rootModulesMeta = rootBuild ? await readJson(join(paths.rootModules, "root-modules.json")) : null;
   const patchArgs = parseJsonArrayEnv("MORPHE_EXTRA_ARGS_JSON");
   const patchesTag = patchesMeta?.tag || env("MORPHE_PATCHES_VERSION") || "latest";
-  const patchesUrl = githubReleaseUrl(releaseAssets.patches.repo, patchesTag, patchesMeta?.url);
+  const patchesUrl = releaseUrl(releaseAssets.patches, patchesTag, patchesMeta?.url);
   const lines = [];
 
   lines.push(rootBuild ? "Automated root module build." : "Automated patched APK build.");
@@ -2671,6 +2850,22 @@ async function githubJson(url) {
 
   if (!response.ok) {
     throw new Error(`GitHub request failed (${response.status}) for ${url}`);
+  }
+
+  return response.json();
+}
+
+async function gitlabJson(url) {
+  const response = await fetchWithRetry(url, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "morph-youtube-builder",
+      ...(env("GITLAB_TOKEN") ? { "PRIVATE-TOKEN": env("GITLAB_TOKEN") } : {}),
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`GitLab request failed (${response.status}) for ${url}`);
   }
 
   return response.json();
