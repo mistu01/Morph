@@ -831,6 +831,10 @@ async function desiredApkVersions(app, patchesList = null) {
   if (app.requestedVersion) return [app.requestedVersion];
 
   const source = (env("APK_VERSION_SOURCE") || "recommended").toLowerCase();
+  if (source === "latest-compatible" || (source === "latest" && truthy(env("APK_LATEST_COMPATIBLE_ONLY")))) {
+    const list = patchesList || await fetchPatchesList();
+    return compatibleVersionsFor(app, list);
+  }
   if (source === "latest") return [];
   if (source === "recommended") {
     const list = patchesList || await fetchPatchesList();
@@ -839,7 +843,7 @@ async function desiredApkVersions(app, patchesList = null) {
   }
   if (/^\d+(?:\.\d+)+(?:[-+][A-Za-z0-9._-]+)?$/.test(source)) return [source];
 
-  throw new Error(`Unsupported APK_VERSION_SOURCE "${source}". Use recommended, latest, or an explicit version like 20.47.62 or 11.91.0-release.0.`);
+  throw new Error(`Unsupported APK_VERSION_SOURCE "${source}". Use recommended, latest-compatible, latest, or an explicit version like 20.47.62 or 11.91.0-release.0.`);
 }
 
 function recommendedVersionFor(app, patchesList) {
@@ -886,6 +890,9 @@ async function printReleaseNotes() {
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
   lines.push(`- YouTube ABIs: ${youtubeAbiVariants.map((variant) => variant.artifactAbi).join(", ")}`);
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
+  if ((env("APK_VERSION_SOURCE") || "").toLowerCase() === "latest" && truthy(env("APK_LATEST_COMPATIBLE_ONLY"))) {
+    lines.push("- APK latest mode: constrained to Morphe-compatible versions");
+  }
   lines.push(`- Recommended APK fallback to latest: ${truthy(env("APK_FALLBACK_TO_LATEST")) ? "enabled" : "disabled"}`);
   lines.push(`- Patch args: ${patchArgs.length ? patchArgs.join(" ") : "none"}`);
   if (rootBuild) {
@@ -2773,6 +2780,8 @@ Environment:
                               Defaults to apkpure.
   APK_VERSION_SOURCE         recommended, latest, or an explicit version such as
                              20.47.62 or 11.91.0-release.0. Defaults to recommended.
+  APK_LATEST_COMPATIBLE_ONLY Set to 1 with APK_VERSION_SOURCE=latest to use the newest
+                             Morphe-compatible APK instead of the newest available APK.
   APK_FALLBACK_TO_LATEST     Set to 1 to fall back to latest if the recommended APK is unavailable.
   MORPHE_INCLUDE_EXPERIMENTAL_TARGETS
                              Set to 1 to allow experimental Morphe patch target versions.
