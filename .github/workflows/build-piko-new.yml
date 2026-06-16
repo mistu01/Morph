@@ -239,6 +239,15 @@ jobs:
           TWITTER_GOFILE_PASSWORD: ${{ secrets.TWITTER_GOFILE_PASSWORD || secrets.GOFILE_PASSWORD }}
         run: node scripts/piko-builder.mjs build
 
+      - name: Upload Gofile debug artifacts
+        if: ${{ failure() && inputs.twitter_gofile_url != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gofile-debug
+          path: .cache/gofile-debug/**
+          if-no-files-found: ignore
+          retention-days: 1
+
       - name: Prepare release summary
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         run: |
