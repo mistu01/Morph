@@ -38,6 +38,10 @@ on:
         description: "Twitter APK Version (leave blank for recommended version)"
         required: false
         default: "11.81.0-release.0"
+      twitter_gofile_url:
+        description: "Custom Twitter APK/APKM Gofile download link (optional; overrides normal download)"
+        required: false
+        default: ""
 
 env:
   MORPHE_PATCHES_REPO: crimera/piko
@@ -224,6 +228,7 @@ jobs:
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           INSTAGRAM_APK_VERSION: ${{ inputs.instagram_apk_version }}
           TWITTER_APK_VERSION: ${{ inputs.twitter_apk_version }}
+          TWITTER_GOFILE_URL: ${{ inputs.twitter_gofile_url }}
         run: node scripts/piko-builder.mjs build
 
       - name: Prepare release summary
@@ -245,6 +250,7 @@ jobs:
           - Architecture: arm64-v8a
           - Instagram APK Version: ${{ inputs.instagram_apk_version || '430.0.0.53.80' }}
           - Twitter APK Version: ${{ inputs.twitter_apk_version || '11.81.0-release.0' }}
+          - Twitter Custom Gofile Link: ${{ inputs.twitter_gofile_url != '' && 'provided' || 'not provided' }}
           - Date: $(date -u)
           EOF
 

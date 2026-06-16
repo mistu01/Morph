@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, createWriteStream } from "node:fs";
 import { basename, dirname, join, resolve, extname } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -55,6 +58,9 @@ const appConfigs = {
     apkmirrorFallbackArch: "universal",
     apkmirrorDpi: "120-640dpi",
     requestedVersion: env("TWITTER_APK_VERSION"),
+    gofileUrl: env("TWITTER_GOFILE_URL") || env("TWITTER_APK_URL"),
+    gofilePassword: env("TWITTER_GOFILE_PASSWORD") || env("GOFILE_PASSWORD"),
+    gofileToken: env("TWITTER_GOFILE_TOKEN") || env("GOFILE_TOKEN"),
     input: fromRoot("input/twitter.apkm"),
     output: fromRoot("output/twitter-patched.apk"),
     result: fromRoot("output/twitter-result.json"),
@@ -105,9 +111,10 @@ async function githubJson(url) {
   return response.json();
 }
 
-async function downloadFile(url, destination) {
+async function downloadFile(url, destination, extraHeaders = {}) {
   const headers = {
     "User-Agent": "piko-builder",
+    ...extraHeaders,
   };
   const token = env("GITHUB_TOKEN");
   if (token && !token.includes("dummy") && url.includes("github.com")) {
@@ -119,19 +126,9 @@ async function downloadFile(url, destination) {
     throw new Error(`Download failed (${response.status}) for ${url}`);
   }
 
-  const fileStream = import("node:fs").then((fs) => fs.createWriteStream(destination));
-  const stream = response.body;
-  
-  // Node fetch returns a ReadableStream. We convert it to a Buffer and write it.
-  const reader = stream.getReader();
-  const chunks = [];
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-  }
-  const buffer = Buffer.concat(chunks);
-  writeFileSync(destination, buffer);
+  mkdirSync(dirname(destination), { recursive: true });
+  await pipeline(Readable.fromWeb(response.body), createWriteStream(destination));
+  return { url: response.url, headers: response.headers };
 }
 
 async function getLatestReleaseTag(repo) {
@@ -259,74 +256,82 @@ async function build() {
       throw new Error(`Could not resolve version for ${app.label}. Please specify ${app.id.toUpperCase()}_APK_VERSION.`);
     }
 
-    // 2. Download APK/APKM from APKMirror (with APKPure fallback)
+    // 2. Download APK/APKM from a custom Gofile link, APKMirror, or APKPure fallback.
     let downloadSucceeded = false;
     let actualInputPath = app.input;
 
-    console.log(`Downloading ${app.label} v${version} (${app.apkmirrorArch}) from APKMirror...`);
-    const downloadArgs = [
-      join(root, "scripts/apkmirror_download.py"),
-      "--app-name", app.label,
-      "--package-name", app.packageName,
-      "--org", app.apkmirrorOrg,
-      "--repo", app.apkmirrorRepo,
-      "--version", version,
-      "--arch", app.apkmirrorArch,
-      "--fallback-arch", app.apkmirrorFallbackArch,
-      "--dpi", app.apkmirrorDpi,
-      "--type", app.apkmirrorType,
-      "--out-dir", paths.input,
-      "--out-file", basename(app.input),
-    ];
-
-    if (app.apkmirrorSlug) {
-      downloadArgs.push("--slug", app.apkmirrorSlug);
+    if (app.gofileUrl) {
+      actualInputPath = await downloadGofileInput(app);
+      downloadSucceeded = true;
+      console.log(`Using custom Gofile input for ${app.label}: ${actualInputPath}`);
     }
 
-    const downloadProc = spawnSync("python", downloadArgs, { stdio: "inherit" });
-    if (downloadProc.status === 0 && existsSync(app.input)) {
-      downloadSucceeded = true;
-    } else {
-      console.warn(`APKMirror download failed for ${app.label} v${version}. Trying APKPure fallback...`);
-      const apkpureArgs = [
-        join(root, "scripts/apkpure_download.py"),
-        "--app-name", app.apkpureName || app.label,
+    if (!downloadSucceeded) {
+      console.log(`Downloading ${app.label} v${version} (${app.apkmirrorArch}) from APKMirror...`);
+      const downloadArgs = [
+        join(root, "scripts/apkmirror_download.py"),
+        "--app-name", app.label,
         "--package-name", app.packageName,
-        "--source-page", app.apkpurePage || `https://apkpure.com/${app.id}/${app.packageName}`,
-        "--out-dir", paths.input,
+        "--org", app.apkmirrorOrg,
+        "--repo", app.apkmirrorRepo,
         "--version", version,
-        "--arch", app.apkmirrorArch || "arm64-v8a",
+        "--arch", app.apkmirrorArch,
+        "--fallback-arch", app.apkmirrorFallbackArch,
+        "--dpi", app.apkmirrorDpi,
+        "--type", app.apkmirrorType,
+        "--out-dir", paths.input,
+        "--out-file", basename(app.input),
       ];
 
-      console.log(`Running APKPure downloader: python ${apkpureArgs.join(" ")}`);
-      const apkpureProc = spawnSync("python", apkpureArgs, { stdio: ["inherit", "pipe", "inherit"] });
-      if (apkpureProc.status === 0) {
-        try {
-          const stdoutStr = apkpureProc.stdout.toString().trim();
-          const jsonMatch = stdoutStr.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-            const metadata = JSON.parse(jsonMatch[0]);
-            if (metadata.path && existsSync(metadata.path)) {
-              const ext = extname(metadata.path).toLowerCase() || ".apk";
-              const targetPath = app.input.slice(0, app.input.length - extname(app.input).length) + ext;
-              if (existsSync(targetPath)) {
-                rmSync(targetPath, { force: true });
-              }
-              renameSync(metadata.path, targetPath);
-              actualInputPath = targetPath;
-              downloadSucceeded = true;
-              console.log(`Successfully downloaded ${app.label} v${metadata.version} from APKPure: ${actualInputPath}`);
-            } else {
-              console.error(`APKPure download path ${metadata.path} does not exist.`);
-            }
-          } else {
-            console.error(`APKPure stdout did not contain JSON: ${stdoutStr}`);
-          }
-        } catch (err) {
-          console.error(`Error parsing APKPure download output: ${err.message}`);
-        }
+      if (app.apkmirrorSlug) {
+        downloadArgs.push("--slug", app.apkmirrorSlug);
+      }
+
+      const downloadProc = spawnSync("python", downloadArgs, { stdio: "inherit" });
+      if (downloadProc.status === 0 && existsSync(app.input)) {
+        downloadSucceeded = true;
       } else {
-        console.error(`APKPure downloader process failed with exit code ${apkpureProc.status}`);
+        console.warn(`APKMirror download failed for ${app.label} v${version}. Trying APKPure fallback...`);
+        const apkpureArgs = [
+          join(root, "scripts/apkpure_download.py"),
+          "--app-name", app.apkpureName || app.label,
+          "--package-name", app.packageName,
+          "--source-page", app.apkpurePage || `https://apkpure.com/${app.id}/${app.packageName}`,
+          "--out-dir", paths.input,
+          "--version", version,
+          "--arch", app.apkmirrorArch || "arm64-v8a",
+        ];
+
+        console.log(`Running APKPure downloader: python ${apkpureArgs.join(" ")}`);
+        const apkpureProc = spawnSync("python", apkpureArgs, { stdio: ["inherit", "pipe", "inherit"] });
+        if (apkpureProc.status === 0) {
+          try {
+            const stdoutStr = apkpureProc.stdout.toString().trim();
+            const jsonMatch = stdoutStr.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const metadata = JSON.parse(jsonMatch[0]);
+              if (metadata.path && existsSync(metadata.path)) {
+                const ext = extname(metadata.path).toLowerCase() || ".apk";
+                const targetPath = app.input.slice(0, app.input.length - extname(app.input).length) + ext;
+                if (existsSync(targetPath)) {
+                  rmSync(targetPath, { force: true });
+                }
+                renameSync(metadata.path, targetPath);
+                actualInputPath = targetPath;
+                downloadSucceeded = true;
+                console.log(`Successfully downloaded ${app.label} v${metadata.version} from APKPure: ${actualInputPath}`);
+              } else {
+                console.error(`APKPure download path ${metadata.path} does not exist.`);
+              }
+            } else {
+              console.error(`APKPure stdout did not contain JSON: ${stdoutStr}`);
+            }
+          } catch (err) {
+            console.error(`Error parsing APKPure download output: ${err.message}`);
+          }
+        } else {
+          console.error(`APKPure downloader process failed with exit code ${apkpureProc.status}`);
+        }
       }
     }
 
@@ -452,7 +457,8 @@ async function build() {
 async function renameVersionedBuildOutput(app, version) {
   if (!existsSync(app.output)) return;
 
-  const safeVersion = safeNamePart(version || "unknown");
+  const outputVersion = buildResultVersion(app) || version || "unknown";
+  const safeVersion = safeNamePart(outputVersion);
   const safeArch = safeNamePart(displayArch(app.apkmirrorArch || env("APKMIRROR_ARCH") || "arm64-v8a"));
   const destination = join(dirname(app.output), `${app.id}-${safeVersion}-${safeArch}-patched.apk`);
 
@@ -463,7 +469,162 @@ async function renameVersionedBuildOutput(app, version) {
     console.log(`${app.label}: renamed APK output to ${app.output}`);
   }
 
-  updateBuildResultOutput(app, version, displayArch(app.apkmirrorArch || env("APKMIRROR_ARCH") || "arm64-v8a"));
+  updateBuildResultOutput(app, outputVersion, displayArch(app.apkmirrorArch || env("APKMIRROR_ARCH") || "arm64-v8a"));
+}
+
+async function downloadGofileInput(app) {
+  const selected = await resolveGofileDownload(app);
+  const extension = packageExtension(selected.fileName || selected.url) || packageExtension(app.input) || ".apk";
+  const destination = replaceExtension(app.input, extension);
+
+  console.log(`Downloading custom ${app.label} input from Gofile...`);
+  rmSync(destination, { force: true });
+  const downloaded = await downloadFile(selected.url, destination, gofileDownloadHeaders(selected.token));
+  const contentType = downloaded.headers.get("content-type") || "";
+  if (/text\/html/i.test(contentType)) {
+    rmSync(destination, { force: true });
+    throw new Error(
+      `${app.label}: the Gofile link returned an HTML page instead of an APK/APKM file. ` +
+      `Use a public share link like https://gofile.io/d/... or a direct file download link.`
+    );
+  }
+
+  app.input = destination;
+  return destination;
+}
+
+async function resolveGofileDownload(app) {
+  const contentId = gofileContentId(app.gofileUrl);
+  if (!contentId) {
+    return { url: app.gofileUrl, fileName: basenameFromUrl(app.gofileUrl), token: app.gofileToken };
+  }
+
+  const token = app.gofileToken || await createGofileGuestToken();
+  const passwordHash = app.gofilePassword
+    ? createHash("sha256").update(app.gofilePassword).digest("hex")
+    : "";
+  const params = new URLSearchParams({
+    cache: "true",
+    sortField: "createTime",
+    sortDirection: "1",
+    ...(passwordHash ? { password: passwordHash } : {}),
+  });
+  const response = await gofileJson(`https://api.gofile.io/contents/${encodeURIComponent(contentId)}?${params}`, {
+    token,
+  });
+  const file = findGofilePackage(response.data);
+  if (!file?.link) {
+    throw new Error(`${app.label}: no APK/APKM/XAPK/APKS file was found in the Gofile link.`);
+  }
+
+  return {
+    url: file.link,
+    fileName: file.name || basenameFromUrl(file.link),
+    token,
+  };
+}
+
+async function createGofileGuestToken() {
+  const response = await gofileJson("https://api.gofile.io/accounts", { method: "POST" });
+  const token = response?.data?.token;
+  if (!token) {
+    throw new Error("Gofile guest account creation did not return an access token.");
+  }
+  return token;
+}
+
+async function gofileJson(url, { method = "GET", token = "" } = {}) {
+  const response = await fetch(url, {
+    method,
+    headers: gofileApiHeaders(token),
+  });
+  if (!response.ok) {
+    throw new Error(`Gofile request failed (${response.status}) for ${url}`);
+  }
+
+  const data = await response.json();
+  if (data.status !== "ok") {
+    throw new Error(`Gofile request failed: ${data.status || "unknown error"}`);
+  }
+  return data;
+}
+
+function gofileApiHeaders(token = "") {
+  const userAgent = "Mozilla/5.0 piko-builder";
+  return {
+    Accept: "application/json,*/*",
+    "Accept-Encoding": "gzip",
+    "User-Agent": userAgent,
+    Origin: "https://gofile.io",
+    Referer: "https://gofile.io/",
+    "X-BL": "en-US",
+    "X-Website-Token": gofileWebsiteToken(userAgent, token),
+    ...(token ? {
+      Authorization: `Bearer ${token}`,
+      Cookie: `accountToken=${token}`,
+    } : {}),
+  };
+}
+
+function gofileDownloadHeaders(token = "") {
+  const userAgent = "Mozilla/5.0 piko-builder";
+  return {
+    Accept: "application/vnd.android.package-archive,application/octet-stream,*/*",
+    "User-Agent": userAgent,
+    Origin: "https://gofile.io",
+    Referer: "https://gofile.io/",
+    ...(token ? {
+      Authorization: `Bearer ${token}`,
+      Cookie: `accountToken=${token}`,
+      "X-BL": "en-US",
+      "X-Website-Token": gofileWebsiteToken(userAgent, token),
+    } : {}),
+  };
+}
+
+function gofileWebsiteToken(userAgent, token) {
+  const timeSlot = Math.floor(Date.now() / 1000 / 14400);
+  return createHash("sha256")
+    .update(`${userAgent}::en-US::${token}::${timeSlot}::g4f8fd9f12h14g`)
+    .digest("hex");
+}
+
+function gofileContentId(url) {
+  try {
+    const parsed = new URL(url);
+    if (!/(^|\.)gofile\.(io|co)$/i.test(parsed.hostname)) return "";
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const marker = parts.findIndex((part) => ["d", "f"].includes(part.toLowerCase()));
+    return marker >= 0 ? parts[marker + 1] || "" : parsed.searchParams.get("file") || "";
+  } catch {
+    return "";
+  }
+}
+
+function findGofilePackage(rootContent) {
+  const candidates = [];
+  const visit = (content) => {
+    if (!content) return;
+    if (content.type === "folder") {
+      const children = Array.isArray(content.children) ? content.children : Object.values(content.children || {});
+      for (const child of children) visit(child);
+      return;
+    }
+
+    const extension = packageExtension(content.name || content.link || "");
+    if (extension) candidates.push(content);
+  };
+
+  visit(rootContent);
+  return candidates.sort((a, b) => packagePriority(a) - packagePriority(b))[0];
+}
+
+function packagePriority(content) {
+  const name = String(content.name || content.link || "").toLowerCase();
+  const extension = packageExtension(name);
+  const extensionRank = { ".apkm": 0, ".xapk": 1, ".apks": 2, ".apk": 3 }[extension] ?? 9;
+  const nameRank = /\btwitter\b|\bx\b/.test(name) ? 0 : 1;
+  return nameRank * 10 + extensionRank;
 }
 
 function updateBuildResultOutput(app, version, arch) {
@@ -485,6 +646,39 @@ function updateBuildResultOutput(app, version, arch) {
 
 function displayArch(arch) {
   return arch === "armeabi-v7a" ? "arm-v7a" : arch;
+}
+
+function buildResultVersion(app) {
+  if (!existsSync(app.result)) return "";
+
+  try {
+    const result = JSON.parse(readFileSync(app.result, "utf8"));
+    return result.packageVersion || "";
+  } catch {
+    return "";
+  }
+}
+
+function replaceExtension(file, extension) {
+  return file.slice(0, file.length - extname(file).length) + extension;
+}
+
+function packageExtension(value) {
+  try {
+    const parsed = new URL(value);
+    return packageExtension(parsed.pathname);
+  } catch {}
+
+  const extension = extname(String(value || "")).toLowerCase();
+  return [".apk", ".apkm", ".xapk", ".apks"].includes(extension) ? extension : "";
+}
+
+function basenameFromUrl(url) {
+  try {
+    return basename(new URL(url).pathname);
+  } catch {
+    return basename(String(url || ""));
+  }
 }
 
 function safeNamePart(value) {
