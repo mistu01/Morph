@@ -282,6 +282,7 @@ async function build() {
       if (inputMetadata.packageName && inputMetadata.packageName !== app.packageName) {
         throw new Error(`${app.label}: Google Drive input package name is ${inputMetadata.packageName}, expected ${app.packageName}.`);
       }
+      actualInputPath = normalizeCustomInputPath(app, actualInputPath, inputMetadata);
       if (inputMetadata.version) {
         version = inputMetadata.version;
         console.log(`${app.label}: overriding configured version with Google Drive package version ${version}.`);
@@ -574,6 +575,8 @@ def text_value(data, *keys):
     return ""
 
 def metadata_from_json(data, source):
+    if not isinstance(data, dict):
+        return {}
     return {
         "source": source,
         "packageName": text_value(data, "pname", "package_name", "packageName", "package"),
@@ -680,6 +683,9 @@ metadata = {}
 try:
     with zipfile.ZipFile(path) as archive:
         names = archive.namelist()
+        lower_names = [name.lower() for name in names]
+        root_manifest = "androidmanifest.xml" in lower_names
+        nested_apks = [name for name in names if name.lower().endswith(".apk")]
         preferred = ["info.json", "manifest.json"]
         candidates = []
         for wanted in preferred:
@@ -698,6 +704,10 @@ try:
                 break
         if not metadata and "AndroidManifest.xml" in names:
             metadata = {key: value for key, value in parse_binary_manifest(archive.read("AndroidManifest.xml")).items() if value}
+        if root_manifest:
+            metadata["fileType"] = "apk"
+        elif nested_apks:
+            metadata["fileType"] = "apkm"
 except zipfile.BadZipFile:
     pass
 
@@ -724,6 +734,26 @@ print(json.dumps(metadata))
     console.warn(`${app.label}: could not parse package metadata: ${error.message}`);
     return {};
   }
+}
+
+function normalizeCustomInputPath(app, filePath, metadata) {
+  const extensionByType = {
+    apk: ".apk",
+    apkm: ".apkm",
+    xapk: ".xapk",
+    apks: ".apks",
+  };
+  const expectedExtension = extensionByType[String(metadata.fileType || "").toLowerCase()];
+  if (!expectedExtension || extname(filePath).toLowerCase() === expectedExtension) {
+    return filePath;
+  }
+
+  const destination = filePath.slice(0, filePath.length - extname(filePath).length) + expectedExtension;
+  rmSync(destination, { force: true });
+  renameSync(filePath, destination);
+  app.input = destination;
+  console.log(`${app.label}: detected ${expectedExtension.slice(1).toUpperCase()} input; renamed custom file to ${destination}.`);
+  return destination;
 }
 
 function updateBuildResultOutput(app, version, arch) {
