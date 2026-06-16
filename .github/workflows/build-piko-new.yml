@@ -38,6 +38,10 @@ on:
         description: "Twitter APK Version (leave blank for recommended version)"
         required: false
         default: "11.81.0-release.0"
+      twitter_google_drive_url:
+        description: "Custom Twitter APK/APKM Google Drive link or file ID (optional; overrides normal download)"
+        required: false
+        default: ""
       twitter_gofile_url:
         description: "Custom Twitter APK/APKM Gofile download link (optional; overrides normal download)"
         required: false
@@ -228,6 +232,7 @@ jobs:
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           INSTAGRAM_APK_VERSION: ${{ inputs.instagram_apk_version }}
           TWITTER_APK_VERSION: ${{ inputs.twitter_apk_version }}
+          TWITTER_GOOGLE_DRIVE_URL: ${{ inputs.twitter_google_drive_url }}
           TWITTER_GOFILE_URL: ${{ inputs.twitter_gofile_url }}
           TWITTER_GOFILE_TOKEN: ${{ secrets.TWITTER_GOFILE_TOKEN || secrets.GOFILE_TOKEN }}
           TWITTER_GOFILE_PASSWORD: ${{ secrets.TWITTER_GOFILE_PASSWORD || secrets.GOFILE_PASSWORD }}
@@ -252,6 +257,7 @@ jobs:
           - Architecture: arm64-v8a
           - Instagram APK Version: ${{ inputs.instagram_apk_version || '430.0.0.53.80' }}
           - Twitter APK Version: ${{ inputs.twitter_apk_version || '11.81.0-release.0' }}
+          - Twitter Custom Google Drive Link: ${{ inputs.twitter_google_drive_url != '' && 'provided' || 'not provided' }}
           - Twitter Custom Gofile Link: ${{ inputs.twitter_gofile_url != '' && 'provided' || 'not provided' }}
           - Date: $(date -u)
           EOF

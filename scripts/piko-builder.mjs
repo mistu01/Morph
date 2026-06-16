@@ -2,7 +2,7 @@
 
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, createWriteStream } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, createWriteStream, statSync } from "node:fs";
 import { basename, dirname, join, resolve, extname } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -58,6 +58,8 @@ const appConfigs = {
     apkmirrorFallbackArch: "universal",
     apkmirrorDpi: "120-640dpi",
     requestedVersion: env("TWITTER_APK_VERSION"),
+    googleDriveUrl: env("TWITTER_GOOGLE_DRIVE_URL") || env("TWITTER_GDRIVE_URL"),
+    googleDriveFileId: env("TWITTER_GOOGLE_DRIVE_FILE_ID") || env("TWITTER_GDRIVE_FILE_ID"),
     gofileUrl: env("TWITTER_GOFILE_URL") || env("TWITTER_APK_URL"),
     gofilePassword: env("TWITTER_GOFILE_PASSWORD") || env("GOFILE_PASSWORD"),
     gofileToken: env("TWITTER_GOFILE_TOKEN") || env("GOFILE_TOKEN"),
@@ -256,11 +258,15 @@ async function build() {
       throw new Error(`Could not resolve version for ${app.label}. Please specify ${app.id.toUpperCase()}_APK_VERSION.`);
     }
 
-    // 2. Download APK/APKM from a custom Gofile link, APKMirror, or APKPure fallback.
+    // 2. Download APK/APKM from a custom Google Drive/Gofile link, APKMirror, or APKPure fallback.
     let downloadSucceeded = false;
     let actualInputPath = app.input;
 
-    if (app.gofileUrl) {
+    if (app.googleDriveUrl || app.googleDriveFileId) {
+      actualInputPath = downloadGoogleDriveInput(app);
+      downloadSucceeded = true;
+      console.log(`Using custom Google Drive input for ${app.label}: ${actualInputPath}`);
+    } else if (app.gofileUrl) {
       actualInputPath = await downloadGofileInput(app);
       downloadSucceeded = true;
       console.log(`Using custom Gofile input for ${app.label}: ${actualInputPath}`);
@@ -470,6 +476,60 @@ async function renameVersionedBuildOutput(app, version) {
   }
 
   updateBuildResultOutput(app, outputVersion, displayArch(app.apkmirrorArch || env("APKMIRROR_ARCH") || "arm64-v8a"));
+}
+
+function downloadGoogleDriveInput(app) {
+  const source = googleDriveSource(app);
+  const python = env("PYTHON_BIN") || "python";
+  const destination = app.input;
+  const args = [
+    "-m", "gdown",
+    "--fuzzy",
+    "--continue",
+    "-O", destination,
+    source,
+  ];
+
+  console.log(`Downloading custom ${app.label} input from Google Drive...`);
+  rmSync(destination, { force: true });
+  const proc = spawnSync(python, args, {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  if (proc.stdout?.trim()) {
+    console.log(proc.stdout.trim());
+  }
+  if (proc.stderr?.trim()) {
+    console.error(proc.stderr.trim());
+  }
+  if (proc.status !== 0) {
+    throw new Error(`Google Drive download failed for ${app.label}.`);
+  }
+  if (!existsSync(destination) || statSync(destination).size === 0) {
+    throw new Error(`Google Drive download did not create a usable file at ${destination}.`);
+  }
+
+  app.input = destination;
+  return destination;
+}
+
+function googleDriveSource(app) {
+  const value = (app.googleDriveUrl || app.googleDriveFileId || "").trim();
+  if (!value) {
+    throw new Error(`${app.label}: Google Drive source is empty.`);
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value;
+  }
+
+  if (/^[A-Za-z0-9_-]{10,}$/.test(value)) {
+    return `https://drive.google.com/uc?id=${encodeURIComponent(value)}`;
+  }
+
+  throw new Error(`${app.label}: Google Drive input must be a Drive URL or file ID.`);
 }
 
 async function downloadGofileInput(app) {
