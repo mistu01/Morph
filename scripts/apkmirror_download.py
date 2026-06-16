@@ -410,7 +410,7 @@ def find_variant(variants: list[dict[str, str]], arch: str, dpi: str, file_type:
 
     exact = [item for item in candidates if arch_matches(item["arch"], arch)]
     if exact:
-        return sorted(exact, key=variant_sort_key)[0]
+        return sorted(exact, key=lambda item: (arch_match_rank(item["arch"], arch), *variant_sort_key(item)))[0]
 
     universal = [item for item in candidates if item["arch"].lower() in {"universal", "noarch"}]
     return sorted(universal, key=variant_sort_key)[0] if universal else None
@@ -461,8 +461,22 @@ def dpi_specificity(value: str) -> int:
 
 
 def arch_matches(value: str, requested: str) -> bool:
-    parts = [part.strip().lower() for part in re.split(r"[,+]", value)]
+    parts = arch_parts(value)
     return requested.lower() in parts
+
+
+def arch_match_rank(value: str, requested: str) -> int:
+    parts = arch_parts(value)
+    requested = requested.lower()
+    if len(parts) == 1 and parts[0] == requested:
+        return 0
+    if requested in parts:
+        return 1
+    return 2
+
+
+def arch_parts(value: str) -> list[str]:
+    return [part.strip().lower() for part in re.split(r"[,+]", value) if part.strip()]
 
 
 def direct_download_button(soup: BeautifulSoup) -> str:
