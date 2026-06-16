@@ -477,7 +477,7 @@ async function downloadGofileInput(app) {
   const extension = packageExtension(selected.fileName || selected.url) || packageExtension(app.input) || ".apk";
   const destination = replaceExtension(app.input, extension);
 
-  console.log(`Downloading custom ${app.label} input from Gofile...`);
+  console.log(`Downloading custom ${app.label} input from Gofile (${selected.fileName || "direct file"})...`);
   rmSync(destination, { force: true });
   const downloaded = await downloadFile(selected.url, destination, gofileDownloadHeaders(selected.token));
   const contentType = downloaded.headers.get("content-type") || "";
@@ -496,9 +496,11 @@ async function downloadGofileInput(app) {
 async function resolveGofileDownload(app) {
   const contentId = gofileContentId(app.gofileUrl);
   if (!contentId) {
+    console.log(`Treating ${app.label} Gofile input as a direct download URL.`);
     return { url: app.gofileUrl, fileName: basenameFromUrl(app.gofileUrl), token: app.gofileToken };
   }
 
+  console.log(`Resolving ${app.label} Gofile share link ${redactGofileUrl(app.gofileUrl)}...`);
   const token = app.gofileToken || await createGofileGuestToken();
   const passwordHash = app.gofilePassword
     ? createHash("sha256").update(app.gofilePassword).digest("hex")
@@ -514,7 +516,11 @@ async function resolveGofileDownload(app) {
   });
   const file = findGofilePackage(response.data);
   if (!file?.link) {
-    throw new Error(`${app.label}: no APK/APKM/XAPK/APKS file was found in the Gofile link.`);
+    const names = gofilePackageCandidateNames(response.data);
+    throw new Error(
+      `${app.label}: no APK/APKM/XAPK/APKS file was found in the Gofile link.` +
+      (names.length ? ` Files seen: ${names.join(", ")}` : "")
+    );
   }
 
   return {
@@ -594,8 +600,19 @@ function gofileContentId(url) {
     const parsed = new URL(url);
     if (!/(^|\.)gofile\.(io|co)$/i.test(parsed.hostname)) return "";
     const parts = parsed.pathname.split("/").filter(Boolean);
-    const marker = parts.findIndex((part) => ["d", "f"].includes(part.toLowerCase()));
-    return marker >= 0 ? parts[marker + 1] || "" : parsed.searchParams.get("file") || "";
+    const marker = parts.findIndex((part) => ["d", "f", "download"].includes(part.toLowerCase()));
+    if (marker >= 0 && parts[marker + 1]) return parts[marker + 1];
+
+    for (const key of ["c", "file", "id", "contentId", "contentid"]) {
+      const value = parsed.searchParams.get(key);
+      if (value) return value;
+    }
+
+    if (parts.length === 1 && /^[A-Za-z0-9_-]{6,}$/.test(parts[0])) {
+      return parts[0];
+    }
+
+    return "";
   } catch {
     return "";
   }
@@ -625,6 +642,28 @@ function packagePriority(content) {
   const extensionRank = { ".apkm": 0, ".xapk": 1, ".apks": 2, ".apk": 3 }[extension] ?? 9;
   const nameRank = /\btwitter\b|\bx\b/.test(name) ? 0 : 1;
   return nameRank * 10 + extensionRank;
+}
+
+function gofilePackageCandidateNames(rootContent) {
+  const names = [];
+  const visit = (content) => {
+    if (!content) return;
+    if (content.type === "folder") {
+      const children = Array.isArray(content.children) ? content.children : Object.values(content.children || {});
+      for (const child of children) visit(child);
+      return;
+    }
+
+    if (content.name) names.push(content.name);
+  };
+
+  visit(rootContent);
+  return names.slice(0, 10);
+}
+
+function redactGofileUrl(url) {
+  const id = gofileContentId(url);
+  return id ? `https://gofile.io/d/${id.slice(0, 4)}...` : "provided URL";
 }
 
 function updateBuildResultOutput(app, version, arch) {
