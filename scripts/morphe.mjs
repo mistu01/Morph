@@ -889,8 +889,9 @@ async function printReleaseNotes() {
   lines.push(`- Patches: [${releaseAssets.patches.repo} ${patchesTag}](${patchesUrl})`);
   lines.push(`- Build variant: ${rootBuild ? "root module" : "standard APK"}`);
   lines.push(`- YouTube ABIs: ${youtubeAbiVariants.map((variant) => variant.artifactAbi).join(", ")}`);
+  const apkVersionSource = (env("APK_VERSION_SOURCE") || "recommended").toLowerCase();
   lines.push(`- APK version source: ${env("APK_VERSION_SOURCE") || "recommended"}`);
-  if ((env("APK_VERSION_SOURCE") || "").toLowerCase() === "latest" && truthy(env("APK_LATEST_COMPATIBLE_ONLY"))) {
+  if (apkVersionSource === "latest-compatible" || (apkVersionSource === "latest" && truthy(env("APK_LATEST_COMPATIBLE_ONLY")))) {
     lines.push("- APK latest mode: constrained to patch-compatible versions");
   }
   lines.push(`- Recommended APK fallback to latest: ${truthy(env("APK_FALLBACK_TO_LATEST")) ? "enabled" : "disabled"}`);
@@ -2787,7 +2788,15 @@ Environment:
   MORPHE_INCLUDE_EXPERIMENTAL_TARGETS
                              Set to 1 to allow experimental patch target versions.
   YOUTUBE_APK_VERSION        Explicit YouTube APK versionName override.
+  YOUTUBE_ARM64_V8A_APK_VERSION
+                             Explicit YouTube arm64-v8a APK versionName override.
+  YOUTUBE_ARM_V7A_APK_VERSION
+                             Explicit YouTube arm-v7a APK versionName override.
   YOUTUBE_MUSIC_APK_VERSION  Explicit YouTube Music APK versionName override.
+  YOUTUBE_MUSIC_ARM64_V8A_APK_VERSION
+                             Explicit YouTube Music arm64-v8a APK versionName override.
+  YOUTUBE_MUSIC_ARM_V7A_APK_VERSION
+                             Explicit YouTube Music arm-v7a APK versionName override.
   REDDIT_APK_VERSION         Explicit Reddit APK versionName override.
   APKMIRROR_ARCH             Optional APKMirror architecture override. Comma-separated values
                              are combined when APKMIRROR_TYPE is bundle.

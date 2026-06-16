@@ -13,7 +13,7 @@ const childEnv = {
   BUILD_TARGETS: env("BUILD_TARGETS") || "youtube,youtube-music,reddit",
   APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
   APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
-  APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY") || "1",
+  APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
   APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
   MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
   MORPHE_PATCHES_REPO: env("ANDDEA_PATCHES_REPO") || "anddea/revanced-patches",
