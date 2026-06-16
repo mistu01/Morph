@@ -85,12 +85,6 @@ jobs:
       - name: Install Python dependencies
         run: python -m pip install -r requirements.txt
 
-      - name: Install Gofile browser downloader dependencies
-        if: ${{ inputs.twitter_gofile_url != '' && contains(inputs.twitter_gofile_url, 'gofile.') }}
-        run: |
-          python -m pip install playwright
-          python -m playwright install --with-deps chromium
-
       - name: Restore optional signing keystore
         env:
           APK_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_B64 }}
@@ -238,15 +232,6 @@ jobs:
           TWITTER_GOFILE_TOKEN: ${{ secrets.TWITTER_GOFILE_TOKEN || secrets.GOFILE_TOKEN }}
           TWITTER_GOFILE_PASSWORD: ${{ secrets.TWITTER_GOFILE_PASSWORD || secrets.GOFILE_PASSWORD }}
         run: node scripts/piko-builder.mjs build
-
-      - name: Upload Gofile debug artifacts
-        if: ${{ failure() && inputs.twitter_gofile_url != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: gofile-debug
-          path: .cache/gofile-debug/**
-          if-no-files-found: ignore
-          retention-days: 1
 
       - name: Prepare release summary
         if: ${{ inputs.create_release || inputs.upload_artifact }}

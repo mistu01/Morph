@@ -474,7 +474,7 @@ async function renameVersionedBuildOutput(app, version) {
 
 async function downloadGofileInput(app) {
   if (isGofileShareUrl(app.gofileUrl)) {
-    const metadata = downloadGofileInputWithBrowser(app);
+    const metadata = downloadGofileInputWithGofileDl(app);
     app.input = metadata.path;
     return metadata.path;
   }
@@ -499,7 +499,7 @@ async function downloadGofileInput(app) {
   return destination;
 }
 
-function downloadGofileInputWithBrowser(app) {
+function downloadGofileInputWithGofileDl(app) {
   const python = env("PYTHON_BIN") || "python";
   const args = [
     join(root, "scripts/gofile_download.py"),
@@ -511,7 +511,7 @@ function downloadGofileInputWithBrowser(app) {
     args.push("--password", app.gofilePassword);
   }
 
-  console.log(`Downloading custom ${app.label} input from Gofile with browser fallback...`);
+  console.log(`Downloading custom ${app.label} input from Gofile with martadams89/gofile-dl...`);
   const proc = spawnSync(python, args, {
     cwd: root,
     encoding: "utf8",
@@ -521,20 +521,20 @@ function downloadGofileInputWithBrowser(app) {
     console.error(proc.stderr.trim());
   }
   if (proc.status !== 0) {
-    throw new Error(`Gofile browser download failed for ${app.label}.`);
+    throw new Error(`gofile-dl download failed for ${app.label}.`);
   }
 
   const stdout = proc.stdout?.trim() || "";
   const jsonMatch = stdout.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
-    throw new Error(`Gofile browser download did not return JSON metadata. Output: ${stdout}`);
+    throw new Error(`gofile-dl did not return JSON metadata. Output: ${stdout}`);
   }
 
   const metadata = JSON.parse(jsonMatch[0]);
   if (!metadata.path || !existsSync(metadata.path)) {
-    throw new Error(`Gofile browser download reported a missing file: ${metadata.path || "unknown"}`);
+    throw new Error(`gofile-dl reported a missing file: ${metadata.path || "unknown"}`);
   }
-  console.log(`Downloaded ${app.label} from Gofile browser fallback: ${metadata.path}`);
+  console.log(`Downloaded ${app.label} from Gofile with gofile-dl: ${metadata.path}`);
   return metadata;
 }
 

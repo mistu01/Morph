@@ -1,2 +1,4 @@
 apkpure==0.3.0
 beautifulsoup4==4.14.3
+pathvalidate==3.3.1
+requests==2.32.5
