@@ -299,52 +299,15 @@ async function checkReleaseOutputs() {
   let successCount = 0;
 
   for (const app of selectedApps()) {
-    await resolveRootPatchedOutput(app);
-    const result = await readJson(app.result);
-    const output = result?.output ? resolveMaybeRoot(result.output) : app.output;
-
-    if (!result) {
-      missing.push(`${app.label}: missing result JSON at ${relative(app.result)}`);
-      continue;
-    }
-    if (result.success === false) {
+    const outputStatus = await inspectReleaseOutput(app);
+    if (!outputStatus.ok) {
       if (continueOnError) {
-        console.warn(`warning: ${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""} — skipping from release (continue-on-error is set).`);
-        discardReleaseOutput(output, app.label);
+        console.warn(`warning: ${app.label}: ${outputStatus.reason} - skipping from release (continue-on-error is set).`);
+        discardReleaseOutput(outputStatus.output, app.label);
         skippedLabels.push(app.label);
         continue;
       }
-      missing.push(`${app.label}: build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""}`);
-      continue;
-    }
-    if (!result.artifactName) {
-      missing.push(`${app.label}: result JSON is missing artifactName`);
-      continue;
-    }
-    const appliedPatches = patchesFrom(result.appliedPatches);
-    const failedPatches = failedPatchesFrom(result.failedPatches);
-    if (appliedPatches.length === 0) {
-      if (continueOnError) {
-        console.warn(`warning: ${app.label}: no patches were applied — skipping from release (continue-on-error is set).`);
-        discardReleaseOutput(output, app.label);
-        skippedLabels.push(app.label);
-        continue;
-      }
-      missing.push(`${app.label}: no patches were applied`);
-      continue;
-    }
-    if (failedPatches.length > appliedPatches.length) {
-      if (continueOnError) {
-        console.warn(`warning: ${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed) — skipping from release (continue-on-error is set).`);
-        discardReleaseOutput(output, app.label);
-        skippedLabels.push(app.label);
-        continue;
-      }
-      missing.push(`${app.label}: mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed)`);
-      continue;
-    }
-    if (!usableFile(output)) {
-      missing.push(`${app.label}: missing artifact file ${relative(output)}`);
+      missing.push(`${app.label}: ${outputStatus.reason}`);
       continue;
     }
     successCount += 1;
@@ -363,6 +326,61 @@ async function checkReleaseOutputs() {
     ? `Release outputs complete for ${successfulLabels.join(", ")}.`
     : "No release outputs were produced.";
   console.log(skippedLabels.length ? `${summary} Skipped ${skippedLabels.join(", ")}.` : summary);
+}
+
+async function inspectReleaseOutput(app) {
+  await resolveRootPatchedOutput(app);
+  const result = await readJson(app.result);
+  const output = result?.output ? resolveMaybeRoot(result.output) : app.output;
+
+  if (!result) {
+    return {
+      ok: false,
+      output,
+      reason: `missing result JSON at ${relative(app.result)}`,
+    };
+  }
+  if (result.success === false) {
+    return {
+      ok: false,
+      output,
+      reason: `build result is unsuccessful${result.error ? ` (${firstReasonLine(result.error)})` : ""}`,
+    };
+  }
+  if (!result.artifactName) {
+    return {
+      ok: false,
+      output,
+      reason: "result JSON is missing artifactName",
+    };
+  }
+
+  const appliedPatches = patchesFrom(result.appliedPatches);
+  const failedPatches = failedPatchesFrom(result.failedPatches);
+  if (appliedPatches.length === 0) {
+    return {
+      ok: false,
+      output,
+      reason: "no patches were applied",
+    };
+  }
+  if (failedPatches.length > appliedPatches.length) {
+    return {
+      ok: false,
+      output,
+      reason: `mostly failed patch result (${appliedPatches.length} applied, ${failedPatches.length} failed)`,
+    };
+  }
+  if (!usableFile(output)) {
+    return {
+      ok: false,
+      output,
+      reason: `missing artifact file ${relative(output)}`,
+    };
+  }
+
+  app.output = output;
+  return { ok: true, output, result };
 }
 
 function discardReleaseOutput(output, label) {
@@ -494,6 +512,7 @@ async function appVersionFor(app) {
 async function packageRootModules() {
   checkJava();
   const apps = selectedApps();
+  const continueOnError = shouldContinueBuildOnError();
   const stagingRoot = fromRoot(".cache/root-modules");
   const versionCode = releaseVersionCode();
 
@@ -501,18 +520,48 @@ async function packageRootModules() {
   mkdirSync(paths.rootModules, { recursive: true });
 
   const packaged = [];
+  const packageable = [];
+  const missing = [];
+  const skippedLabels = [];
   for (const app of apps) {
-    await resolveRootPatchedOutput(app);
+    const outputStatus = await inspectReleaseOutput(app);
+    if (!outputStatus.ok) {
+      if (continueOnError) {
+        console.warn(`warning: ${app.label}: ${outputStatus.reason} - skipping root module (continue-on-error is set).`);
+        discardReleaseOutput(outputStatus.output, app.label);
+        skippedLabels.push(app.label);
+        continue;
+      }
+      missing.push(`${app.label}: ${outputStatus.reason}`);
+      continue;
+    }
+
     await resolveRootStockInput(app);
     const appVersion = await appVersionFor(app);
     const moduleVersion = releaseVersionName(appVersion);
-    if (!usableFile(app.output)) {
-      throw new Error(`${app.label}: expected patched APK at ${relative(app.output)}. Run the root build first.`);
-    }
     if (!usableFile(app.input) || !rootStockInputExtensions.has(extname(app.input).toLowerCase())) {
-      throw new Error(`${app.label}: root modules need the original stock APK or APK split archive at ${relative(app.input)} so the package can be registered before bind mounting.`);
+      const reason = `root modules need the original stock APK or APK split archive at ${relative(app.input)} so the package can be registered before bind mounting`;
+      if (continueOnError) {
+        console.warn(`warning: ${app.label}: ${reason} - skipping root module (continue-on-error is set).`);
+        skippedLabels.push(app.label);
+        continue;
+      }
+      missing.push(`${app.label}: ${reason}`);
+      continue;
     }
 
+    packageable.push({ app, appVersion, moduleVersion });
+  }
+
+  if (continueOnError && packageable.length === 0) {
+    throw new Error("Root module outputs are incomplete: all selected targets failed to build. Nothing to package.");
+  }
+
+  if (missing.length) {
+    throw new Error(`Root module outputs are incomplete:\n- ${missing.join("\n- ")}`);
+  }
+
+  for (const { app, appVersion, moduleVersion } of packageable) {
     const moduleDir = join(stagingRoot, app.id);
     createRootModule(moduleDir, {
       id: app.rootModuleId,
@@ -556,6 +605,10 @@ async function packageRootModules() {
       module: relative(file),
     })),
   });
+
+  if (skippedLabels.length) {
+    console.warn(`warning: skipped root modules for ${skippedLabels.join(", ")}.`);
+  }
 }
 
 async function resolveRootPatchedOutput(app) {
