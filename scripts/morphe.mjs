@@ -139,7 +139,9 @@ const appConfigs = {
     ["proton-vpn", "Proton VPN", "ch.protonvpn.android", {
       apkmirrorOrg: "proton-technologies-ag",
       apkmirrorRepo: "protonvpn-secure-and-free-vpn",
+      apkmirrorSlug: "proton-vpn-fast-secure-vpn",
       apkmirrorType: "apk",
+      apkmirrorFallbackArch: "universal",
       apkmirrorDpi: "nodpi",
     }],
     ["pydroid3", "PyDroid3", "ru.iiec.pydroid3"],
@@ -2403,19 +2405,34 @@ async function downloadWithPythonApkpure(
 
   const requestedLabel = selectedVersion || "latest";
   console.log(`Downloading APKPure ${app.label} ${requestedLabel} with Python apkpure`);
-  const metadata = runPythonJson([
-    fromRoot("scripts/apkpure_download.py"),
-    "--app-name",
-    app.apkpureName,
-    "--package-name",
-    app.packageName,
-    "--source-page",
-    app.apkpurePage,
-    "--out-dir",
-    outputDir,
-    ...(app.apkmirrorArch ? ["--arch", app.apkmirrorArch] : []),
-    ...(selectedVersion ? ["--version", selectedVersion] : []),
-  ]);
+  let metadata;
+  try {
+    metadata = runPythonJson([
+      fromRoot("scripts/apkpure_download.py"),
+      "--app-name",
+      app.apkpureName,
+      "--package-name",
+      app.packageName,
+      "--source-page",
+      app.apkpurePage,
+      "--out-dir",
+      outputDir,
+      ...(app.apkmirrorArch ? ["--arch", app.apkmirrorArch] : []),
+      ...(selectedVersion ? ["--version", selectedVersion] : []),
+    ]);
+  } catch (error) {
+    if (!selectedVersion) throw error;
+
+    console.warn(`${app.label}: Python APKPure download failed: ${error.message}`);
+    console.warn(`${app.label}: retrying APKPure exact version with apkeep.`);
+    return downloadWithApkeep(app, {
+      desiredVersion: selectedVersion,
+      force,
+      patchesList,
+      metadataFile,
+      existing,
+    });
+  }
 
   if (selectedVersion && !versionsMatch(metadata.version, selectedVersion)) {
     throw new Error(`${app.label}: Python apkpure downloaded ${metadata.version}, expected ${selectedVersion}.`);
