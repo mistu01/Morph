@@ -3412,6 +3412,7 @@ function failedPatchesFrom(patches) {
 }
 
 function patchName(patch) {
+  if (typeof patch === "string") return patch;
   if (patch?.name) return patch.name;
   if (Number.isInteger(patch?.index)) return `#${patch.index}`;
   return "";
