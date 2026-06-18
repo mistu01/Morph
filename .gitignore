@@ -1,6 +1,9 @@
 .cache/
+.morphe-action/
 .secrets/
 node_modules/
+__pycache__/
+*.pyc
 
 # User-provided proprietary APKs and generated outputs.
 input/*

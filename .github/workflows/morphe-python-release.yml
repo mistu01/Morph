@@ -1,0 +1,182 @@
+name: Morphe Python App Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "App to download, patch, and release"
+        required: true
+        type: choice
+        default: reddit
+        options:
+          - reddit
+          - youtube
+          - youtube-music
+          - custom
+      custom_package:
+        description: "Android package name when app=custom"
+        required: false
+        type: string
+      custom_app_name:
+        description: "Display name when app=custom"
+        required: false
+        type: string
+      architecture:
+        description: "APK architecture requested from Morphe's download resolver"
+        required: true
+        type: choice
+        default: all
+        options:
+          - all
+          - arm64-v8a
+          - armeabi-v7a
+          - x86_64
+      apk_version:
+        description: "Optional APK version; blank uses Morphe's recommended version"
+        required: false
+        type: string
+      apk_url:
+        description: "Optional direct APK/APKM URL; blank uses Morphe's resolver"
+        required: false
+        type: string
+      patch_channel:
+        description: "Morphe patches channel"
+        required: true
+        type: choice
+        default: stable
+        options:
+          - stable
+          - dev
+      patch_sources:
+        description: "Comma-separated GitHub patch repositories"
+        required: true
+        type: string
+        default: "https://github.com/MorpheApp/morphe-patches"
+      cli_channel:
+        description: "Morphe CLI channel used when cli_version=latest"
+        required: true
+        type: choice
+        default: stable
+        options:
+          - stable
+          - dev
+      cli_version:
+        description: "Morphe CLI tag/version, or latest"
+        required: true
+        type: string
+        default: latest
+      enable_patches:
+        description: "Optional comma-separated patch names to enable"
+        required: false
+        type: string
+      disable_patches:
+        description: "Optional comma-separated patch names to disable"
+        required: false
+        type: string
+      force_patch:
+        description: "Ignore APK version compatibility checks"
+        required: true
+        type: boolean
+        default: false
+      continue_on_error:
+        description: "Continue after an individual patch failure (final validation still fails)"
+        required: true
+        type: boolean
+        default: false
+      release_mode:
+        description: "Publish a release, create a draft, or only upload a workflow artifact"
+        required: true
+        type: choice
+        default: release
+        options:
+          - release
+          - draft
+          - artifact-only
+      release_tag:
+        description: "Optional release tag; blank creates a unique run tag"
+        required: false
+        type: string
+
+concurrency:
+  group: morphe-python-${{ inputs.app }}-${{ inputs.patch_channel }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    name: Build and release ${{ inputs.app }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Verify runner tools
+        run: python scripts/morphe_action.py doctor
+
+      - name: Download Morphe CLI
+        id: cli
+        env:
+          CLI_CHANNEL: ${{ inputs.cli_channel }}
+          CLI_VERSION: ${{ inputs.cli_version }}
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/morphe_action.py install-cli
+
+      - name: Restore optional signing keystore
+        env:
+          APK_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          APK_KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          APK_KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+        run: bash .github/scripts/restore-morphe-keystore.sh
+
+      - name: Download, patch, and release selected app
+        id: build
+        env:
+          APP_SELECTION: ${{ inputs.app }}
+          CUSTOM_PACKAGE: ${{ inputs.custom_package }}
+          CUSTOM_APP_NAME: ${{ inputs.custom_app_name }}
+          APK_ARCHITECTURE: ${{ inputs.architecture }}
+          APK_VERSION: ${{ inputs.apk_version }}
+          APK_URL: ${{ inputs.apk_url }}
+          PATCH_CHANNEL: ${{ inputs.patch_channel }}
+          PATCH_SOURCES: ${{ inputs.patch_sources }}
+          ENABLE_PATCHES: ${{ inputs.enable_patches }}
+          DISABLE_PATCHES: ${{ inputs.disable_patches }}
+          FORCE_PATCH: ${{ inputs.force_patch }}
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+          CLI_CHANNEL: ${{ inputs.cli_channel }}
+          CLI_VERSION: ${{ inputs.cli_version }}
+          GH_TOKEN: ${{ github.token }}
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          SIGNER_NAME: Morph
+        run: python scripts/morphe_action.py action
+
+      - name: Upload workflow artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: morphe-${{ inputs.app }}-${{ steps.build.outputs.app_version || 'unversioned' }}-${{ inputs.patch_channel }}
+          path: |
+            .morphe-action/output/*.apk
+            .morphe-action/output/*.json
+            .morphe-action/output/*.md
+          if-no-files-found: error
+          retention-days: 3
