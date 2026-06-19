@@ -18,11 +18,11 @@ on:
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
-        default: "latest"
+        default: "dev"
       patches_version:
         description: "Anddea patches: stable, dev, latest, or an explicit tag"
         required: true
-        default: "stable"
+        default: "dev"
       apk_version_source:
         description: "Global APK version source: recommended, latest-compatible, latest, or an explicit version"
         required: true

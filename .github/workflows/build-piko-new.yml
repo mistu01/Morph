@@ -10,7 +10,7 @@ on:
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
-        default: "latest"
+        default: "dev"
       patches_version:
         description: "Piko patches channel: dev or stable"
         required: true

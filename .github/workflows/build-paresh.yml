@@ -10,11 +10,11 @@ on:
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
-        default: "latest"
+        default: "dev"
       patches_version:
         description: "Paresh GitLab patches: stable, dev, latest, or an explicit tag"
         required: true
-        default: "stable"
+        default: "dev"
       continue_on_error:
         description: "Pass --continue-on-error so compatible patches can still be applied if one patch fails"
         required: true
