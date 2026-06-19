@@ -10,7 +10,7 @@ on:
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
-        default: "dev"
+        default: "latest"
       patches_version:
         description: "Piko patches channel: dev or stable"
         required: true
@@ -222,20 +222,7 @@ jobs:
         run: |
           node << 'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs = require('fs');
-
-          // Load patches-list.json (downloaded by the tools step)
-          const listPath = '.cache/tools/patches-list.json';
-          if (!fs.existsSync(listPath)) {
-            console.log('
-> `patches-list.json` not found. Ensure the Download tools step ran successfully.');
-            process.exit(0);
-          }
-
-          const patchesList = JSON.parse(fs.readFileSync(listPath, 'utf8'));
-          const allPatches = patchesList.patches || [];
-
-          // Load local options files to get user-overridden enabled/disabled state
-          const optionsCandidates = [
+          const candidates = [
             'config/youtube-options.json',
             'config/youtube-music-options.json',
             'config/reddit-options.json',
@@ -245,94 +232,29 @@ jobs:
             '.morphe-action/options/youtube-music-stable.json',
             '.morphe-action/options/reddit-stable.json',
           ];
-          // Build a map: patchName -> enabled (from options files)
-          const optionsOverride = {};
-          for (const p of optionsCandidates) {
+          let found = false;
+          for (const p of candidates) {
             if (!fs.existsSync(p)) continue;
-            try {
-              const bundles = JSON.parse(fs.readFileSync(p, 'utf8'));
-              const bundle = Array.isArray(bundles) ? bundles[0] : bundles;
-              const patches = bundle?.patches;
-              if (!patches || typeof patches !== 'object') continue;
-              for (const [name, val] of Object.entries(patches)) {
-                if (typeof val?.enabled === 'boolean') {
-                  optionsOverride[name] = val.enabled;
-                }
-              }
-            } catch {}
+            let bundles;
+            try { bundles = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { continue; }
+            const bundle = Array.isArray(bundles) ? bundles[0] : bundles;
+            const patches = bundle?.patches;
+            if (!patches || typeof patches !== 'object') continue;
+            found = true;
+            const entries = Object.entries(patches);
+            const enabled = entries.filter(([,v]) => v?.enabled !== false).map(([k]) => k);
+            const disabled = entries.filter(([,v]) => v?.enabled === false).map(([k]) => k);
+            console.log(`\n## Patch options: \`${p}\`\n`);
+            console.log(`### \u2705 Enabled patches (${enabled.length})\n`);
+            if (enabled.length) { console.log('| Patch |\n|-------|'); enabled.forEach(n => console.log(`| ${n} |`)); }
+            else { console.log('_None_'); }
+            console.log(`\n### \u274c Disabled patches (${disabled.length})\n`);
+            if (disabled.length) { console.log('| Patch |\n|-------|'); disabled.forEach(n => console.log(`| ${n} |`)); }
+            else { console.log('_None_'); }
+            console.log('\n> To enable a disabled patch, enter its exact name in the **include_patches** input.');
           }
-
-          // Collect all apps from compatiblePackages across all patches
-          const appMap = new Map(); // packageName -> { appName, patches: [{name, enabled}] }
-          for (const patch of allPatches) {
-            if (!patch.name) continue;
-            const pkgs = patch.compatiblePackages;
-            // null compatiblePackages means it applies to all apps — skip for per-app listing
-            if (!pkgs || pkgs.length === 0) continue;
-            for (const pkg of pkgs) {
-              if (!appMap.has(pkg.packageName)) {
-                appMap.set(pkg.packageName, { appName: pkg.name || pkg.packageName, patches: [] });
-              }
-              // Determine enabled state: options file overrides default
-              const enabled = optionsOverride.hasOwnProperty(patch.name)
-                ? optionsOverride[patch.name]
-                : (patch.default !== false);
-              appMap.get(pkg.packageName).patches.push({ name: patch.name, enabled });
-            }
-          }
-
-          if (appMap.size === 0) {
-            console.log('
-> No compatible-package patch entries found in patches-list.json.');
-            process.exit(0);
-          }
-
-          console.log('
-# Available Patches by App
-');
-          if (Object.keys(optionsOverride).length > 0) {
-            console.log('> ℹ️ Enabled/disabled state reflects your local options files. Patches not in options files use their default state.
-');
-          } else {
-            console.log('> ℹ️ No local options files found. Showing **default** enabled/disabled state from the patch source.
-');
-          }
-          console.log('> To enable a **disabled** patch, copy its exact name into the **include_patches** input.
-');
-          console.log('---
-');
-
-          for (const [pkgName, { appName, patches }] of [...appMap.entries()].sort((a,b) => a[1].appName.localeCompare(b[1].appName))) {
-            const enabled = patches.filter(p => p.enabled);
-            const disabled = patches.filter(p => !p.enabled);
-            console.log(`## ${appName}
-`);
-            console.log(`> Package: \`${pkgName}\` — **${enabled.length}** enabled, **${disabled.length}** disabled
-`);
-
-            console.log(`### ✅ Enabled (${enabled.length})
-`);
-            if (enabled.length) {
-              console.log('| Patch Name |
-|------------|');
-              for (const p of enabled) console.log(`| ${p.name} |`);
-            } else {
-              console.log('_None_');
-            }
-
-            console.log(`
-### ❌ Disabled (${disabled.length})
-`);
-            if (disabled.length) {
-              console.log('| Patch Name |
-|------------|');
-              for (const p of disabled) console.log(`| ${p.name} |`);
-            } else {
-              console.log('_None_');
-            }
-            console.log('
----
-');
+          if (!found) {
+            console.log('\n> No patch options file found in this repository yet. Patches will use builder defaults.');
           }
           NODE
 
