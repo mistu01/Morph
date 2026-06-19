@@ -10,11 +10,11 @@ on:
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
-        default: "latest"
+        default: "dev"
       patches_version:
         description: "hoo-dles/morphe-patches: stable, dev, latest, or an explicit tag"
         required: true
-        default: "stable"
+        default: "dev"
       continue_on_error:
         description: "Pass --continue-on-error so compatible patches can still be applied if one patch fails"
         required: true
@@ -98,44 +98,7 @@ jobs:
         run: bash .github/scripts/restore-morphe-keystore.sh
 
       - name: List available patches
-        run: |
-          node << 'NODE' >> "$GITHUB_STEP_SUMMARY"
-          const fs = require('fs');
-          const candidates = [
-            'config/youtube-options.json',
-            'config/youtube-music-options.json',
-            'config/reddit-options.json',
-            'config/twitter-options.json',
-            'config/instagram-options.json',
-            '.morphe-action/options/youtube-stable.json',
-            '.morphe-action/options/youtube-music-stable.json',
-            '.morphe-action/options/reddit-stable.json',
-          ];
-          let found = false;
-          for (const p of candidates) {
-            if (!fs.existsSync(p)) continue;
-            let bundles;
-            try { bundles = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { continue; }
-            const bundle = Array.isArray(bundles) ? bundles[0] : bundles;
-            const patches = bundle?.patches;
-            if (!patches || typeof patches !== 'object') continue;
-            found = true;
-            const entries = Object.entries(patches);
-            const enabled = entries.filter(([,v]) => v?.enabled !== false).map(([k]) => k);
-            const disabled = entries.filter(([,v]) => v?.enabled === false).map(([k]) => k);
-            console.log(`\n## Patch options: \`${p}\`\n`);
-            console.log(`### \u2705 Enabled patches (${enabled.length})\n`);
-            if (enabled.length) { console.log('| Patch |\n|-------|'); enabled.forEach(n => console.log(`| ${n} |`)); }
-            else { console.log('_None_'); }
-            console.log(`\n### \u274c Disabled patches (${disabled.length})\n`);
-            if (disabled.length) { console.log('| Patch |\n|-------|'); disabled.forEach(n => console.log(`| ${n} |`)); }
-            else { console.log('_None_'); }
-            console.log('\n> To enable a disabled patch, enter its exact name in the **include_patches** input.');
-          }
-          if (!found) {
-            console.log('\n> No patch options file found in this repository yet. Patches will use builder defaults.');
-          }
-          NODE
+        run: node .github/scripts/list-patches.mjs >> "$GITHUB_STEP_SUMMARY"
 
       - name: Configure patch flags
         env:
