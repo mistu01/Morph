@@ -184,6 +184,7 @@ const appConfigs = {
   ]),
 };
 
+
 const targetAliases = {
   youtube: youtubeAbiVariants.map((variant) => youtubeAbiTargetId("youtube", variant)),
   "youtube-music": youtubeAbiVariants.map((variant) => youtubeAbiTargetId("youtube-music", variant)),
@@ -196,6 +197,7 @@ const releaseAssets = {
     assetPattern: /^morphe-cli-.+-all\.jar$/,
     output: fromRoot(".cache/tools/morphe-cli.jar"),
     meta: fromRoot(".cache/tools/morphe-cli.json"),
+    prereleaseKeyword: true,
   },
   patches: {
     repo: env("MORPHE_PATCHES_REPO") || "MorpheApp/morphe-patches",
