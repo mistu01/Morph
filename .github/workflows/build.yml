@@ -308,6 +308,7 @@ jobs:
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           GH_TOKEN: ${{ github.token }}
           PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           YOUTUBE_OUT: output/root/youtube-root.apk
           YOUTUBE_RESULT: output/root/youtube-result.json
           YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
@@ -354,17 +355,72 @@ jobs:
           echo "RELEASE_NAME=${name_prefix} ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
 
-          if [ "${{ inputs.build_apks }}" = "true" ] && [ "${{ inputs.build_root_modules }}" = "true" ]; then
-            node scripts/morphe.mjs release-notes > release-notes-nonroot.md
-            ROOT_BUILD=1 node scripts/morphe.mjs release-notes > release-notes-root.md
-            cat release-notes-nonroot.md > release-notes.md
-            echo -e "\n\n---\n" >> release-notes.md
-            cat release-notes-root.md >> release-notes.md
-          elif [ "${{ inputs.build_root_modules }}" = "true" ]; then
-            ROOT_BUILD=1 node scripts/morphe.mjs release-notes > release-notes.md
-          else
-            node scripts/morphe.mjs release-notes > release-notes.md
-          fi
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+
+            let patchesTag = process.env.PATCHES_VERSION || "latest";
+            let patchesUrl = "https://github.com/MorpheApp/morphe-patches/releases";
+            try {
+              const patchesMeta = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8"));
+              patchesTag = patchesMeta.tag || patchesTag;
+              patchesUrl = patchesMeta.url || `https://github.com/MorpheApp/morphe-patches/releases/tag/${encodeURIComponent(patchesTag)}`;
+            } catch {}
+
+            let cliVersion = process.env.MORPHE_CLI_VERSION || "dev";
+            try {
+              const cliMeta = JSON.parse(fs.readFileSync(".cache/tools/morphe-cli.json", "utf8"));
+              cliVersion = cliMeta.tag || cliVersion;
+            } catch {}
+
+            const lines = [];
+            lines.push("## Build Summary");
+            lines.push("");
+            lines.push(`- **Patches**: [MorpheApp/morphe-patches ${patchesTag}](${patchesUrl})`);
+            lines.push(`- **Morphe CLI**: ${cliVersion}`);
+            lines.push(`- **Date**: ${new Date().toUTCString()}`);
+            lines.push("");
+            lines.push("### Compiled Artifacts");
+            lines.push("");
+            lines.push("| App | Version | Variant | Artifact | Status |");
+            lines.push("| --- | --- | --- | --- | --- |");
+
+            if (fs.existsSync("output")) {
+              fs.readdirSync("output").forEach(file => {
+                if (file.endsWith("-result.json")) {
+                  try {
+                    const res = JSON.parse(fs.readFileSync(path.join("output", file), "utf8"));
+                    const status = res.success !== false ? "✅ Successful" : `❌ Failed: ${res.error || "Unknown error"}`;
+                    lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Standard APK | \`${res.artifactName || path.basename(res.output) || "N/A"}\` | ${status} |`);
+                  } catch {}
+                }
+              });
+            }
+
+            if (fs.existsSync("output/root-modules/root-modules.json")) {
+              try {
+                const rootMeta = JSON.parse(fs.readFileSync("output/root-modules/root-modules.json", "utf8"));
+                (rootMeta.targets || []).forEach(target => {
+                  lines.push(`| ${target.label || target.id} | ${target.version} | Magisk Module | \`${path.basename(target.module)}\` | ✅ Successful |`);
+                });
+              } catch {}
+            }
+
+            if (fs.existsSync("output/root")) {
+              fs.readdirSync("output/root").forEach(file => {
+                if (file.endsWith("-result.json")) {
+                  try {
+                    const res = JSON.parse(fs.readFileSync(path.join("output/root", file), "utf8"));
+                    if (res.success === false) {
+                      lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Magisk Module | \`N/A\` | ❌ Failed: ${res.error || "Unknown error"} |`);
+                    }
+                  } catch {}
+                }
+              });
+            }
+
+            fs.writeFileSync("release-notes.md", lines.join("\n"));
+          '
 
       - name: Create GitHub Release
         if: ${{ inputs.create_release }}
