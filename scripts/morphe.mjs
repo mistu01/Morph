@@ -2094,7 +2094,7 @@ function apkDownloadSourcesFor(app) {
   if (!app.artifactAbi) return sources;
 
   const allowed = ["apkmirror", "uptodown", "divxland"];
-  if (truthy(env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI"))) allowed.push("apkpure");
+  if (env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") !== "false") allowed.push("apkpure");
   return sources.filter((source) => allowed.includes(source));
 }
 
@@ -3287,9 +3287,6 @@ function existingApkmirrorInputMatches(app, existing) {
   }
   if (!requestedArches.length || requestedArches.includes("all") || requestedArches.includes("full")) {
     return true;
-  }
-  if (requestedArches.length === 1 && !["universal", "noarch"].includes(requestedArches[0])) {
-    return existingArches.length === 1 && existingArches[0] === requestedArches[0];
   }
   return requestedArches.every((arch) => existingArches.includes(arch))
     || existingArches.some((arch) => ["universal", "noarch"].includes(arch));

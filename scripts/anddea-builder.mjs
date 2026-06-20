@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
+import fs from "node:fs";
+import { dirname, join, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const command = process.argv[2] || "build";
 const args = process.argv.slice(3);
+
+if (command === "release-notes") {
+  generateReleaseNotes();
+  process.exit(0);
+}
 
 const childEnv = {
   ...process.env,
@@ -59,4 +65,125 @@ function env(name) {
 
 function truthy(value) {
   return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
+}
+
+function generateReleaseNotes() {
+  let patchesTag = process.env.PATCHES_VERSION || "latest";
+  let patchesUrl = "https://github.com/anddea/revanced-patches/releases";
+  try {
+    const patchesMeta = JSON.parse(fs.readFileSync(join(root, ".cache/tools/patches.json"), "utf8"));
+    patchesTag = patchesMeta.tag || patchesTag;
+    patchesUrl = patchesMeta.url || `https://github.com/anddea/revanced-patches/releases/tag/${encodeURIComponent(patchesTag)}`;
+  } catch {}
+
+  let cliVersion = process.env.MORPHE_CLI_VERSION || "dev";
+  try {
+    const cliMeta = JSON.parse(fs.readFileSync(join(root, ".cache/tools/morphe-cli.json"), "utf8"));
+    cliVersion = cliMeta.tag || cliVersion;
+  } catch {}
+
+  const date = new Date().toUTCString();
+
+  const lines = [
+    "## Anddea Patched Release",
+    "",
+    `- **Patches**: [anddea/revanced-patches ${patchesTag}](${patchesUrl})`,
+    `- **Morphe CLI**: ${cliVersion}`,
+    `- **Date**: ${date}`,
+    "",
+    "### Compiled Artifacts",
+    "",
+  ];
+
+  const apps = {};
+
+  function getApp(id, label) {
+    if (!apps[id]) {
+      apps[id] = {
+        id,
+        label: label || id,
+        version: "unknown",
+        standard: null,
+        root: null,
+      };
+    }
+    return apps[id];
+  }
+
+  // 1. Read standard APK results
+  const outputDir = join(root, "output");
+  if (fs.existsSync(outputDir)) {
+    fs.readdirSync(outputDir).forEach(file => {
+      if (file.endsWith("-result.json")) {
+        try {
+          const res = JSON.parse(fs.readFileSync(join(outputDir, file), "utf8"));
+          const appObj = getApp(res.app || res.id, res.label);
+          if (res.packageVersion) appObj.version = res.packageVersion;
+          appObj.standard = res;
+        } catch {}
+      }
+    });
+  }
+
+  // 2. Read root APK results (failures)
+  const rootOutputDir = join(root, "output/root");
+  if (fs.existsSync(rootOutputDir)) {
+    fs.readdirSync(rootOutputDir).forEach(file => {
+      if (file.endsWith("-result.json")) {
+        try {
+          const res = JSON.parse(fs.readFileSync(join(rootOutputDir, file), "utf8"));
+          const appObj = getApp(res.app || res.id, res.label);
+          if (res.packageVersion) appObj.version = res.packageVersion;
+          appObj.root = res;
+        } catch {}
+      }
+    });
+  }
+
+  // 3. Read root module success metadata
+  const rootMetaPath = join(root, "output/root-modules/root-modules.json");
+  if (fs.existsSync(rootMetaPath)) {
+    try {
+      const rootMeta = JSON.parse(fs.readFileSync(rootMetaPath, "utf8"));
+      (rootMeta.targets || []).forEach(target => {
+        const appObj = getApp(target.id, target.label);
+        if (target.version) appObj.version = target.version;
+        appObj.root = { success: true, artifactName: basename(target.module) };
+      });
+    } catch {}
+  }
+
+  const appKeys = Object.keys(apps).sort();
+  if (appKeys.length === 0) {
+    lines.push("_No artifacts were built._");
+  } else {
+    for (const key of appKeys) {
+      const app = apps[key];
+      const statusParts = [];
+
+      if (app.standard) {
+        if (app.standard.success !== false) {
+          statusParts.push(`Standard APK (✅ \`${app.standard.artifactName || basename(app.standard.output) || "N/A"}\`)`);
+        } else {
+          statusParts.push(`Standard APK (❌ Failed: ${app.standard.error || "Unknown error"})`);
+        }
+      }
+
+      if (app.root) {
+        if (app.root.success !== false) {
+          statusParts.push(`Magisk Module (✅ \`${app.root.artifactName || "N/A"}\`)`);
+        } else {
+          statusParts.push(`Magisk Module (❌ Failed: ${app.root.error || "Unknown error"})`);
+        }
+      }
+
+      if (statusParts.length === 0) {
+        lines.push(`- **${app.label}** (\`${app.version}\`): ➖ Not built`);
+      } else {
+        lines.push(`- **${app.label}** (\`${app.version}\`): ${statusParts.join(" | ")}`);
+      }
+    }
+  }
+
+  console.log(lines.join("\n"));
 }

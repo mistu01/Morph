@@ -1,4 +1,4 @@
-name: Build Anddea patched APKs
+name: Build Anddea APKs & Root Modules
 
 on:
   workflow_dispatch:
@@ -74,20 +74,30 @@ on:
         description: "Comma-separated disabled patches to enable for this run (e.g. 'Override certificate pinning, Change package name'). Leave blank to use default patch selection."
         required: false
         default: ""
+      build_apks:
+        description: "Build non-root patched APKs"
+        required: true
+        type: boolean
+        default: true
+      build_root_modules:
+        description: "Build root Magisk/KernelSU modules"
+        required: true
+        type: boolean
+        default: false
       create_release:
-        description: "Create a GitHub Release and attach patched APKs"
+        description: "Create a GitHub Release and attach assets"
         required: true
         type: boolean
         default: true
       upload_artifact:
-        description: "Upload patched APKs as a short-lived workflow artifact"
+        description: "Upload assets as a short-lived workflow artifact"
         required: true
         type: boolean
         default: true
 
 jobs:
   build:
-    name: Build
+    name: Build Anddea APKs & Root Modules
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -231,7 +241,6 @@ jobs:
       - name: List available patches
         run: node .github/scripts/list-patches.mjs >> "$GITHUB_STEP_SUMMARY"
 
-
       - name: Configure Anddea patch flags
         env:
           FORCE_PATCH: ${{ inputs.force_patch }}
@@ -249,6 +258,7 @@ jobs:
           NODE
 
       - name: Build patched APKs
+        if: ${{ inputs.build_apks }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
@@ -274,8 +284,53 @@ jobs:
           SIGNER_NAME: Mistu
         run: node scripts/anddea-builder.mjs build
 
+      - name: Build root APK variants
+        if: ${{ inputs.build_root_modules }}
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: ${{ inputs.targets }}
+          YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          ANDDEA_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          APK_SOURCE: apkmirror,apkpure
+          APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
+          YOUTUBE_APK_VERSION: ${{ inputs.youtube_apk_version }}
+          YOUTUBE_ARM64_V8A_APK_VERSION: ${{ inputs.youtube_arm64_v8a_apk_version }}
+          YOUTUBE_ARM_V7A_APK_VERSION: ${{ inputs.youtube_arm_v7a_apk_version }}
+          YOUTUBE_MUSIC_APK_VERSION: ${{ inputs.youtube_music_apk_version }}
+          YOUTUBE_MUSIC_ARM64_V8A_APK_VERSION: ${{ inputs.youtube_music_arm64_v8a_apk_version }}
+          YOUTUBE_MUSIC_ARM_V7A_APK_VERSION: ${{ inputs.youtube_music_arm_v7a_apk_version }}
+          REDDIT_APK_VERSION: ${{ inputs.reddit_apk_version }}
+          YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
+          YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
+          REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
+          YOUTUBE_OUT: output/root/youtube-root.apk
+          YOUTUBE_RESULT: output/root/youtube-result.json
+          YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
+          YOUTUBE_MUSIC_RESULT: output/root/youtube-music-result.json
+          REDDIT_OUT: output/root/reddit-root.apk
+          REDDIT_RESULT: output/root/reddit-result.json
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          SIGNER_NAME: Mistu
+        run: node scripts/anddea-builder.mjs build
+
+      - name: Package root modules
+        if: ${{ inputs.build_root_modules }}
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: ${{ inputs.targets }}
+          YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
+          YOUTUBE_OUT: output/root/youtube-root.apk
+          YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
+          REDDIT_OUT: output/root/reddit-root.apk
+        run: node scripts/anddea-builder.mjs root-modules
+
       - name: Validate release outputs
-        if: ${{ inputs.create_release || inputs.upload_artifact }}
+        if: ${{ inputs.create_release && inputs.build_apks }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
@@ -288,20 +343,24 @@ jobs:
           YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
-          YOUTUBE_APK_VERSION: ${{ inputs.youtube_apk_version }}
-          YOUTUBE_ARM64_V8A_APK_VERSION: ${{ inputs.youtube_arm64_v8a_apk_version }}
-          YOUTUBE_ARM_V7A_APK_VERSION: ${{ inputs.youtube_arm_v7a_apk_version }}
-          YOUTUBE_MUSIC_APK_VERSION: ${{ inputs.youtube_music_apk_version }}
-          YOUTUBE_MUSIC_ARM64_V8A_APK_VERSION: ${{ inputs.youtube_music_arm64_v8a_apk_version }}
-          YOUTUBE_MUSIC_ARM_V7A_APK_VERSION: ${{ inputs.youtube_music_arm_v7a_apk_version }}
-          REDDIT_APK_VERSION: ${{ inputs.reddit_apk_version }}
           GH_TOKEN: ${{ github.token }}
           ANDDEA_PATCHES_VERSION: ${{ inputs.patches_version }}
           PATCHES_VERSION: ${{ inputs.patches_version }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
-          tag="anddea-${release_stamp}-${GITHUB_RUN_NUMBER}"
+
+          if [ "${{ inputs.build_apks }}" = "true" ] && [ "${{ inputs.build_root_modules }}" = "true" ]; then
+            tag="anddea-build-${release_stamp}-${GITHUB_RUN_NUMBER}"
+            name_prefix="Anddea patched APKs & root modules"
+          elif [ "${{ inputs.build_root_modules }}" = "true" ]; then
+            tag="anddea-root-${release_stamp}-${GITHUB_RUN_NUMBER}"
+            name_prefix="Anddea root modules"
+          else
+            tag="anddea-${release_stamp}-${GITHUB_RUN_NUMBER}"
+            name_prefix="Anddea patched APKs"
+          fi
+
           release_prerelease_flag=""
           resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
 
@@ -324,7 +383,7 @@ jobs:
           esac
 
           echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=Anddea patched APKs ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=${name_prefix} ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
 
           node scripts/anddea-builder.mjs release-notes > release-notes.md
@@ -339,20 +398,55 @@ jobs:
             release_args+=("$RELEASE_PRERELEASE_FLAG")
           fi
 
+          files_to_upload=()
+          if [ "${{ inputs.build_apks }}" = "true" ]; then
+            for f in output/*.apk; do
+              if [ -f "$f" ]; then
+                files_to_upload+=("$f")
+              fi
+            done
+          fi
+          if [ "${{ inputs.build_root_modules }}" = "true" ]; then
+            for f in output/root-modules/*-root-module.zip; do
+              if [ -f "$f" ]; then
+                files_to_upload+=("$f")
+              fi
+            done
+          fi
+
+          if [ ${#files_to_upload[@]} -eq 0 ]; then
+            echo "::error::No files found to attach to the release."
+            exit 1
+          fi
+
           gh release create "$RELEASE_TAG" \
-            output/*.apk \
+            "${files_to_upload[@]}" \
             "${release_args[@]}" \
             --title "$RELEASE_NAME" \
             --notes-file release-notes.md
 
       - name: Upload patched APKs
-        if: ${{ inputs.upload_artifact }}
+        if: ${{ inputs.upload_artifact && inputs.build_apks }}
         uses: actions/upload-artifact@v4
         with:
           name: anddea-patched-apks
           path: |
             output/*.apk
             output/*-result.json
+            release-notes.md
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload root modules
+        if: ${{ inputs.upload_artifact && inputs.build_root_modules }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: anddea-root-modules
+          path: |
+            output/root-modules/*-root-module.zip
+            output/root-modules/root-modules.json
+            output/root/*.apk
+            output/root/*-result.json
             release-notes.md
           if-no-files-found: error
           retention-days: 1
