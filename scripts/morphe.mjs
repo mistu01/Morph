@@ -608,6 +608,8 @@ async function updateBuildResultOutput(app) {
 
   await writeJson(app.result, {
     ...result,
+    app: app.id,
+    label: app.label,
     output: relative(app.output),
     artifactName: basename(app.output),
     artifactAbi: app.artifactAbi,

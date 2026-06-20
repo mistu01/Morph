@@ -124,7 +124,7 @@ function generateReleaseNotes() {
     });
   }
 
-  // 2. Read root APK results (failures)
+  // 2. Read root APK results (patch stats + failures)
   const rootOutputDir = join(root, "output/root");
   if (fs.existsSync(rootOutputDir)) {
     fs.readdirSync(rootOutputDir).forEach(file => {
