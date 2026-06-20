@@ -397,7 +397,21 @@ jobs:
                     const failed = res.failedPatches?.length || 0;
                     totalSucceeded += succeeded;
                     totalFailed += failed;
-                    lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Standard APK | \`${res.artifactName || path.basename(res.output) || "N/A"}\` | ${status} | ✅ ${succeeded} / ❌ ${failed} |`);
+                    lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Standard APK | \`${res.artifactName || path.basename(res.output || "") || "N/A"}\` | ${status} | ✅ ${succeeded} / ❌ ${failed} |`);
+                  } catch {}
+                }
+              });
+            }
+
+            // Pre-load all root result JSONs keyed by app id for patch count lookup
+            const rootResults = {};
+            if (fs.existsSync("output/root")) {
+              fs.readdirSync("output/root").forEach(file => {
+                if (file.endsWith("-result.json")) {
+                  try {
+                    const res = JSON.parse(fs.readFileSync(path.join("output/root", file), "utf8"));
+                    const id = res.app || file.replace(/-result\.json$/, "");
+                    rootResults[id] = res;
                   } catch {}
                 }
               });
@@ -407,23 +421,32 @@ jobs:
               try {
                 const rootMeta = JSON.parse(fs.readFileSync("output/root-modules/root-modules.json", "utf8"));
                 (rootMeta.targets || []).forEach(target => {
-                  lines.push(`| ${target.label || target.id} | ${target.version} | Magisk Module | \`${path.basename(target.module)}\` | ✅ Successful | N/A |`);
+                  const res = rootResults[target.id] || null;
+                  const succeeded = res?.appliedPatches?.length || 0;
+                  const failed = res?.failedPatches?.length || 0;
+                  totalSucceeded += succeeded;
+                  totalFailed += failed;
+                  const patchCell = res ? `✅ ${succeeded} / ❌ ${failed}` : "N/A";
+                  lines.push(`| ${target.label || target.id} | ${target.version} | Magisk Module | \`${path.basename(target.module)}\` | ✅ Successful | ${patchCell} |`);
                 });
               } catch {}
             }
 
-            if (fs.existsSync("output/root")) {
-              fs.readdirSync("output/root").forEach(file => {
-                if (file.endsWith("-result.json")) {
-                  try {
-                    const res = JSON.parse(fs.readFileSync(path.join("output/root", file), "utf8"));
-                    if (res.success === false) {
-                      lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Magisk Module | \`N/A\` | ❌ Failed: ${res.error || "Unknown error"} | N/A |`);
-                    }
-                  } catch {}
-                }
-              });
-            }
+            // Report failed root builds not captured in root-modules.json
+            const reportedIds = new Set(
+              (() => {
+                try {
+                  if (!fs.existsSync("output/root-modules/root-modules.json")) return [];
+                  const m = JSON.parse(fs.readFileSync("output/root-modules/root-modules.json", "utf8"));
+                  return (m.targets || []).map(t => t.id);
+                } catch { return []; }
+              })()
+            );
+            Object.values(rootResults).forEach(res => {
+              if (res.success === false && !reportedIds.has(res.app)) {
+                lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Magisk Module | \`N/A\` | ❌ Failed: ${res.error || "Unknown error"} | N/A |`);
+              }
+            });
 
             lines.push("");
             lines.push(`**Total Patches**: ✅ ${totalSucceeded} Succeeded / ❌ ${totalFailed} Failed`);
