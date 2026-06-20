@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "Comma-separated targets: youtube,youtube-music,reddit. YouTube targets expand according to YouTube ABIs."
+        description: "Comma-separated targets: youtube,youtube-music. YouTube targets expand according to YouTube ABIs."
         required: true
-        default: "youtube,youtube-music,reddit"
+        default: "youtube,youtube-music"
       youtube_abis:
         description: "YouTube/YouTube Music ABI artifacts to build"
         required: true
@@ -242,7 +242,6 @@ jobs:
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
-          REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
@@ -263,13 +262,10 @@ jobs:
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
           YOUTUBE_APK_URL: ${{ secrets.YOUTUBE_APK_URL }}
           YOUTUBE_MUSIC_APK_URL: ${{ secrets.YOUTUBE_MUSIC_APK_URL }}
-          REDDIT_APK_URL: ${{ secrets.REDDIT_APK_URL }}
           YOUTUBE_OUT: output/root/youtube-root.apk
           YOUTUBE_RESULT: output/root/youtube-result.json
           YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
           YOUTUBE_MUSIC_RESULT: output/root/youtube-music-result.json
-          REDDIT_OUT: output/root/reddit-root.apk
-          REDDIT_RESULT: output/root/reddit-result.json
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
@@ -284,7 +280,6 @@ jobs:
           YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
           YOUTUBE_OUT: output/root/youtube-root.apk
           YOUTUBE_MUSIC_OUT: output/root/youtube-music-root.apk
-          REDDIT_OUT: output/root/reddit-root.apk
         run: node scripts/anddea-builder.mjs root-modules
 
       - name: Validate release outputs

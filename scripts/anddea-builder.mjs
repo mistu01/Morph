@@ -16,7 +16,7 @@ if (command === "release-notes") {
 
 const childEnv = {
   ...process.env,
-  BUILD_TARGETS: env("BUILD_TARGETS") || "youtube,youtube-music,reddit",
+  BUILD_TARGETS: env("BUILD_TARGETS") || "youtube,youtube-music",
   APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
   APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
   APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
@@ -28,7 +28,6 @@ const childEnv = {
   MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
   YOUTUBE_OPTIONS: env("YOUTUBE_OPTIONS") || "config/anddea/youtube-options.json",
   YOUTUBE_MUSIC_OPTIONS: env("YOUTUBE_MUSIC_OPTIONS") || "config/anddea/youtube-music-options.json",
-  REDDIT_OPTIONS: env("REDDIT_OPTIONS") || "config/anddea/reddit-options.json",
 };
 
 if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
@@ -148,7 +147,11 @@ function generateReleaseNotes() {
       (rootMeta.targets || []).forEach(target => {
         const appObj = getApp(target.id, target.label);
         if (target.version) appObj.version = target.version;
-        appObj.root = { success: true, artifactName: basename(target.module) };
+        appObj.root = {
+          ...(appObj.root || {}),
+          success: true,
+          artifactName: basename(target.module),
+        };
       });
     } catch {}
   }
@@ -163,7 +166,9 @@ function generateReleaseNotes() {
 
       if (app.standard) {
         if (app.standard.success !== false) {
-          statusParts.push(`Standard APK (✅ \`${app.standard.artifactName || basename(app.standard.output) || "N/A"}\`)`);
+          const applied = patchesFrom(app.standard.appliedPatches).length;
+          const failed = failedPatchesFrom(app.standard.failedPatches).length;
+          statusParts.push(`Standard APK (✅ \`${app.standard.artifactName || basename(app.standard.output) || "N/A"}\` | patches: ${applied} succeeded, ${failed} failed)`);
         } else {
           statusParts.push(`Standard APK (❌ Failed: ${app.standard.error || "Unknown error"})`);
         }
@@ -171,7 +176,9 @@ function generateReleaseNotes() {
 
       if (app.root) {
         if (app.root.success !== false) {
-          statusParts.push(`Magisk Module (✅ \`${app.root.artifactName || "N/A"}\`)`);
+          const applied = patchesFrom(app.root.appliedPatches).length;
+          const failed = failedPatchesFrom(app.root.failedPatches).length;
+          statusParts.push(`Magisk Module (✅ \`${app.root.artifactName || "N/A"}\` | patches: ${applied} succeeded, ${failed} failed)`);
         } else {
           statusParts.push(`Magisk Module (❌ Failed: ${app.root.error || "Unknown error"})`);
         }
@@ -186,4 +193,33 @@ function generateReleaseNotes() {
   }
 
   console.log(lines.join("\n"));
+}
+
+function patchesFrom(patches) {
+  return Array.isArray(patches)
+    ? patches.map(patchName).filter(Boolean)
+    : [];
+}
+
+function failedPatchesFrom(patches) {
+  return Array.isArray(patches)
+    ? patches.map((entry) => ({
+        name: patchName(entry?.patch),
+        reason: firstReasonLine(entry?.reason),
+      })).filter((entry) => entry.name)
+    : [];
+}
+
+function patchName(patch) {
+  if (typeof patch === "string") return patch;
+  if (patch?.name) return patch.name;
+  if (Number.isInteger(patch?.index)) return `#${patch.index}`;
+  return "";
+}
+
+function firstReasonLine(reason) {
+  return String(reason || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean) || "";
 }

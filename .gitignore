@@ -23,4 +23,31 @@ output/*
 # OS/editor noise.
 .DS_Store
 Thumbs.db
+desktop.ini
 *.log
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build and archive files
+*.apk
+*.xapk
+*.apks
+*.apkm
+*.zip
+*.tar.gz
+*.tar.xz
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Node/NPM Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
