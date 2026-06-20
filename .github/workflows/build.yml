@@ -350,7 +350,6 @@ jobs:
               fi
               ;;
           esac
-
           echo "RELEASE_TAG=${tag}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=${name_prefix} ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
@@ -382,8 +381,11 @@ jobs:
             lines.push("");
             lines.push("### Compiled Artifacts");
             lines.push("");
-            lines.push("| App | Version | Variant | Artifact | Status |");
-            lines.push("| --- | --- | --- | --- | --- |");
+            lines.push("| App | Version | Variant | Artifact | Status | Patches |");
+            lines.push("| --- | --- | --- | --- | --- | --- |");
+
+            let totalSucceeded = 0;
+            let totalFailed = 0;
 
             if (fs.existsSync("output")) {
               fs.readdirSync("output").forEach(file => {
@@ -391,7 +393,11 @@ jobs:
                   try {
                     const res = JSON.parse(fs.readFileSync(path.join("output", file), "utf8"));
                     const status = res.success !== false ? "✅ Successful" : `❌ Failed: ${res.error || "Unknown error"}`;
-                    lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Standard APK | \`${res.artifactName || path.basename(res.output) || "N/A"}\` | ${status} |`);
+                    const succeeded = res.appliedPatches?.length || 0;
+                    const failed = res.failedPatches?.length || 0;
+                    totalSucceeded += succeeded;
+                    totalFailed += failed;
+                    lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Standard APK | \`${res.artifactName || path.basename(res.output) || "N/A"}\` | ${status} | ✅ ${succeeded} / ❌ ${failed} |`);
                   } catch {}
                 }
               });
@@ -401,7 +407,7 @@ jobs:
               try {
                 const rootMeta = JSON.parse(fs.readFileSync("output/root-modules/root-modules.json", "utf8"));
                 (rootMeta.targets || []).forEach(target => {
-                  lines.push(`| ${target.label || target.id} | ${target.version} | Magisk Module | \`${path.basename(target.module)}\` | ✅ Successful |`);
+                  lines.push(`| ${target.label || target.id} | ${target.version} | Magisk Module | \`${path.basename(target.module)}\` | ✅ Successful | N/A |`);
                 });
               } catch {}
             }
@@ -412,12 +418,15 @@ jobs:
                   try {
                     const res = JSON.parse(fs.readFileSync(path.join("output/root", file), "utf8"));
                     if (res.success === false) {
-                      lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Magisk Module | \`N/A\` | ❌ Failed: ${res.error || "Unknown error"} |`);
+                      lines.push(`| ${res.label || res.app} | ${res.packageVersion || "unknown"} | Magisk Module | \`N/A\` | ❌ Failed: ${res.error || "Unknown error"} | N/A |`);
                     }
                   } catch {}
                 }
               });
             }
+
+            lines.push("");
+            lines.push(`**Total Patches**: ✅ ${totalSucceeded} Succeeded / ❌ ${totalFailed} Failed`);
 
             fs.writeFileSync("release-notes.md", lines.join("\n"));
           '
