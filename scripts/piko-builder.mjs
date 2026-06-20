@@ -171,6 +171,8 @@ async function downloadTools() {
   const patchesDest = join(paths.tools, "piko-patches.mpp");
   const patchesMetaDest = join(paths.tools, "piko-patches.json");
   const patchesListDest = join(paths.tools, "patches-list.json");
+  const xShimDest = join(paths.tools, "x-shim-patches.mpp");
+  const xShimMetaDest = join(paths.tools, "x-shim-patches.json");
 
   console.log(`Downloading morphe-cli ${cliRelease.tag_name} -> ${cliDest}`);
   await downloadFile(cliAsset.browser_download_url, cliDest);
@@ -189,12 +191,43 @@ async function downloadTools() {
   const patchesListUrl = `https://raw.githubusercontent.com/${patchesRepo}/${patchesRelease.tag_name}/patches-list.json`;
   await downloadFile(patchesListUrl, patchesListDest);
 
+  console.log("Downloading x-shim patches...");
+  let xShimTag = "";
+  try {
+    const response = await fetch("https://gitlab.com/api/v4/projects/inotia00%2Fx-shim/releases");
+    if (!response.ok) {
+      throw new Error(`GitLab request failed (${response.status})`);
+    }
+    const releases = await response.json();
+    const latestRelease = releases[0];
+    if (!latestRelease) {
+      throw new Error("No releases found for x-shim");
+    }
+    xShimTag = latestRelease.tag_name;
+    const mppLink = latestRelease.assets?.links?.find(l => l.name.startsWith("patches-") && l.name.endsWith(".mpp"));
+    if (!mppLink) {
+      throw new Error(`No patches .mpp link found in x-shim release ${xShimTag}`);
+    }
+    const xShimUrl = mppLink.direct_asset_url || mppLink.url;
+    console.log(`Downloading x-shim patches ${xShimTag} -> ${xShimDest}`);
+    await downloadFile(xShimUrl, xShimDest);
+    writeFileSync(xShimMetaDest, JSON.stringify({
+      repo: "inotia00/x-shim",
+      tag: xShimTag,
+      url: xShimUrl,
+      downloadedAt: new Date().toISOString(),
+    }, null, 2));
+  } catch (error) {
+    console.warn(`Warning: Could not download x-shim patches: ${error.message}`);
+  }
+
   console.log("Tools downloaded successfully.");
   return {
     cli: cliDest,
     patches: patchesDest,
     patchesList: patchesListDest,
     patchesTag: patchesRelease.tag_name,
+    xShimPatches: xShimDest,
   };
 }
 
@@ -411,12 +444,44 @@ async function build() {
       "-jar", tools.cli,
       "patch",
       "--patches", tools.patches,
+    ];
+
+    const isTwitterShimNeeded = app.id === "twitter" && compareVersions(version, "11.88") >= 0;
+    if (isTwitterShimNeeded) {
+      if (!existsSync(tools.xShimPatches)) {
+        throw new Error(`x-shim patches file is required for patching Twitter version >= 11.88 but it was not found at ${tools.xShimPatches}.`);
+      }
+      patchArgs.push("--patches", tools.xShimPatches);
+
+      // Download fields.json mapping file for this version code to bypass connection timeout inside Java patcher
+      const metadata = readCustomInputMetadata(app, actualInputPath);
+      const versionCode = metadata.versionCode;
+      if (versionCode) {
+        const jsonUrl = `https://gitlab.com/inotia00/piko-proguard-mock/-/raw/main/mock/${versionCode}.json`;
+        const jsonDest = join(paths.tmp, app.id, `fields-${versionCode}.json`);
+        console.log(`Downloading fields mapping JSON for version code ${versionCode} from: ${jsonUrl}`);
+        try {
+          await downloadFile(jsonUrl, jsonDest);
+          if (existsSync(jsonDest)) {
+            patchArgs.push("-O", `fieldJSON=${jsonDest}`);
+            patchArgs.push("-e", "Abstract shim layer");
+            console.log(`Using fields mapping JSON file: ${jsonDest}`);
+          }
+        } catch (error) {
+          console.warn(`Warning: Could not download fields mapping JSON from mock repo: ${error.message}`);
+        }
+      } else {
+        console.warn(`Warning: Could not read version code from the input APK to download compatibility mapping JSON.`);
+      }
+    }
+
+    patchArgs.push(
       "--out", app.output,
       "--result-file", app.result,
       "--temporary-files-path", temporaryFilesPath,
       "--purge",
-      "--force",
-    ];
+      "--force"
+    );
 
     // Append keystore signing if present
     const keystoreFile = env("KEYSTORE_FILE");
@@ -434,10 +499,13 @@ async function build() {
       );
     }
 
+    const extraArgs = parseJsonArrayEnv("MORPHE_EXTRA_ARGS_JSON");
+    patchArgs.push(...extraArgs);
+
     patchArgs.push(actualInputPath);
 
-    console.log(`\nRunning Morphe CLI patcher: java ${patchArgs.join(" ")}`);
-    const patchProc = spawnSync("java", patchArgs, { stdio: "inherit" });
+    console.log(`\nRunning Morphe CLI patcher: java -Xmx1536M ${patchArgs.join(" ")}`);
+    const patchProc = spawnSync("java", ["-Xmx1536M", ...patchArgs], { stdio: "inherit" });
 
     if (patchProc.status !== 0) {
       console.error(`Patcher failed for ${app.label}. Check stdout logs above.`);
@@ -848,4 +916,16 @@ function safeNamePart(value) {
     .trim()
     .replace(/[^A-Za-z0-9._-]+/g, "-")
     .replace(/^-+|-+$/g, "") || "unknown";
+}
+
+function parseJsonArrayEnv(name) {
+  const value = env(name);
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn(`Could not parse JSON array from environment variable ${name}: ${error.message}`);
+    return [];
+  }
 }

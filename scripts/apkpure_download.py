@@ -5,11 +5,102 @@ import contextlib
 import json
 import os
 import sys
+import time
+import re
 import urllib.parse as urlparse
 from pathlib import Path
 
 from apkpure.apkpure import ApkPure
 from bs4 import BeautifulSoup
+import requests
+import cloudscraper
+from tqdm import tqdm
+
+
+def robust_downloader(api, url, out_dir):
+    headers = api.headers.copy()
+    max_retries = 5
+    
+    scraper = cloudscraper.create_scraper()
+    
+    print(f"Requesting download URL: {url}", file=sys.stderr)
+    response = scraper.get(url, headers=headers, stream=True, allow_redirects=True)
+    if response.status_code != 200:
+        raise RuntimeError(f"Failed to connect to download URL, status code: {response.status_code}")
+        
+    d = response.headers.get("content-disposition")
+    if d:
+        matches = re.findall(r'filename=(.+)', d)
+        if matches:
+            fname = matches[0].strip('"')
+        else:
+            fname = "downloaded_file.apk"
+    else:
+        fname = "downloaded_file.apk"
+        
+    dest_path = os.path.realpath(os.path.join(out_dir, "apks", fname))
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    
+    total_size = int(response.headers.get("content-length", 0))
+    print(f"Total size: {total_size} bytes, saving to {dest_path}", file=sys.stderr)
+    
+    if os.path.exists(dest_path) and os.path.getsize(dest_path) == total_size:
+        print("File already exists with correct size!", file=sys.stderr)
+        return dest_path
+        
+    downloaded_size = 0
+    mode = "wb"
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            if attempt > 1:
+                if os.path.exists(dest_path):
+                    downloaded_size = os.path.getsize(dest_path)
+                    if downloaded_size < total_size:
+                        headers["Range"] = f"bytes={downloaded_size}-"
+                        mode = "ab"
+                        print(f"Attempt {attempt}/{max_retries}: Resuming from byte {downloaded_size}...", file=sys.stderr)
+                        response = scraper.get(url, headers=headers, stream=True, allow_redirects=True)
+                        if response.status_code != 206:
+                            print("Server does not support range requests. Restarting download...", file=sys.stderr)
+                            downloaded_size = 0
+                            mode = "wb"
+                            headers.pop("Range", None)
+                            response = scraper.get(url, headers=headers, stream=True, allow_redirects=True)
+                    else:
+                        print("File downloaded completely!", file=sys.stderr)
+                        return dest_path
+                else:
+                    downloaded_size = 0
+                    mode = "wb"
+                    headers.pop("Range", None)
+                    response = scraper.get(url, headers=headers, stream=True, allow_redirects=True)
+            
+            if response.status_code not in (200, 206):
+                raise IOError(f"Bad status code from server: {response.status_code}")
+                
+            with open(dest_path, mode) as f:
+                with tqdm(total=total_size, initial=downloaded_size, unit="B", unit_scale=True, desc=fname, file=sys.stderr) as pbar:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        if chunk:
+                            f.write(chunk)
+                            pbar.update(len(chunk))
+                            downloaded_size += len(chunk)
+            
+            actual_size = os.path.getsize(dest_path)
+            if actual_size == total_size:
+                print("Download completed successfully!", file=sys.stderr)
+                return dest_path
+            else:
+                raise IOError(f"Incomplete download: got {actual_size} bytes, expected {total_size}")
+                
+        except Exception as e:
+            print(f"Attempt {attempt} failed: {e}", file=sys.stderr)
+            if attempt == max_retries:
+                raise e
+            time.sleep(2 ** attempt)
+            
+    return dest_path
 
 
 def main() -> int:
@@ -64,13 +155,11 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     download_url = f"https://d.apkpure.com/b/{selected['file_type']}/{args.package_name}?versionCode={selected['version_code']}"
 
-    cwd = Path.cwd()
     try:
-        os.chdir(out_dir)
-        with contextlib.redirect_stdout(sys.stderr):
-            downloaded = api.downloader(download_url)
-    finally:
-        os.chdir(cwd)
+        downloaded = robust_downloader(api, download_url, out_dir)
+    except Exception as e:
+        print(f"Error downloading: {e}", file=sys.stderr)
+        downloaded = None
 
     if not downloaded:
         print(f"{args.app_name}: apkpure returned no downloaded file for {selected['version']}", file=sys.stderr)
