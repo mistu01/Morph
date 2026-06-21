@@ -811,6 +811,15 @@ async function ensureTools(force = false) {
     downloadReleaseAsset(releaseAssets.patches, force),
   ]);
 
+  try {
+    const list = await fetchPatchesList();
+    if (list) {
+      await writeJson(join(paths.tools, "patches-list.json"), list);
+    }
+  } catch (err) {
+    console.warn(`Warning: failed to download patches-list.json: ${err.message}`);
+  }
+
   return { cli, patches };
 }
 

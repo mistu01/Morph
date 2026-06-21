@@ -45,17 +45,27 @@ for (const patch of allPatches) {
   if (!patch.name) continue;
   const enabled = Object.hasOwn(optionsOverride, patch.name)
     ? optionsOverride[patch.name]
-    : patch.default !== false;
+    : patch.use !== false;
 
   const pkgs = patch.compatiblePackages;
-  if (!pkgs || pkgs.length === 0) {
+  let pkgList = [];
+  if (Array.isArray(pkgs)) {
+    pkgList = pkgs;
+  } else if (pkgs && typeof pkgs === 'object') {
+    pkgList = Object.entries(pkgs).map(([packageName, detail]) => ({
+      packageName,
+      name: detail?.name || packageName
+    }));
+  }
+
+  if (pkgList.length === 0) {
     const pkgName = 'universal';
     if (!appMap.has(pkgName)) {
       appMap.set(pkgName, { appName: "Universal (All Apps)", patches: [] });
     }
     appMap.get(pkgName).patches.push({ name: patch.name, enabled });
   } else {
-    for (const pkg of pkgs) {
+    for (const pkg of pkgList) {
       if (!pkg.packageName) continue;
       const pkgName = pkg.packageName;
       if (!appMap.has(pkgName)) {

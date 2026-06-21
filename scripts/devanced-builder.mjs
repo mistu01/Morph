@@ -70,9 +70,10 @@ const childEnv = {
   MORPHE_PATCHES_VERSION: env("DEVANCED_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
   MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
   MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
+  MESSENGER_APK_VERSION:  env("MESSENGER_APK_VERSION")  || "550.0.0.45.63",
   // Per-app options files
   MESSENGER_OPTIONS:      env("MESSENGER_OPTIONS")      || "config/devanced/messenger-options.json",
-  "GOOGLE-PHOTOS_OPTIONS": env("GOOGLE_PHOTOS_OPTIONS") || "config/devanced/google-photos-options.json",
+  GOOGLE_PHOTOS_OPTIONS:  env("GOOGLE_PHOTOS_OPTIONS")  || "config/devanced/google-photos-options.json",
   THREADS_OPTIONS:        env("THREADS_OPTIONS")        || "config/devanced/threads-options.json",
   TIKTOK_OPTIONS:         env("TIKTOK_OPTIONS")         || "config/devanced/tiktok-options.json",
 };

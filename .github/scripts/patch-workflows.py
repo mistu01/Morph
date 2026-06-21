@@ -71,16 +71,24 @@ NEW_LIST_STEP = """\
           for (const patch of allPatches) {
             if (!patch.name) continue;
             const pkgs = patch.compatiblePackages;
-            // null compatiblePackages means it applies to all apps — skip for per-app listing
-            if (!pkgs || pkgs.length === 0) continue;
-            for (const pkg of pkgs) {
+            let pkgList = [];
+            if (Array.isArray(pkgs)) {
+              pkgList = pkgs;
+            } else if (pkgs && typeof pkgs === 'object') {
+              pkgList = Object.entries(pkgs).map(([packageName, detail]) => ({
+                packageName,
+                name: detail?.name || packageName
+              }));
+            }
+            if (pkgList.length === 0) continue;
+            for (const pkg of pkgList) {
               if (!appMap.has(pkg.packageName)) {
                 appMap.set(pkg.packageName, { appName: pkg.name || pkg.packageName, patches: [] });
               }
               // Determine enabled state: options file overrides default
               const enabled = optionsOverride.hasOwnProperty(patch.name)
                 ? optionsOverride[patch.name]
-                : (patch.default !== false);
+                : (patch.use !== false);
               appMap.get(pkg.packageName).patches.push({ name: patch.name, enabled });
             }
           }
