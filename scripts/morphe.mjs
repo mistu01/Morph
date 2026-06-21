@@ -182,7 +182,7 @@ const appConfigs = {
     ["truecaller", "Truecaller", "com.truecaller"],
     ["vn", "VN", "com.frontrow.vlog"],
     // ── De-Vanced patches (https://github.com/RookieEnough/De-Vanced) ──────
-    ["messenger",           "Messenger",             "com.facebook.orca",                     { apkmirrorOrg: "facebook-2", apkmirrorRepo: "messenger" }],
+    ["messenger",           "Messenger",             "com.facebook.orca",                     { apkpureSlug: "messenger" }],
     ["google-photos",       "Google Photos",         "com.google.android.apps.photos",         { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-photos" }],
     ["threads",             "Threads",               "com.instagram.barcelona",                 { apkmirrorOrg: "instagram", apkmirrorRepo: "threads-an-instagram-app" }],
     ["tiktok",              "TikTok",                "com.zhiliaoapp.musically",               { apkmirrorOrg: "tiktok-pte-ltd", apkmirrorRepo: "tiktok-including-musical-ly" }],
@@ -191,7 +191,7 @@ const appConfigs = {
     ["angulus",             "Angulus",               "com.drinkplusplus.angulus",               {}],
     ["bandcamp",            "Bandcamp",              "com.bandcamp.android",                    { apkmirrorOrg: "bandcamp", apkmirrorRepo: "bandcamp" }],
     ["disney-plus",         "Disney+",               "com.disney.disneyplus",                  { apkmirrorOrg: "disney", apkmirrorRepo: "disney" }],
-    ["facebook",            "Facebook",              "com.facebook.katana",                     { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook" }],
+    ["facebook",            "Facebook",              "com.facebook.katana",                     {}],
     ["gmx-mail",            "GMX Mail",              "de.gmx.mobile.android.mail",              {}],
     ["google-news",         "Google News",           "com.google.android.apps.magazines",       { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-news" }],
     ["google-recorder",     "Google Recorder",       "com.google.android.apps.recorder",        { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-recorder" }],

@@ -181,6 +181,9 @@ jobs:
           APK_SOURCE: apkmirror,apkpure
           APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
           APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
+          # Facebook apps: skip APKMirror (Cloudflare blocks bot downloads), use APKPure directly
+          MESSENGER_APK_SOURCE: apkpure
+          FACEBOOK_APK_SOURCE: apkpure
           # Per-app APK URL overrides (optional secrets)
           MESSENGER_APK_URL: ${{ secrets.MESSENGER_APK_URL }}
           GOOGLE_PHOTOS_APK_URL: ${{ secrets.GOOGLE_PHOTOS_APK_URL }}
