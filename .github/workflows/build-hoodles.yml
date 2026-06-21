@@ -87,6 +87,7 @@ jobs:
         env:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HOODLES_PATCHES_VERSION: ${{ inputs.patches_version }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/hoodles-builder.mjs tools
 
       - name: Restore optional signing keystore
@@ -126,6 +127,7 @@ jobs:
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
           MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/hoodles-builder.mjs build
 
       - name: Validate release outputs

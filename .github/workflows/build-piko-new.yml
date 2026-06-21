@@ -93,6 +93,7 @@ jobs:
           APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           APK_KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           APK_KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ -n "$APK_KEYSTORE_B64" ]; then
             if [ -z "$APK_KEYSTORE_PASSWORD" ]; then
@@ -249,6 +250,7 @@ jobs:
           TWITTER_APK_VERSION: ${{ inputs.twitter_apk_version }}
           TWITTER_GOOGLE_DRIVE_URL: ${{ inputs.twitter_google_drive_url }}
           MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/piko-builder.mjs build
 
       - name: Prepare release summary

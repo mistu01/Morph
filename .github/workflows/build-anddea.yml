@@ -103,6 +103,7 @@ jobs:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           ANDDEA_PATCHES_VERSION: ${{ inputs.patches_version }}
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/anddea-builder.mjs tools
 
       - name: Restore optional signing keystore
@@ -246,6 +247,7 @@ jobs:
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           SIGNER_NAME: Mistu
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/anddea-builder.mjs build
 
       - name: Build root APK variants
@@ -270,6 +272,7 @@ jobs:
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           SIGNER_NAME: Mistu
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/anddea-builder.mjs build
 
       - name: Package root modules

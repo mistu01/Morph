@@ -141,6 +141,7 @@ jobs:
           MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
           DEVANCED_PATCHES_REPO: RookieEnough/De-Vanced
           MORPHE_PATCHES_REPO: RookieEnough/De-Vanced
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/devanced-builder.mjs tools
 
       - name: Restore optional signing keystore
@@ -197,6 +198,7 @@ jobs:
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           SIGNER_NAME: Mistu
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/devanced-builder.mjs build
 
       - name: Prepare release metadata
