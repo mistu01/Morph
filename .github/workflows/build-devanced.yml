@@ -5,7 +5,8 @@ name: Build De-Vanced APKs & Root Modules
 #
 # Supported apps (select via the "targets" input):
 #
-#   DEFAULT (checked by default):
+# DEFAULT (checked by default):
+#     facebook           → com.facebook.katana             — Hide Ads, Hide story ads
 #     messenger          → com.facebook.orca          — Disable typing indicator, Hide inbox ads, …
 #     google-photos      → com.google.android.apps.photos — Spoof features, Backup control, …
 #     threads            → com.instagram.barcelona    — Hide Ads
@@ -18,7 +19,6 @@ name: Build De-Vanced APKs & Root Modules
 #     bandcamp           → com.bandcamp.android            — Remove play limits
 #     cricbuzz           → com.cricbuzz.android            — Disable ads
 #     disney-plus        → com.disney.disneyplus           — Skip ads
-#     facebook           → com.facebook.katana             — Hide Ads, Hide story ads
 #     gmx-mail           → de.gmx.mobile.android.mail      — Hide Ads, Force FreePhone
 #     google-news        → com.google.android.apps.magazines — Custom tabs, GMS support
 #     google-recorder    → com.google.android.apps.recorder  — Remove device restrictions
@@ -55,7 +55,7 @@ on:
           ms-office-lens, nothing-smartcenter, nu-nl, peacock, photomath,
           pixiv, proton-mail, rar, soundcloud, strava, tumblr, twitch, viber
         required: true
-        default: "messenger,google-photos,threads,tiktok"
+        default: "messenger,google-photos,threads,tiktok,facebook"
       cli_version:
         description: "Morphe CLI tag, or latest/dev"
         required: true

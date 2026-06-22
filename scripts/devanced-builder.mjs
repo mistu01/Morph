@@ -59,7 +59,7 @@ export const DEVANCED_APPS = {
 
 const childEnv = {
   ...process.env,
-  BUILD_TARGETS: env("BUILD_TARGETS") || "messenger,google-photos,threads,tiktok",
+  BUILD_TARGETS: env("BUILD_TARGETS") || "messenger,google-photos,threads,tiktok,facebook",
   APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
   APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
   APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
