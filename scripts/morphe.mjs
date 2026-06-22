@@ -1564,6 +1564,58 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     mkdirSync(dirname(patchedDestination), { recursive: true });
     copyFileSync(app.output, patchedDestination);
     stageRootStockFiles(app, stockDestination);
+
+    if (app.rootApkPath) {
+      const systemAppDir = join(moduleDir, dirname(app.rootApkPath));
+      mkdirSync(systemAppDir, { recursive: true });
+      // Write .replace file to replace the original system app directory completely
+      writeFileSync(join(systemAppDir, ".replace"), "");
+
+      const extension = extname(app.input).toLowerCase();
+      if (extension === ".apk") {
+        copyFileSync(app.input, join(moduleDir, app.rootApkPath));
+      } else {
+        const entriesList = archiveApkEntries(app.input);
+        const extractRoot = join(paths.tmp, "root-stock-system", app.id);
+        rmSync(extractRoot, { recursive: true, force: true });
+        mkdirSync(extractRoot, { recursive: true });
+
+        const extractedFiles = [];
+        entriesList.forEach((entry, index) => {
+          extractArchiveEntry(app.input, entry, extractRoot);
+          const extracted = join(extractRoot, ...entry.split("/"));
+          if (usableFile(extracted)) {
+            extractedFiles.push({
+              entry,
+              path: extracted,
+              size: statSync(extracted).size,
+              name: basename(entry)
+            });
+          }
+        });
+
+        // Find the base APK among extracted files
+        let baseFile = extractedFiles.find(f => f.name.toLowerCase() === "base.apk");
+        if (!baseFile) {
+          baseFile = extractedFiles.find(f => f.name.toLowerCase().includes("base"));
+        }
+        if (!baseFile) {
+          // Fallback to largest file
+          baseFile = extractedFiles.reduce((prev, current) => (prev.size > current.size) ? prev : current, extractedFiles[0]);
+        }
+
+        // Copy files
+        extractedFiles.forEach((file, index) => {
+          if (file === baseFile) {
+            copyFileSync(file.path, join(moduleDir, app.rootApkPath));
+          } else {
+            const destName = file.name.replace(/[^A-Za-z0-9._-]/g, "_") || `split-${index + 1}.apk`;
+            copyFileSync(file.path, join(systemAppDir, destName));
+          }
+        });
+        rmSync(extractRoot, { recursive: true, force: true });
+      }
+    }
   }
 
   const commonDir = join(moduleDir, "common");
@@ -1721,7 +1773,7 @@ function rootCustomizeScript(apps) {
     "  flags=\"$(dumpsys package \"$pkg\" 2>/dev/null | grep -m1 'pkgFlags=')\"",
     "  if printf '%s\\n' \"$flags\" | grep -Fq UPDATED_SYSTEM_APP; then",
     "    ui_print \"  Removing Play Store system update overlay\"",
-    "    pmex uninstall-system-updates \"$pkg\" >/dev/null 2>&1 || true",
+    "    pmex uninstall \"$pkg\" >/dev/null 2>&1 || true",
     "  fi",
     "}",
     "",
