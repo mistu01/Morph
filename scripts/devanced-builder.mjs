@@ -150,11 +150,18 @@ function generateReleaseNotes() {
 
   function getApp(id, label) {
     if (!apps[id]) {
-      apps[id] = { id, label: label || id, version: "unknown", standard: null };
+      apps[id] = {
+        id,
+        label: label || id,
+        version: "unknown",
+        standard: null,
+        root: null,
+      };
     }
     return apps[id];
   }
 
+  // 1. Read standard APK results
   const outputDir = join(root, "output");
   if (fs.existsSync(outputDir)) {
     fs.readdirSync(outputDir).forEach((file) => {
@@ -169,27 +176,103 @@ function generateReleaseNotes() {
     });
   }
 
+  // 2. Read root APK results (patch stats + failures)
+  const rootOutputDir = join(root, "output/root");
+  if (fs.existsSync(rootOutputDir)) {
+    fs.readdirSync(rootOutputDir).forEach((file) => {
+      if (file.endsWith("-result.json")) {
+        try {
+          const res = JSON.parse(fs.readFileSync(join(rootOutputDir, file), "utf8"));
+          const appObj = getApp(res.app || res.id, res.label);
+          if (res.packageVersion) appObj.version = res.packageVersion;
+          appObj.root = res;
+        } catch {}
+      }
+    });
+  }
+
+  // 3. Read root module success metadata
+  const rootMetaPath = join(root, "output/root-modules/root-modules.json");
+  if (fs.existsSync(rootMetaPath)) {
+    try {
+      const rootMeta = JSON.parse(fs.readFileSync(rootMetaPath, "utf8"));
+      (rootMeta.targets || []).forEach((target) => {
+        const appObj = getApp(target.id, target.label);
+        if (target.version) appObj.version = target.version;
+        appObj.root = {
+          ...(appObj.root || {}),
+          success: true,
+          artifactName: basename(target.module),
+        };
+      });
+    } catch {}
+  }
+
   const appKeys = Object.keys(apps).sort();
   if (appKeys.length === 0) {
     lines.push("_No artifacts were built._");
   } else {
-    lines.push("| App | Version | Artifact | Status | Patches |");
-    lines.push("| --- | --- | --- | --- | --- |");
     for (const key of appKeys) {
       const app = apps[key];
+      const statusParts = [];
+
       if (app.standard) {
-        const ok = app.standard.success !== false;
-        const applied = (app.standard.appliedPatches || []).length;
-        const failed = (app.standard.failedPatches || []).length;
-        const status = ok ? "✅ Successful" : `❌ Failed: ${app.standard.error || "Unknown"}`;
-        const artifact = app.standard.artifactName || basename(app.standard.output || "") || "N/A";
-        lines.push(`| ${app.label} | ${app.version} | \`${artifact}\` | ${status} | ✅ ${applied} / ❌ ${failed} |`);
+        if (app.standard.success !== false) {
+          const applied = patchesFrom(app.standard.appliedPatches).length;
+          const failed = failedPatchesFrom(app.standard.failedPatches).length;
+          statusParts.push(`Standard APK (✅ \`${app.standard.artifactName || basename(app.standard.output) || "N/A"}\` | patches: ${applied} succeeded, ${failed} failed)`);
+        } else {
+          statusParts.push(`Standard APK (❌ Failed: ${app.standard.error || "Unknown error"})`);
+        }
+      }
+
+      if (app.root) {
+        if (app.root.success !== false) {
+          const applied = patchesFrom(app.root.appliedPatches).length;
+          const failed = failedPatchesFrom(app.root.failedPatches).length;
+          statusParts.push(`Magisk Module (✅ \`${app.root.artifactName || "N/A"}\` | patches: ${applied} succeeded, ${failed} failed)`);
+        } else {
+          statusParts.push(`Magisk Module (❌ Failed: ${app.root.error || "Unknown error"})`);
+        }
+      }
+
+      if (statusParts.length === 0) {
+        lines.push(`- **${app.label}** (\`${app.version}\`): ➖ Not built`);
       } else {
-        lines.push(`| ${app.label} | ${app.version} | N/A | ➖ Not built | — |`);
+        lines.push(`- **${app.label}** (\`${app.version}\`): ${statusParts.join(" | ")}`);
       }
     }
   }
 
   lines.push("");
   console.log(lines.join("\n"));
+}
+
+function patchesFrom(patches) {
+  return Array.isArray(patches)
+    ? patches.map(patchName).filter(Boolean)
+    : [];
+}
+
+function failedPatchesFrom(patches) {
+  return Array.isArray(patches)
+    ? patches.map((entry) => ({
+        name: patchName(entry?.patch),
+        reason: firstReasonLine(entry?.reason),
+      })).filter((entry) => entry.name)
+    : [];
+}
+
+function patchName(patch) {
+  if (typeof patch === "string") return patch;
+  if (patch?.name) return patch.name;
+  if (Number.isInteger(patch?.index)) return `#${patch.index}`;
+  return "";
+}
+
+function firstReasonLine(reason) {
+  return String(reason || "")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean) || "";
 }

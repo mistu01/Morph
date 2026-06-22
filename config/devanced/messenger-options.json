@@ -1,0 +1,37 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-21T18:31:24.991414600Z",
+            "source": "patches.mpp",
+            "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
+        },
+        "patches": {
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Hide inbox ads": {
+                "enabled": true
+            },
+            "Hide inbox subtabs": {
+                "enabled": true
+            },
+            "Disable typing indicator": {
+                "enabled": true
+            },
+            "Hide Facebook button": {
+                "enabled": true
+            },
+            "Remove Meta AI": {
+                "enabled": true
+            }
+        }
+    }
+]

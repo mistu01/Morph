@@ -1,4 +1,4 @@
-name: Build De-Vanced APKs
+name: Build De-Vanced APKs & Root Modules
 
 # ─────────────────────────────────────────────────────────────────────────────
 # De-Vanced patches — https://github.com/RookieEnough/De-Vanced
@@ -92,6 +92,16 @@ on:
         description: "Comma-separated disabled patches to enable for this run. Leave blank for defaults."
         required: false
         default: ""
+      build_apks:
+        description: "Build non-root patched APKs"
+        required: true
+        type: boolean
+        default: true
+      build_root_modules:
+        description: "Build root Magisk/KernelSU modules (Google Photos)"
+        required: true
+        type: boolean
+        default: false
       create_release:
         description: "Create a GitHub Release and attach built APKs"
         required: true
@@ -105,7 +115,7 @@ on:
 
 jobs:
   build:
-    name: Build De-Vanced APKs
+    name: Build De-Vanced APKs & Root Modules
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -172,6 +182,7 @@ jobs:
           NODE
 
       - name: Build De-Vanced patched APKs
+        if: ${{ inputs.build_apks }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -201,6 +212,37 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/devanced-builder.mjs build
 
+      - name: Build root APK variants (Google Photos)
+        if: ${{ inputs.build_root_modules }}
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: google-photos
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          DEVANCED_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          DEVANCED_PATCHES_REPO: RookieEnough/De-Vanced
+          MORPHE_PATCHES_REPO: RookieEnough/De-Vanced
+          APK_SOURCE: apkmirror,apkpure
+          APK_VERSION_SOURCE: ${{ inputs.apk_version_source }}
+          APK_FALLBACK_TO_LATEST: ${{ inputs.apk_fallback_to_latest }}
+          GOOGLE_PHOTOS_APK_URL: ${{ secrets.GOOGLE_PHOTOS_APK_URL }}
+          GOOGLE_PHOTOS_OUT: output/root/google-photos-root.apk
+          GOOGLE_PHOTOS_RESULT: output/root/google-photos-result.json
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          SIGNER_NAME: Mistu
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/devanced-builder.mjs build
+
+      - name: Package root modules
+        if: ${{ inputs.build_root_modules }}
+        env:
+          ROOT_BUILD: "1"
+          BUILD_TARGETS: google-photos
+          GOOGLE_PHOTOS_OUT: output/root/google-photos-root.apk
+        run: node scripts/devanced-builder.mjs root-modules
+
       - name: Prepare release metadata
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
@@ -214,8 +256,17 @@ jobs:
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
-          tag="devanced-${release_stamp}-${GITHUB_RUN_NUMBER}"
-          name_prefix="De-Vanced patched APKs"
+
+          if [ "${{ inputs.build_apks }}" = "true" ] && [ "${{ inputs.build_root_modules }}" = "true" ]; then
+            tag="devanced-build-${release_stamp}-${GITHUB_RUN_NUMBER}"
+            name_prefix="De-Vanced patched APKs & root modules"
+          elif [ "${{ inputs.build_root_modules }}" = "true" ]; then
+            tag="devanced-root-${release_stamp}-${GITHUB_RUN_NUMBER}"
+            name_prefix="De-Vanced root modules"
+          else
+            tag="devanced-${release_stamp}-${GITHUB_RUN_NUMBER}"
+            name_prefix="De-Vanced patched APKs"
+          fi
 
           release_prerelease_flag=""
           resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
@@ -255,14 +306,23 @@ jobs:
           fi
 
           files_to_upload=()
-          for f in output/*.apk; do
-            if [ -f "$f" ]; then
-              files_to_upload+=("$f")
-            fi
-          done
+          if [ "${{ inputs.build_apks }}" = "true" ]; then
+            for f in output/*.apk; do
+              if [ -f "$f" ]; then
+                files_to_upload+=("$f")
+              fi
+            done
+          fi
+          if [ "${{ inputs.build_root_modules }}" = "true" ]; then
+            for f in output/root-modules/*-root-module.zip; do
+              if [ -f "$f" ]; then
+                files_to_upload+=("$f")
+              fi
+            done
+          fi
 
           if [ ${#files_to_upload[@]} -eq 0 ]; then
-            echo "::error::No APKs found to attach to the release."
+            echo "::error::No files found to attach to the release."
             exit 1
           fi
 
@@ -273,13 +333,27 @@ jobs:
             --notes-file release-notes.md
 
       - name: Upload De-Vanced patched APKs
-        if: ${{ inputs.upload_artifact }}
+        if: ${{ inputs.upload_artifact && inputs.build_apks }}
         uses: actions/upload-artifact@v4
         with:
           name: devanced-patched-apks
           path: |
             output/*.apk
             output/*-result.json
+            release-notes.md
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Upload root modules
+        if: ${{ inputs.upload_artifact && inputs.build_root_modules }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: devanced-root-modules
+          path: |
+            output/root-modules/*-root-module.zip
+            output/root-modules/root-modules.json
+            output/root/*.apk
+            output/root/*-result.json
             release-notes.md
           if-no-files-found: error
           retention-days: 1
