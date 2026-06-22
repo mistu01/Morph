@@ -130,7 +130,7 @@ def main() -> int:
             if resp:
                 soup = BeautifulSoup(resp.text, "html.parser")
                 normalized_arch = args.arch.lower().replace('_', '-')
-                found_code = None
+                candidates = []
                 for el in soup.find_all("a"):
                     href = el.get("href") or ""
                     if "versionCode=" in href:
@@ -140,10 +140,20 @@ def main() -> int:
                             params = urlparse.parse_qs(parsed.query)
                             codes = params.get("versionCode")
                             if codes:
-                                found_code = codes[0]
-                                print(f"Found matching arch variant: {el.parent.text.strip().replace('\n', ' ')}", file=sys.stderr)
-                                break
-                if found_code:
+                                candidates.append((codes[0], el.parent.text.strip().replace('\n', ' ')))
+                
+                if candidates:
+                    found_code = None
+                    for code, label in candidates:
+                        label_lower = label.lower()
+                        if "nodpi" in label_lower or "no-dpi" in label_lower or "no dpi" in label_lower or "universal" in label_lower:
+                            found_code = code
+                            print(f"Found matching nodpi/universal arch variant: {label}", file=sys.stderr)
+                            break
+                    if not found_code:
+                        found_code = candidates[0][0]
+                        print(f"Found matching arch variant: {candidates[0][1]}", file=sys.stderr)
+                    
                     selected["version_code"] = found_code
                     print(f"Using variant version code: {found_code}", file=sys.stderr)
                 else:

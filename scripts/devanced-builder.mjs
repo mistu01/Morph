@@ -76,6 +76,7 @@ const childEnv = {
   GOOGLE_PHOTOS_OPTIONS:  env("GOOGLE_PHOTOS_OPTIONS")  || "config/devanced/google-photos-options.json",
   THREADS_OPTIONS:        env("THREADS_OPTIONS")        || "config/devanced/threads-options.json",
   TIKTOK_OPTIONS:         env("TIKTOK_OPTIONS")         || "config/devanced/tiktok-options.json",
+  FACEBOOK_OPTIONS:       env("FACEBOOK_OPTIONS")       || "config/devanced/facebook-options.json",
 };
 
 if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
