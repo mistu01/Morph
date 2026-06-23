@@ -1564,55 +1564,9 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     copyFileSync(app.output, patchedDestination);
 
     if (app.rootApkPath) {
-      const systemAppDir = join(moduleDir, dirname(app.rootApkPath));
-      mkdirSync(systemAppDir, { recursive: true });
-      // Write .replace file to replace the original system app directory completely
-      writeFileSync(join(systemAppDir, ".replace"), "");
-
-      const extension = extname(app.input).toLowerCase();
-      if (extension === ".apk") {
-        copyFileSync(app.input, join(moduleDir, app.rootApkPath));
-      } else {
-        const entriesList = archiveApkEntries(app.input);
-        const extractRoot = join(paths.tmp, "root-stock-system", app.id);
-        rmSync(extractRoot, { recursive: true, force: true });
-        mkdirSync(extractRoot, { recursive: true });
-
-        const extractedFiles = [];
-        entriesList.forEach((entry, index) => {
-          extractArchiveEntry(app.input, entry, extractRoot);
-          const extracted = join(extractRoot, ...entry.split("/"));
-          if (usableFile(extracted)) {
-            extractedFiles.push({
-              entry,
-              path: extracted,
-              size: statSync(extracted).size,
-              name: basename(entry)
-            });
-          }
-        });
-
-        // Find the base APK among extracted files
-        let baseFile = extractedFiles.find(f => f.name.toLowerCase() === "base.apk");
-        if (!baseFile) {
-          baseFile = extractedFiles.find(f => f.name.toLowerCase().includes("base"));
-        }
-        if (!baseFile) {
-          // Fallback to largest file
-          baseFile = extractedFiles.reduce((prev, current) => (prev.size > current.size) ? prev : current, extractedFiles[0]);
-        }
-
-        // Copy files
-        extractedFiles.forEach((file, index) => {
-          if (file === baseFile) {
-            copyFileSync(file.path, join(moduleDir, app.rootApkPath));
-          } else {
-            const destName = file.name.replace(/[^A-Za-z0-9._-]/g, "_") || `split-${index + 1}.apk`;
-            copyFileSync(file.path, join(systemAppDir, destName));
-          }
-        });
-        rmSync(extractRoot, { recursive: true, force: true });
-      }
+      // We no longer copy the stock APK or splits into the module's system directory.
+      // Instead, rootCustomizeScript will dynamically create the `.replace` file 
+      // in the correct system path to mask the original system app.
     }
   }
 
@@ -1810,60 +1764,18 @@ function rootCustomizeScript(apps) {
     "  done",
     "}",
     "",
-    "relocate_system_app() {",
-    "  local pkg=\"$1\" fallback_path=\"$2\"",
-    "  [ -n \"$fallback_path\" ] || return 0",
-    "  local build_time_path=\"${fallback_path#/}\"",
-    "  local build_time_dir=\"${build_time_path%/*}\"",
-    "  local build_time_filename=\"${fallback_path##*/}\"",
-    "  local real_path",
+    "mask_system_app() {",
+    "  local pkg=\"$1\"",
+    "  local real_path real_dir",
     "  real_path=\"$(find_system_apk \"$pkg\")\"",
-    "  if [ -z \"$real_path\" ]; then",
-    "    ui_print \"  No system app path found for $pkg.\"",
-    "    if [ -d \"$MODPATH/$build_time_dir\" ]; then",
-    "      ui_print \"  Removing unused system overlay: /$build_time_dir\"",
-    "      rm -rf \"$MODPATH/$build_time_dir\"",
-    "      local parent=\"$(dirname \"$MODPATH/$build_time_dir\")\"",
-    "      while [ \"$parent\" != \"$MODPATH\" ] && [ \"$parent\" != \"/\" ]; do",
-    "        rmdir \"$parent\" 2>/dev/null || break",
-    "        parent=\"$(dirname \"$parent\")\"",
-    "      done",
-    "    fi",
-    "    return 0",
-    "  fi",
-    "  local rel_real_path=\"${real_path#/}\"",
-    "  local rel_real_dir=\"${rel_real_path%/*}\"",
-    "  local real_filename=\"${real_path##*/}\"",
-    "  ui_print \"  Detected system path for $pkg: /$rel_real_path\"",
-    "  if [ \"$rel_real_path\" != \"$build_time_path\" ]; then",
-    "    ui_print \"  Relocating system overlay to /$rel_real_dir\"",
-    "    if [ -d \"$MODPATH/$build_time_dir\" ]; then",
-    "      mkdir -p \"$MODPATH/$rel_real_dir\"",
-    "      local f name",
-    "      for f in \"$MODPATH/$build_time_dir\"/* \"$MODPATH/$build_time_dir\"/.*; do",
-    "        [ -e \"$f\" ] || continue",
-    "        name=\"${f##*/}\"",
-    "        [ \"$name\" = \".\" ] && continue",
-    "        [ \"$name\" = \"..\" ] && continue",
-    "        if [ \"$name\" != \"$build_time_filename\" ]; then",
-    "          mv \"$f\" \"$MODPATH/$rel_real_dir/\" 2>/dev/null || true",
-    "        fi",
-    "      done",
-    "      if [ -f \"$MODPATH/$build_time_path\" ]; then",
-    "        mv \"$MODPATH/$build_time_path\" \"$MODPATH/$rel_real_dir/$real_filename\" 2>/dev/null || true",
-    "      fi",
-    "      rm -rf \"$MODPATH/$build_time_dir\"",
-    "      local parent=\"$(dirname \"$MODPATH/$build_time_dir\")\"",
-    "      while [ \"$parent\" != \"$MODPATH\" ] && [ \"$parent\" != \"/\" ]; do",
-    "        rmdir \"$parent\" 2>/dev/null || break",
-    "        parent=\"$(dirname \"$parent\")\"",
-    "      done",
-    "    fi",
+    "  if [ -n \"$real_path\" ]; then",
+    "    real_dir=\"${real_path%/*}\"",
+    "    real_dir=\"${real_dir#/}\"",
+    "    ui_print \"  Masking system app at /$real_dir\"",
+    "    mkdir -p \"$MODPATH/$real_dir\"",
+    "    touch \"$MODPATH/$real_dir/.replace\"",
     "  else",
-    "    if [ \"$real_filename\" != \"$build_time_filename\" ] && [ -f \"$MODPATH/$build_time_path\" ]; then",
-    "      ui_print \"  Renaming system base APK to $real_filename\"",
-    "      mv \"$MODPATH/$build_time_path\" \"$MODPATH/$build_time_dir/$real_filename\" 2>/dev/null || true",
-    "    fi",
+    "    ui_print \"  Could not locate system app path to mask. Is $pkg a system app?\"",
     "  fi",
     "}",
     "",
@@ -1917,7 +1829,7 @@ function rootCustomizeScript(apps) {
     "install_root_apk() {",
     "  local pkg=\"$1\" label=\"$2\" patched_name=\"$3\" fallback_path=\"$4\"",
     "  local patched_apk persistent_apk target_path",
-    "  relocate_system_app \"$pkg\" \"$fallback_path\"",
+    "  mask_system_app \"$pkg\"",
     "  patched_apk=\"$MODPATH/common/patched/$patched_name\"",
     "  persistent_apk=\"$DATA_DIR/$pkg.apk\"",
     "  [ -f \"$patched_apk\" ] || abort \"Missing patched APK for $label: $patched_apk\"",
@@ -1926,29 +1838,12 @@ function rootCustomizeScript(apps) {
     "  ui_print \"  Package: $pkg\"",
     "  am force-stop \"$pkg\" >/dev/null 2>&1 || true",
     "",
-    "  # Remove any Play Store user-space update overlay that may shadow the system base path",
+    "  # Remove any Play Store user-space update overlay so it does not conflict",
     "  uninstall_system_updates_if_needed \"$pkg\"",
-    "  # Re-enable the system package for user 0 in case it was previously hidden",
-    "  cmd package install-existing --user 0 \"$pkg\" >/dev/null 2>&1 || true",
-    "  pm enable \"$pkg\" >/dev/null 2>&1 || true",
     "",
-    "  target_path=\"$(pm_base_path \"$pkg\")\"",
-    "  if [ -z \"$target_path\" ]; then",
-    "    target_path=\"$(find_system_apk \"$pkg\")\"",
-    "    [ -n \"$target_path\" ] && ui_print \"  Warning: pm path empty, using scanned path: $target_path\"",
-    "  fi",
-    "  [ -n \"$target_path\" ] || abort \"Could not locate system APK path for $label. Is Google Photos installed as a system app?\"",
-    "",
-    "  unmount_global \"$target_path\"",
+    "  # Stage the patched APK into data",
     "  stage_patched_apk \"$patched_apk\" \"$persistent_apk\" || abort \"Failed to stage patched APK for $label\"",
-    "  cmd package compile --reset \"$pkg\" >/dev/null 2>&1 || true",
-    "  unmount_global \"$target_path\"",
-    "  mount_bind_global \"$persistent_apk\" \"$target_path\" || abort \"Bind mount failed for $label\"",
-    "  set_pm_installer \"$pkg\"",
-    "  am force-stop \"$pkg\" >/dev/null 2>&1 || true",
-    "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
-    "  ui_print \"  System base: $target_path\"",
-    "  ui_print \"  Patched base: $persistent_apk\"",
+    "  ui_print \"  Patched APK staged for regular installation on boot.\"",
     "}",
     "",
     "while IFS='|' read -r pkg label patched_name fallback_path; do",
@@ -1968,76 +1863,11 @@ function rootCustomizeScript(apps) {
 }
 
 function rootPostMountScript(apps) {
-  // post-mount.sh runs VERY early - before system_server, before PackageManager.
-  // pm, cmd package, am - NONE of these work here.
-  // We must use direct filesystem paths from the module's system overlay.
-  // The module places a stock APK at $MODDIR/system/..., which Magisk overlays at boot.
-  // We walk $MODDIR/system/ to find those paths and bind-mount the patched APK over them.
-  const appLines = apps.map((app) => [
-    app.packageName,
-    app.label,
-    app.fallbackSystemPath,  // the real system path after rootSystemPathFor() transform
-  ].join("|"));
-
+  // We no longer use early bind mounts. The system app is masked entirely by Magisk
+  // and the regular installation happens during service.sh.
   return [
     "#!/system/bin/sh",
-    "",
-    "MODDIR=${0%/*}",
-    "DATA_DIR=/data/adb/mistu-root/${MODDIR##*/}",
-    "LOG=\"$MODDIR/root-module.log\"",
-    "",
-    "log() {",
-    "  echo \"$(date '+%Y-%m-%d %H:%M:%S') [$1] $2\" >> \"$LOG\"",
-    "}",
-    "",
-    "# Find the actual system APK path for a package by scanning the module's system overlay.",
-    "# The overlay path (after stripping MODDIR/system prefix) is the real path at boot.",
-    "find_moddir_apk() {",
-    "  local pkg=\"$1\"",
-    "  local f",
-    "  for f in \"$MODDIR\"/system/product/app/*/\"*.apk\" \"$MODDIR\"/system/product/priv-app/*/\"*.apk\" \"$MODDIR\"/system/priv-app/*/\"*.apk\" \"$MODDIR\"/system/app/*/\"*.apk\"; do",
-    "    [ -f \"$f\" ] || continue",
-    "    # Strip $MODDIR/system prefix to get real path",
-    "    local real_path=\"${f#\"$MODDIR/system\"}\"",
-    "    echo \"$real_path\"",
-    "    return 0",
-    "  done",
-    "  return 1",
-    "}",
-    "",
-    "early_bind_mount() {",
-    "  local pkg=\"$1\" label=\"$2\" fallback_path=\"$3\"",
-    "  local patched_apk target_path",
-    "  patched_apk=\"$DATA_DIR/$pkg.apk\"",
-    "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label: patched APK missing, skipping early mount\"; return 0; }",
-    "",
-    "  # First, try the module system overlay path (most reliable at post-mount stage)",
-    "  target_path=\"$(find_moddir_apk \"$pkg\")\"",
-    "  # Fall back to the build-time known system path",
-    "  [ -n \"$target_path\" ] || target_path=\"$fallback_path\"",
-    "  [ -n \"$target_path\" ] && [ -f \"$target_path\" ] || { log \"warn\" \"$label: system APK target not found at $target_path\"; return 0; }",
-    "",
-    "  # Unmount any existing bind before mounting",
-    "  umount \"$target_path\" >/dev/null 2>&1 || true",
-    "  if mount -o bind \"$patched_apk\" \"$target_path\"; then",
-    "    log \"ok\" \"$label: early bind mount succeeded: $target_path\"",
-    "  else",
-    "    log \"warn\" \"$label: early bind mount FAILED for $target_path\"",
-    "  fi",
-    "}",
-    "",
-    "APP_LIST=$(cat <<'EOF_APP_LIST'",
-    ...appLines,
-    "EOF_APP_LIST",
-    ")",
-    "",
-    "while IFS='|' read -r pkg label fallback_path; do",
-    "  [ -n \"$pkg\" ] || continue",
-    "  early_bind_mount \"$pkg\" \"$label\" \"$fallback_path\"",
-    "done <<EOF_APPLY_APPS",
-    "$APP_LIST",
-    "EOF_APPLY_APPS",
-    "log \"ok\" \"post-mount: early bind mount pass complete\"",
+    "# Legacy script intentionally left blank.",
     "",
   ].join("\n");
 }
@@ -2208,36 +2038,34 @@ function rootServiceScript(apps) {
     "}",
     "",
     "apply_package() {",
-    "  local pkg=\"$1\" label=\"$2\" fallback_path=\"$3\"",
-    "  local patched_apk target_path",
+    "  local pkg=\"$1\" label=\"$2\"",
+    "  local patched_apk",
     "  patched_apk=\"$DATA_DIR/$pkg.apk\"",
     "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label patched APK missing at $patched_apk\"; set_description_status \"Needs reinstall: $label patched APK missing\"; return 0; }",
     "",
-    "  # Ensure package is visible/enabled",
-    "  cmd package install-existing --user 0 \"$pkg\" >/dev/null 2>&1 || true",
-    "  pm enable \"$pkg\" >/dev/null 2>&1 || true",
-    "",
-    "  target_path=\"$(pm_base_path \"$pkg\")\"",
-    "  [ -n \"$target_path\" ] || target_path=\"$fallback_path\"",
-    "  [ -n \"$target_path\" ] || { log \"warn\" \"$label package path not found\"; set_description_status \"Needs reinstall: $label package path not found\"; return 0; }",
-    "",
-    "  log \"info\" \"$label target path: $target_path\"",
-    "  log \"info\" \"$label patched APK: $patched_apk\"",
-    "",
-    "  # Clear stale dex/oat cache so the new APK's bytecode is used",
-    "  am force-stop \"$pkg\" >/dev/null 2>&1 || true",
-    "  cmd package compile --reset \"$pkg\" >/dev/null 2>&1 || true",
-    "  unmount_global \"$target_path\"",
-    "  if ! mount_bind_global \"$patched_apk\" \"$target_path\"; then",
-    "    log \"warn\" \"$label bind mount failed for $target_path\"",
-    "    set_description_status \"Needs reinstall: $label bind mount failed\"",
-    "    return 0",
+    "  # Since the system app is masked by Magisk, it appears uninstalled.",
+    "  # Perform a regular pm install using the patched APK.",
+    "  log \"info\" \"$label: Checking installation status...\"",
+    "  ",
+    "  local is_installed=\"$(pm list packages \"$pkg\" 2>/dev/null)\"",
+    "  if [ -n \"$is_installed\" ]; then",
+    "    log \"info\" \"$label is already installed. Re-installing to ensure correct version...\"",
+    "  else",
+    "    log \"info\" \"$label is not installed. Performing initial installation...\"",
     "  fi",
-    "  # Recompile against the patched APK now in place",
-    "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
-    "  cmd package set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
-    "  pm set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
-    "  log \"ok\" \"$label: service bind mount succeeded: $target_path\"",
+    "",
+    "  am force-stop \"$pkg\" >/dev/null 2>&1 || true",
+    "  # -g: grant permissions, -r: replace existing, -d: allow downgrade",
+    "  local install_out",
+    "  install_out=\"$(pm install -g -r -d \"$patched_apk\" 2>&1)\"",
+    "  if printf '%s\\n' \"$install_out\" | grep -iq \"Success\"; then",
+    "    log \"ok\" \"$label: pm install succeeded.\"",
+    "    cmd package set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
+    "    pm set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
+    "  else",
+    "    log \"warn\" \"$label: pm install failed! Output: $install_out\"",
+    "    set_description_status \"Needs reinstall: pm install failed for $label\"",
+    "  fi",
     "}",
     "",
     "detach_play_store_db() {",
@@ -2271,8 +2099,8 @@ function rootServiceScript(apps) {
     "EOF_APPLY_APPS",
     "",
     "detach_play_store_db",
-    "set_description_status \"Active: patched APK bind-mounted over original package\"",
-    "log \"ok\" \"Applied root module bind mounts and Play Store detach.\"",
+    "set_description_status \"Active: system app masked, patched app installed\"",
+    "log \"ok\" \"Applied system masking and Play Store detach.\"",
     "",
     "# === Start background logcat monitor for each app ===",
     "# Runs in subshell so it doesn't block service.sh exit",
