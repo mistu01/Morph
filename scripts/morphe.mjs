@@ -217,7 +217,7 @@ const appConfigs = {
     ["angulus",             "Angulus",               "com.drinkplusplus.angulus",               {}],
     ["bandcamp",            "Bandcamp",              "com.bandcamp.android",                    { apkmirrorOrg: "bandcamp", apkmirrorRepo: "bandcamp" }],
     ["disney-plus",         "Disney+",               "com.disney.disneyplus",                  { apkmirrorOrg: "disney", apkmirrorRepo: "disney" }],
-    ["facebook",            "Facebook",              "com.facebook.katana",                     {}],
+    ["facebook",            "Facebook",              "com.facebook.katana",                     { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook" }],
     ["gmx-mail",            "GMX Mail",              "de.gmx.mobile.android.mail",              {}],
     ["google-news",         "Google News",           "com.google.android.apps.magazines",       { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-news" }],
     ["google-recorder",     "Google Recorder",       "com.google.android.apps.recorder",        { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-recorder" }],
@@ -2931,7 +2931,7 @@ async function githubJson(url) {
     headers: {
       Accept: "application/vnd.github+json",
       "User-Agent": "morph-youtube-builder",
-      ...(env("GITHUB_TOKEN") ? { Authorization: `Bearer ${env("GITHUB_TOKEN")}` } : {}),
+      ...(env("GITHUB_TOKEN") && !env("GITHUB_TOKEN").includes("dummy") ? { Authorization: `Bearer ${env("GITHUB_TOKEN")}` } : {}),
     },
   });
 
@@ -2963,7 +2963,7 @@ async function downloadFile(url, destination, headers = {}) {
     headers: {
       "User-Agent": "morph-youtube-builder",
       ...headers,
-      ...(env("GITHUB_TOKEN") && url.includes("github.com")
+      ...(env("GITHUB_TOKEN") && !env("GITHUB_TOKEN").includes("dummy") && url.includes("github.com")
         ? { Authorization: `Bearer ${env("GITHUB_TOKEN")}` }
         : {}),
     },
