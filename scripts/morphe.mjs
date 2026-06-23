@@ -1361,16 +1361,26 @@ async function ensureAdoboPatchOptions(app, tools = null) {
 
     if (isUniversal || isCompatibleGboardPatch) {
       const existingEntry = patchEntries[patch.name] || {};
+<<<<<<< HEAD
       const patchKey = patch.name.toLowerCase();
       const isTargetUniversalPatch = patchKey === "block ads, trackers, and analytics" || patchKey === "disable mobile ads";
       const isEnabled = isUniversal ? isTargetUniversalPatch : true;
 
       const newEntry = {
         enabled: isEnabled,
+=======
+      const newEntry = {
+        enabled: true,
+>>>>>>> 8dd94b280eadf9b6e95ec634f4b586ed4677022c
         options: {
           ...(existingEntry.options || {}),
         },
       };
+<<<<<<< HEAD
+=======
+
+      const patchKey = patch.name.toLowerCase();
+>>>>>>> 8dd94b280eadf9b6e95ec634f4b586ed4677022c
       if (patchKey === "block ads, trackers, and analytics") {
         newEntry.options.hosts = emptyHostsPath;
         newEntry.options.redirectionIp = "0.0.0.0";
@@ -1448,12 +1458,21 @@ async function ensureRootPatchArgs(app) {
       args.push("--enable", patch.name);
       enabled.push(patch.name);
     } else if (isUniversalAdoboPatch(patch)) {
+<<<<<<< HEAD
       if (patchKey === "block ads, trackers, and analytics" || patchKey === "disable mobile ads") {
         args.push("--enable", patch.name);
         enabled.push(patch.name);
       } else {
         args.push("--disable", patch.name);
         disabled.push(patch.name);
+=======
+      const hasRequiredOptionsWithoutDefault = (patch.options || []).some(
+        (opt) => opt.required && (opt.default === undefined || opt.default === null)
+      );
+      if (!hasRequiredOptionsWithoutDefault) {
+        args.push("--enable", patch.name);
+        enabled.push(patch.name);
+>>>>>>> 8dd94b280eadf9b6e95ec634f4b586ed4677022c
       }
     }
   }
