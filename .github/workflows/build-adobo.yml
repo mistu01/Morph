@@ -6,7 +6,7 @@ on:
       targets:
         description: "Supported: 9gag, gboard, imdb, reddit"
         required: true
-        default: "reddit"
+        default: "reddit,gboard"
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
@@ -78,7 +78,7 @@ jobs:
           cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
           ## Adobo supported targets
 
-          Default target: `reddit`
+          Default targets: `reddit,gboard`
 
           `9gag`, `gboard`, `imdb`, `reddit`
           EOF

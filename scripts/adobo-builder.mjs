@@ -28,7 +28,7 @@ export const ADOBO_APPS = {
   "reddit":           { packageName: "com.reddit.frontpage",                  label: "Reddit" },
 };
 
-const rawTargets = env("BUILD_TARGETS") || "reddit";
+const rawTargets = env("BUILD_TARGETS") || "reddit,gboard";
 const parsedTargets = rawTargets
   .split(/[,\s;.]+/)
   .map((t) => t.trim().toLowerCase())
