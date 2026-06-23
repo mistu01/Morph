@@ -1,10 +1,5 @@
 [
     {
-        "meta": {
-            "created_at": "2026-06-23T17:21:00.000000000Z",
-            "source": "patches.mpp",
-            "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
-        },
         "patches": {
             "Override certificate pinning": {
                 "enabled": false
@@ -20,16 +15,7 @@
             "Enable DCIM folders backup control": {
                 "enabled": true
             },
-            "Fix selected account persistence": {
-                "enabled": true
-            },
             "GmsCore support": {
-                "enabled": true
-            },
-            "Extension": {
-                "enabled": true
-            },
-            "Restore backup toggle": {
                 "enabled": true
             },
             "Spoof features": {

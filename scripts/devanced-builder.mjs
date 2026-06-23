@@ -109,6 +109,7 @@ function defaultPatchArgs() {
   const args = [];
   if (truthy(env("FORCE_PATCH") || "true")) args.push("--force");
   if (truthy(env("CONTINUE_ON_ERROR") || "true")) args.push("--continue-on-error");
+  if (truthy(env("OPTIONS_UPDATE") || "true")) args.push("--options-update");
   return args;
 }
 
