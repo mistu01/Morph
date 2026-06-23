@@ -1,0 +1,78 @@
+name: Watch Adobo patches
+
+on:
+  schedule:
+    - cron: "27 1 * * 0"
+  workflow_dispatch:
+
+jobs:
+  watch:
+    name: Trigger builds on stable Adobo patch releases
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+
+    steps:
+      - name: Check latest Adobo patch releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          stable="$(gh api 'repos/jkennethcarino/adobo/releases?per_page=100' --jq 'map(select(.draft == false and .prerelease == false))[0].tag_name')"
+          release_tags="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName --jq '.[].tagName')"
+          triggered="0"
+
+          find_existing_release() {
+            local patches_tag="$1"
+            local patches_repo="jkennethcarino/adobo"
+
+            while IFS= read -r release_tag; do
+              if [ -z "$release_tag" ]; then
+                continue
+              fi
+
+              release_body="$(gh release view "$release_tag" --repo "$GITHUB_REPOSITORY" --json body --jq '.body' 2>/dev/null || true)"
+              if printf '%s\n' "$release_body" | grep -Fq -- "${patches_repo} ${patches_tag}"; then
+                printf '%s\n' "$release_tag"
+                return 0
+              fi
+            done <<< "$release_tags"
+
+            return 1
+          }
+
+          trigger_adobo_build_patched_apks() {
+            local channel="$1"
+            local patches_tag="$2"
+
+            gh workflow run build-adobo.yml \
+              --repo "$GITHUB_REPOSITORY" \
+              --ref "${GITHUB_REF_NAME}" \
+              -f targets="reddit,gboard,9gag,imdb" \
+              -f cli_version="latest" \
+              -f patches_version="${patches_tag}" \
+              -f continue_on_error="true" \
+              -f create_release="true" \
+              -f upload_artifact="true"
+
+            triggered="1"
+            echo "Triggered Build Adobo patched APKs workflow for ${channel} patches version ${patches_tag}."
+          }
+
+          if [ -z "$stable" ] || [ "$stable" = "null" ]; then
+            echo "No stable Adobo patch release found."
+            exit 0
+          fi
+
+          echo "Latest stable Adobo patches release: ${stable}"
+
+          existing_release="$(find_existing_release "$stable" || true)"
+          echo "Existing release for ${stable}: ${existing_release:-none}"
+          if [ -z "$existing_release" ]; then
+            trigger_adobo_build_patched_apks "stable" "$stable"
+          fi
+
+          if [ "$triggered" = "0" ]; then
+            echo "No new Adobo stable patch build needed."
+          fi

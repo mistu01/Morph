@@ -5,6 +5,7 @@ files = [
     '.github/workflows/build-hoodles.yml',
     '.github/workflows/build-paresh.yml',
     '.github/workflows/build-piko-new.yml',
+    '.github/workflows/build-adobo.yml',
 ]
 
 checks = {

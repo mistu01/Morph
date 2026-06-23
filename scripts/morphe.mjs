@@ -238,6 +238,9 @@ const appConfigs = {
     ["tumblr",              "Tumblr",                "com.tumblr",                              { apkmirrorOrg: "tumblr-inc", apkmirrorRepo: "tumblr" }],
     ["twitch",              "Twitch",                "tv.twitch.android.app",                   { apkmirrorOrg: "twitch-interactive-inc", apkmirrorRepo: "twitch" }],
     ["viber",               "Viber",                 "com.viber.voip",                          { apkmirrorOrg: "viber-media-s-a-r-l", apkmirrorRepo: "viber-messenger" }],
+    ["9gag",                "9GAG",                  "com.ninegag.android.app",                 { apkmirrorOrg: "9gag", apkmirrorRepo: "9gag-funny-gif-meme-video-pics-cosplay-social" }],
+    ["gboard",              "Gboard",                "com.google.android.inputmethod.latin",    { apkmirrorOrg: "google-inc", apkmirrorRepo: "gboard-the-google-keyboard", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "120-640dpi" }],
+    ["imdb",                "IMDb",                  "com.imdb.mobile",                         { apkmirrorOrg: "imdb", apkmirrorRepo: "imdb-movies-tv-shows" }],
   ]),
 };
 
