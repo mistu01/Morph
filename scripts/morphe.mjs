@@ -1536,8 +1536,8 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
 
   writeTextFile(join(moduleDir, "customize.sh"), rootCustomizeScript(entries), 0o755);
 
-  writeTextFile(join(moduleDir, "post-mount.sh"), rootLifecycleScript(entries, "post-mount"), 0o755);
-  writeTextFile(join(moduleDir, "service.sh"), rootLifecycleScript(entries, "service"), 0o755);
+  writeTextFile(join(moduleDir, "post-mount.sh"), rootPostMountScript(entries), 0o755);
+  writeTextFile(join(moduleDir, "service.sh"), rootServiceScript(entries), 0o755);
   writeTextFile(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames), 0o755);
   writeMagiskInstaller(moduleDir);
   writeFileSync(join(moduleDir, "system.prop"), [
@@ -1967,25 +1967,89 @@ function rootCustomizeScript(apps) {
   ].join("\n");
 }
 
-function rootLifecycleScript(apps, stage) {
+function rootPostMountScript(apps) {
+  // post-mount.sh runs VERY early - before system_server, before PackageManager.
+  // pm, cmd package, am - NONE of these work here.
+  // We must use direct filesystem paths from the module's system overlay.
+  // The module places a stock APK at $MODDIR/system/..., which Magisk overlays at boot.
+  // We walk $MODDIR/system/ to find those paths and bind-mount the patched APK over them.
   const appLines = apps.map((app) => [
     app.packageName,
     app.label,
+    app.fallbackSystemPath,  // the real system path after rootSystemPathFor() transform
   ].join("|"));
-  const waitForBoot = stage === "service"
-    ? [
-        "boot_wait() {",
-        "  local boot_completed",
-        "  for _ in $(seq 1 60); do",
-        "    boot_completed=\"$(getprop sys.boot_completed 2>/dev/null)\"",
-        "    [ \"$boot_completed\" = \"1\" ] && return 0",
-        "    sleep 2",
-        "  done",
-        "}",
-        "",
-        "boot_wait",
-      ]
-    : [];
+
+  return [
+    "#!/system/bin/sh",
+    "",
+    "MODDIR=${0%/*}",
+    "DATA_DIR=/data/adb/mistu-root/${MODDIR##*/}",
+    "LOG=\"$MODDIR/root-module.log\"",
+    "",
+    "log() {",
+    "  echo \"$(date '+%Y-%m-%d %H:%M:%S') [$1] $2\" >> \"$LOG\"",
+    "}",
+    "",
+    "# Find the actual system APK path for a package by scanning the module's system overlay.",
+    "# The overlay path (after stripping MODDIR/system prefix) is the real path at boot.",
+    "find_moddir_apk() {",
+    "  local pkg=\"$1\"",
+    "  local f",
+    "  for f in \"$MODDIR\"/system/product/app/*/\"*.apk\" \"$MODDIR\"/system/product/priv-app/*/\"*.apk\" \"$MODDIR\"/system/priv-app/*/\"*.apk\" \"$MODDIR\"/system/app/*/\"*.apk\"; do",
+    "    [ -f \"$f\" ] || continue",
+    "    # Strip $MODDIR/system prefix to get real path",
+    "    local real_path=\"${f#\"$MODDIR/system\"}\"",
+    "    echo \"$real_path\"",
+    "    return 0",
+    "  done",
+    "  return 1",
+    "}",
+    "",
+    "early_bind_mount() {",
+    "  local pkg=\"$1\" label=\"$2\" fallback_path=\"$3\"",
+    "  local patched_apk target_path",
+    "  patched_apk=\"$DATA_DIR/$pkg.apk\"",
+    "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label: patched APK missing, skipping early mount\"; return 0; }",
+    "",
+    "  # First, try the module system overlay path (most reliable at post-mount stage)",
+    "  target_path=\"$(find_moddir_apk \"$pkg\")\"",
+    "  # Fall back to the build-time known system path",
+    "  [ -n \"$target_path\" ] || target_path=\"$fallback_path\"",
+    "  [ -n \"$target_path\" ] && [ -f \"$target_path\" ] || { log \"warn\" \"$label: system APK target not found at $target_path\"; return 0; }",
+    "",
+    "  # Unmount any existing bind before mounting",
+    "  umount \"$target_path\" >/dev/null 2>&1 || true",
+    "  if mount -o bind \"$patched_apk\" \"$target_path\"; then",
+    "    log \"ok\" \"$label: early bind mount succeeded: $target_path\"",
+    "  else",
+    "    log \"warn\" \"$label: early bind mount FAILED for $target_path\"",
+    "  fi",
+    "}",
+    "",
+    "APP_LIST=$(cat <<'EOF_APP_LIST'",
+    ...appLines,
+    "EOF_APP_LIST",
+    ")",
+    "",
+    "while IFS='|' read -r pkg label fallback_path; do",
+    "  [ -n \"$pkg\" ] || continue",
+    "  early_bind_mount \"$pkg\" \"$label\" \"$fallback_path\"",
+    "done <<EOF_APPLY_APPS",
+    "$APP_LIST",
+    "EOF_APPLY_APPS",
+    "log \"ok\" \"post-mount: early bind mount pass complete\"",
+    "",
+  ].join("\n");
+}
+
+function rootServiceScript(apps) {
+  // service.sh runs after boot_completed - PackageManager and all services are running.
+  // Use pm path to get the registered path, compile --reset to clear stale dex, then bind-mount.
+  const appLines = apps.map((app) => [
+    app.packageName,
+    app.label,
+    app.fallbackSystemPath,
+  ].join("|"));
 
   return [
     "#!/system/bin/sh",
@@ -2024,7 +2088,16 @@ function rootLifecycleScript(apps, stage) {
     "  fi",
     "}",
     "",
-    ...waitForBoot,
+    "boot_wait() {",
+    "  local boot_completed",
+    "  for _ in $(seq 1 60); do",
+    "    boot_completed=\"$(getprop sys.boot_completed 2>/dev/null)\"",
+    "    [ \"$boot_completed\" = \"1\" ] && return 0",
+    "    sleep 2",
+    "  done",
+    "}",
+    "",
+    "boot_wait",
     "",
     "pm_base_path() {",
     "  pm path \"$1\" 2>/dev/null | sed -n 's/^package://p' | grep -v '/split_' | head -n 1",
@@ -2055,14 +2128,21 @@ function rootLifecycleScript(apps, stage) {
     "}",
     "",
     "apply_package() {",
-    "  local pkg=\"$1\" label=\"$2\" patched_apk target_path",
+    "  local pkg=\"$1\" label=\"$2\" fallback_path=\"$3\"",
+    "  local patched_apk target_path",
     "  patched_apk=\"$DATA_DIR/$pkg.apk\"",
     "  [ -f \"$patched_apk\" ] || { log \"warn\" \"$label patched APK missing at $patched_apk\"; set_description_status \"Needs reinstall: $label patched APK missing\"; return 0; }",
-    "  cmd package install-existing \"$pkg\" >/dev/null 2>&1 || true",
+    "",
+    "  # Ensure package is visible/enabled",
+    "  cmd package install-existing --user 0 \"$pkg\" >/dev/null 2>&1 || true",
     "  pm enable \"$pkg\" >/dev/null 2>&1 || true",
-    "  cmd package unsuspend \"$pkg\" >/dev/null 2>&1 || true",
+    "",
     "  target_path=\"$(pm_base_path \"$pkg\")\"",
+    "  [ -n \"$target_path\" ] || target_path=\"$fallback_path\"",
     "  [ -n \"$target_path\" ] || { log \"warn\" \"$label package path not found\"; set_description_status \"Needs reinstall: $label package path not found\"; return 0; }",
+    "",
+    "  # Clear stale dex/oat cache so the new APK's bytecode is used",
+    "  am force-stop \"$pkg\" >/dev/null 2>&1 || true",
     "  cmd package compile --reset \"$pkg\" >/dev/null 2>&1 || true",
     "  unmount_global \"$target_path\"",
     "  if ! mount_bind_global \"$patched_apk\" \"$target_path\"; then",
@@ -2070,9 +2150,11 @@ function rootLifecycleScript(apps, stage) {
     "    set_description_status \"Needs reinstall: $label bind mount failed\"",
     "    return 0",
     "  fi",
+    "  # Recompile against the patched APK now in place",
+    "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
     "  cmd package set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
     "  pm set-installer \"$pkg\" com.android.shell >/dev/null 2>&1 || true",
-    "  cmd package compile -m speed-profile -f \"$pkg\" >/dev/null 2>&1 || true",
+    "  log \"ok\" \"$label: service bind mount succeeded: $target_path\"",
     "}",
     "",
     "detach_play_store_db() {",
@@ -2080,7 +2162,7 @@ function rootLifecycleScript(apps, stage) {
     "  [ -d /data/data/$PLAY_STORE/databases ] || return 0",
     "",
     "  local pkg label db",
-    "  while IFS='|' read -r pkg label; do",
+    "  while IFS='|' read -r pkg label _; do",
     "    [ -n \"$pkg\" ] || continue",
     "    for db in /data/data/$PLAY_STORE/databases/*.db; do",
     "      [ -f \"$db\" ] || continue",
@@ -2095,9 +2177,9 @@ function rootLifecycleScript(apps, stage) {
     "EOF_DETACH_APPS",
     "}",
     "",
-    "while IFS='|' read -r pkg label; do",
+    "while IFS='|' read -r pkg label fallback_path; do",
     "  [ -n \"$pkg\" ] || continue",
-    "  apply_package \"$pkg\" \"$label\"",
+    "  apply_package \"$pkg\" \"$label\" \"$fallback_path\"",
     "done <<EOF_APPLY_APPS",
     "$APP_LIST",
     "EOF_APPLY_APPS",
@@ -2107,6 +2189,7 @@ function rootLifecycleScript(apps, stage) {
     "",
   ].join("\n");
 }
+
 
 function rootUninstallScript(packageNames) {
   return [
