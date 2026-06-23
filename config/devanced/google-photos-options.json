@@ -26,6 +26,12 @@
             "GmsCore support": {
                 "enabled": true
             },
+            "Extension": {
+                "enabled": true
+            },
+            "Restore backup toggle": {
+                "enabled": true
+            },
             "Spoof features": {
                 "enabled": true
             }
