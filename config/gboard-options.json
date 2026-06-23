@@ -77,7 +77,7 @@
         "options": {}
       },
       "Toggle feature flags": {
-        "enabled": true,
+        "enabled": false,
         "options": {
           "featureFlags": [],
           "enableFlags": true

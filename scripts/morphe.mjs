@@ -1363,7 +1363,10 @@ async function ensureAdoboPatchOptions(app, tools = null) {
       const existingEntry = patchEntries[patch.name] || {};
       const patchKey = patch.name.toLowerCase();
       const isTargetUniversalPatch = patchKey === "block ads, trackers, and analytics" || patchKey === "disable mobile ads";
-      const isEnabled = isUniversal ? isTargetUniversalPatch : true;
+      let isEnabled = isUniversal ? isTargetUniversalPatch : true;
+      if (isGboardApp && patchKey === "toggle feature flags") {
+        isEnabled = false;
+      }
 
       const newEntry = {
         enabled: isEnabled,
@@ -1441,7 +1444,9 @@ async function ensureRootPatchArgs(app) {
     if (!patch?.name || !patchCompatibleWithApp(patch, app)) continue;
 
     const patchKey = patch.name.toLowerCase();
-    if (rootDisabledPatches.has(patchKey)) {
+    const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo");
+    const isGboardApp = app.id === "gboard";
+    if (rootDisabledPatches.has(patchKey) || (isAdobo && isGboardApp && patchKey === "toggle feature flags")) {
       args.push("--disable", patch.name);
       disabled.push(patch.name);
     } else if (rootEnabledPatches.has(patchKey)) {
