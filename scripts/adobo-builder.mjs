@@ -28,9 +28,19 @@ export const ADOBO_APPS = {
   "reddit":           { packageName: "com.reddit.frontpage",                  label: "Reddit" },
 };
 
+const rawTargets = env("BUILD_TARGETS") || "reddit";
+const parsedTargets = rawTargets
+  .split(/[,\s;.]+/)
+  .map((t) => t.trim().toLowerCase())
+  .filter(Boolean);
+
+validateTargets(parsedTargets);
+
+const buildTargets = parsedTargets.join(",");
+
 const childEnv = {
   ...process.env,
-  BUILD_TARGETS: env("BUILD_TARGETS") || "reddit",
+  BUILD_TARGETS: buildTargets,
   APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
   APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
   APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
@@ -47,8 +57,6 @@ const childEnv = {
 if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
   childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
 }
-
-validateTargets(childEnv.BUILD_TARGETS);
 
 const result = spawnSync(
   process.execPath,
@@ -78,11 +86,10 @@ function defaultPatchArgs() {
   return args;
 }
 
-function validateTargets(value) {
+function validateTargets(targets) {
   if (!["build", "download", "options", "release-check", "release-notes"].includes(command)) return;
 
-  const requested = value.split(",").map((target) => target.trim().toLowerCase()).filter(Boolean);
-  const unknown = requested.filter((target) => !ADOBO_APPS[target]);
+  const unknown = targets.filter((target) => !ADOBO_APPS[target]);
   if (unknown.length) {
     console.error(`Unsupported Adobo target(s): ${unknown.join(", ")}`);
     console.error(`Supported Adobo targets: ${Object.keys(ADOBO_APPS).join(", ")}`);
