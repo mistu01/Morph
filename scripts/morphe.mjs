@@ -1318,6 +1318,93 @@ async function applyCachedInputMetadata(app) {
   console.log(`${app.label}: cached APK metadata requires --force for patching.`);
 }
 
+function isUniversalAdoboPatch(patch) {
+  const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo");
+  if (!isAdobo) return false;
+
+  const isUniversal = !patch.compatiblePackages || patch.compatiblePackages.length === 0;
+  if (!isUniversal) return false;
+
+  const patchKey = patch.name.toLowerCase();
+  if (patchKey === "remove internet permission") return false;
+
+  return true;
+}
+
+async function ensureAdoboPatchOptions(app, tools = null) {
+  const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo");
+  if (!isAdobo) return;
+
+  const activeTools = tools || await ensureTools(flag("refresh-tools"));
+  if (!existsSync(app.options)) {
+    createDefaultOptionsFile(app, activeTools);
+  }
+
+  const patchesList = await fetchPatchesList();
+  const existingBundles = await readJson(app.options);
+  const existingBundle = Array.isArray(existingBundles) ? existingBundles[0] : null;
+  const patchEntries = existingBundle?.patches || {};
+
+  const emptyHostsPath = join(paths.tools, "empty-hosts.txt");
+  if (!existsSync(emptyHostsPath)) {
+    writeFileSync(emptyHostsPath, "");
+  }
+
+  let modified = false;
+
+  for (const patch of patchesList?.patches || []) {
+    if (!patch?.name) continue;
+
+    const isUniversal = isUniversalAdoboPatch(patch);
+    const isGboardApp = app.id === "gboard";
+    const isCompatibleGboardPatch = isGboardApp && patchCompatibleWithApp(patch, app);
+
+    if (isUniversal || isCompatibleGboardPatch) {
+      const existingEntry = patchEntries[patch.name] || {};
+      const newEntry = {
+        enabled: true,
+        options: {
+          ...(existingEntry.options || {}),
+        },
+      };
+
+      const patchKey = patch.name.toLowerCase();
+      if (patchKey === "block ads, trackers, and analytics") {
+        newEntry.options.hosts = emptyHostsPath;
+        newEntry.options.redirectionIp = "0.0.0.0";
+      } else if (patchKey === "change package name") {
+        newEntry.options.packageName = app.patchedPackageName || ("com.mistu.android." + app.id);
+        newEntry.options.updatePermissions = true;
+        newEntry.options.updateProviders = true;
+      } else if (patchKey === "spoof firebase certificate hash") {
+        newEntry.options.certificateHash = "0000000000000000000000000000000000000000000000000000000000000000";
+      } else if (patchKey === "spoof signature verification") {
+        newEntry.options.packageName = app.packageName;
+        newEntry.options.signature = "0000000000000000000000000000000000000000000000000000000000000000";
+      } else if (patchKey === "toggle feature flags") {
+        newEntry.options.featureFlags = existingEntry.options?.featureFlags || [];
+        newEntry.options.enableFlags = existingEntry.options?.enableFlags ?? true;
+      }
+
+      patchEntries[patch.name] = newEntry;
+      modified = true;
+    }
+  }
+
+  if (modified) {
+    const now = new Date().toISOString();
+    await writeJson(app.options, [{
+      meta: {
+        created_at: existingBundle?.meta?.created_at || now,
+        updated_at: now,
+        source: `${releaseAssets.patches.repo} ${patchesList?.version || env("MORPHE_PATCHES_VERSION") || "latest"}`,
+      },
+      patches: patchEntries,
+    }]);
+    console.log(`${app.label}: configured Adobo patch options.`);
+  }
+}
+
 function patchArgsFor(app) {
   const args = [...passthroughArgs];
   if (app.forcePatch && !args.includes("--force")) {
@@ -1329,18 +1416,17 @@ function patchArgsFor(app) {
 }
 
 async function ensurePatchOptions(app, tools = null) {
+  const activeTools = tools || await ensureTools(flag("refresh-tools"));
+  await ensureAdoboPatchOptions(app, activeTools);
+
   if (rootBuild) {
     await ensureRootPatchArgs(app);
     return;
   }
   if (packageNameOptionsDisabled) {
-    if (truthy(env("MORPHE_CREATE_DEFAULT_OPTIONS"))) {
-      const activeTools = tools || await ensureTools(flag("refresh-tools"));
-      createDefaultOptionsFile(app, activeTools);
-    }
     return;
   }
-  await ensurePackageNameOptions(app, tools);
+  await ensurePackageNameOptions(app, activeTools);
 }
 
 async function ensureRootPatchArgs(app) {
@@ -1359,6 +1445,14 @@ async function ensureRootPatchArgs(app) {
     } else if (rootEnabledPatches.has(patchKey)) {
       args.push("--enable", patch.name);
       enabled.push(patch.name);
+    } else if (isUniversalAdoboPatch(patch)) {
+      const hasRequiredOptionsWithoutDefault = (patch.options || []).some(
+        (opt) => opt.required && (opt.default === undefined || opt.default === null)
+      );
+      if (!hasRequiredOptionsWithoutDefault) {
+        args.push("--enable", patch.name);
+        enabled.push(patch.name);
+      }
     }
   }
 
