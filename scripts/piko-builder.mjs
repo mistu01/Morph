@@ -475,6 +475,10 @@ async function build() {
       }
     }
 
+    if (app.id === "twitter") {
+      patchArgs.push("--enable", "Bring back twitter");
+    }
+
     patchArgs.push(
       "--out", app.output,
       "--result-file", app.result,
