@@ -131,7 +131,7 @@ const appConfigs = {
     rootModuleName: "Mistu Google Photos Root",
     rootApkPath: "system/product/app/Photos/Photos.apk",
     zygiskRepo: env("GOOGLE_PHOTOS_ZYGISK_REPO") || "MeowDump/Unlimited-Photos-Storage",
-    rootModuleTemplate: "piko/google-photos-root-template",
+    rootModuleTemplate: "config/devanced/templates/google-photos-root-template",
   },
   ...externalPatchAppConfigs([
     ["adguard", "AdGuard", "com.adguard.android"],
@@ -1387,7 +1387,7 @@ async function applyCachedInputMetadata(app) {
 }
 
 function isUniversalAdoboPatch(patch) {
-  const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo");
+  const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo") || (env("MORPHE_PATCHES_REPO") || "").toLowerCase().includes("gboard-patches");
   if (!isAdobo) return false;
 
   const isUniversal = !patch.compatiblePackages || patch.compatiblePackages.length === 0;
@@ -1400,7 +1400,7 @@ function isUniversalAdoboPatch(patch) {
 }
 
 async function ensureAdoboPatchOptions(app, tools = null) {
-  const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo");
+  const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo") || (env("MORPHE_PATCHES_REPO") || "").toLowerCase().includes("gboard-patches");
   if (!isAdobo) return;
 
   const activeTools = tools || await ensureTools(flag("refresh-tools"));
@@ -1512,7 +1512,7 @@ async function ensureRootPatchArgs(app) {
     if (!patch?.name || !patchCompatibleWithApp(patch, app)) continue;
 
     const patchKey = patch.name.toLowerCase();
-    const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo");
+    const isAdobo = (env("MORPHE_PATCHES_REPO") || "").includes("adobo") || (env("MORPHE_PATCHES_REPO") || "").toLowerCase().includes("gboard-patches");
     const isGboardApp = app.id === "gboard";
     if (rootDisabledPatches.has(patchKey) || (isAdobo && isGboardApp && patchKey === "toggle feature flags")) {
       args.push("--disable", patch.name);
