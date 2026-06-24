@@ -19,6 +19,7 @@ WORKFLOWS = [
     ".github/workflows/build-hoodles.yml",
     ".github/workflows/build-paresh.yml",
     ".github/workflows/build-piko-new.yml",
+    ".github/workflows/build-gboard-patches.yml",
 ]
 
 # The new improved List available patches step
@@ -45,6 +46,10 @@ NEW_LIST_STEP = """\
             'config/reddit-options.json',
             'config/twitter-options.json',
             'config/instagram-options.json',
+            'config/gboard-options.json',
+            'config/gboard-patches-options.json',
+            'config/piko/instagram-options.json',
+            'config/piko/twitter-options.json',
             '.morphe-action/options/youtube-stable.json',
             '.morphe-action/options/youtube-music-stable.json',
             '.morphe-action/options/reddit-stable.json',

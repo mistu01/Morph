@@ -1,0 +1,91 @@
+[
+  {
+    "meta": {
+      "created_at": "2026-06-24T12:40:36.128344500Z",
+      "updated_at": "2026-06-24T12:40:36.419Z",
+      "source": "jasonwu1994/Gboard-patches 1.12.0"
+    },
+    "patches": {
+      "Zhuyin Quick Traditional/Simplified Toggle": {
+        "enabled": false,
+        "options": {}
+      },
+      "Emojis, stickers & GIFs Tab Order": {
+        "enabled": true,
+        "options": {}
+      },
+      "Custom Symbols": {
+        "enabled": true,
+        "options": {}
+      },
+      "Enable Inline Autofill Suggestions": {
+        "enabled": true,
+        "options": {}
+      },
+      "Add Gboard Signature Bypass": {
+        "enabled": false,
+        "options": {}
+      },
+      "Grammar Checker": {
+        "enabled": true,
+        "options": {}
+      },
+      "Enable Undo/Redo feature": {
+        "enabled": true,
+        "options": {}
+      },
+      "Zhuyin Slide Input": {
+        "enabled": false,
+        "options": {}
+      },
+      "Web Clipboard": {
+        "enabled": true,
+        "options": {}
+      },
+      "Package Rename": {
+        "enabled": false,
+        "options": {}
+      },
+      "AI Writing Tools": {
+        "enabled": true,
+        "options": {}
+      },
+      "Settings Homepage Override": {
+        "enabled": true,
+        "options": {}
+      },
+      "Clipboard Entity Extraction": {
+        "enabled": true,
+        "options": {}
+      },
+      "Clipboard Enhancements": {
+        "enabled": true,
+        "options": {}
+      },
+      "Latin Globe Key Ignore Interval": {
+        "enabled": true,
+        "options": {}
+      },
+      "Clipboard Item Edit": {
+        "enabled": true,
+        "options": {}
+      },
+      "Inline Suggestions": {
+        "enabled": true,
+        "options": {}
+      },
+      "Chinese Online Voice Input": {
+        "enabled": true,
+        "options": {}
+      },
+      "Key Shape Selection": {
+        "enabled": true,
+        "options": {}
+      },
+      "English QWERTY Up-Flick Uppercase": {
+        "enabled": true,
+        "options": {}
+      }
+    }
+  }
+]

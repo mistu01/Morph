@@ -41,6 +41,7 @@ const appConfigs = {
     input: fromRoot("input/instagram.apkm"),
     output: fromRoot("output/instagram-patched.apk"),
     result: fromRoot("output/instagram-result.json"),
+    options: env("INSTAGRAM_OPTIONS") || "config/piko/instagram-options.json",
     apkpureName: "Instagram",
     apkpureSlug: "instagram",
     apkpurePage: "https://apkpure.com/instagram/com.instagram.android",
@@ -62,6 +63,7 @@ const appConfigs = {
     input: fromRoot("input/twitter.apkm"),
     output: fromRoot("output/twitter-patched.apk"),
     result: fromRoot("output/twitter-result.json"),
+    options: env("TWITTER_OPTIONS") || "config/piko/twitter-options.json",
     apkpureName: "X",
     apkpureSlug: "x",
     apkpurePage: "https://apkpure.com/x/com.twitter.android",
@@ -82,6 +84,9 @@ async function main() {
   switch (command) {
     case "tools":
       await downloadTools();
+      break;
+    case "options":
+      await createOptions();
       break;
     case "build":
       await build();
@@ -110,6 +115,27 @@ async function githubJson(url) {
 }
 
 async function downloadFile(url, destination, extraHeaders = {}) {
+  try {
+    const curlCmd = process.platform === "win32" ? "curl.exe" : "curl";
+    const headersArgs = [];
+    const token = env("GITHUB_TOKEN");
+    if (token && !token.includes("dummy") && url.includes("github.com")) {
+      headersArgs.push("-H", `Authorization: Bearer ${token}`);
+    }
+    for (const [key, value] of Object.entries(extraHeaders)) {
+      headersArgs.push("-H", `${key}: ${value}`);
+    }
+
+    mkdirSync(dirname(destination), { recursive: true });
+    const args = ["-L", "-o", destination, ...headersArgs, url];
+    const proc = spawnSync(curlCmd, args, { stdio: "inherit" });
+    if (proc.status === 0 && existsSync(destination) && statSync(destination).size > 0) {
+      return { url };
+    }
+  } catch (err) {
+    console.warn(`curl download failed, falling back to node fetch: ${err.message}`);
+  }
+
   const headers = {
     "User-Agent": "piko-builder",
     ...extraHeaders,
@@ -147,6 +173,43 @@ async function getReleaseByTag(repo, tag) {
     return devRelease;
   }
   return githubJson(`https://api.github.com/repos/${repo}/releases/tags/${tag}`);
+}
+
+async function createOptions() {
+  const tools = await downloadTools();
+
+  const targets = (env("BUILD_TARGETS") || "twitter,instagram")
+    .split(",")
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
+
+  for (const targetId of targets) {
+    const app = appConfigs[targetId];
+    if (!app) {
+      console.warn(`Warning: unknown target: ${targetId}`);
+      continue;
+    }
+
+    if (!app.options) continue;
+
+    mkdirSync(dirname(app.options), { recursive: true });
+    console.log(`\n==> Creating options for ${app.label} -> ${app.options}`);
+
+    const procArgs = [
+      "-jar", tools.cli,
+      "options-create",
+      "--patches", tools.patches,
+      "--out", app.options,
+      "--filter-package-name", app.packageName,
+    ];
+
+    const proc = spawnSync("java", procArgs, { stdio: "inherit" });
+    if (proc.status !== 0) {
+      console.error(`Failed to create options for ${app.label}`);
+    } else {
+      console.log(`Successfully created options for ${app.label}`);
+    }
+  }
 }
 
 async function downloadTools() {
@@ -477,6 +540,11 @@ async function build() {
 
     if (app.id === "twitter") {
       patchArgs.push("--enable", "Bring back twitter");
+    }
+
+    if (app.options && existsSync(app.options)) {
+      console.log(`Using options file: ${app.options}`);
+      patchArgs.push("--options-file", app.options);
     }
 
     patchArgs.push(

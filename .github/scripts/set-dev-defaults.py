@@ -8,11 +8,14 @@ files = [
     '.github/workflows/build-hoodles.yml',
     '.github/workflows/build-paresh.yml',
     '.github/workflows/build-piko-new.yml',
+    '.github/workflows/build-gboard-patches.yml',
 ]
 
 changed = 0
 for f in files:
     path = pathlib.Path(f)
+    if not path.exists():
+        continue
     text = path.read_text(encoding='utf-8')
     original = text
 

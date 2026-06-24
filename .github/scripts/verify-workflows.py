@@ -6,6 +6,7 @@ files = [
     '.github/workflows/build-paresh.yml',
     '.github/workflows/build-piko-new.yml',
     '.github/workflows/build-adobo.yml',
+    '.github/workflows/build-gboard-patches.yml',
 ]
 
 checks = {
