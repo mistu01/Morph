@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync, statSync, writeFileSync, readFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -130,6 +130,8 @@ const appConfigs = {
     rootModuleId: "mistu_google_photos_root",
     rootModuleName: "Mistu Google Photos Root",
     rootApkPath: "system/product/app/Photos/Photos.apk",
+    zygiskRepo: env("GOOGLE_PHOTOS_ZYGISK_REPO") || "MeowDump/Unlimited-Photos-Storage",
+    rootModuleTemplate: "piko/google-photos-root-template",
   },
   ...externalPatchAppConfigs([
     ["adguard", "AdGuard", "com.adguard.android"],
@@ -737,6 +739,14 @@ async function packageRootModules() {
 
   for (const { app, appVersion, moduleVersion } of packageable) {
     const moduleDir = join(stagingRoot, app.id);
+    
+    let zygiskAssets = null;
+    if (app.zygiskRepo) {
+      zygiskAssets = await downloadZygiskAssets(app.zygiskRepo);
+    }
+    
+    const templatePath = app.rootModuleTemplate ? fromRoot(app.rootModuleTemplate) : null;
+
     createRootModule(moduleDir, {
       id: app.rootModuleId,
       name: app.rootModuleName,
@@ -744,6 +754,8 @@ async function packageRootModules() {
       versionCode,
       description: `${app.label} root module by mistu. Installs the patched APK with the original package name and detaches Play Store updates.`,
       apps: [app],
+      templatePath,
+      zygiskAssets,
     });
 
     const zip = join(paths.rootModules, `${app.id}-${safeVersionForFile(appVersion)}-root-module.zip`);
@@ -813,6 +825,62 @@ async function resolveRootStockInput(app) {
   if (metadata?.destination) {
     console.warn(`${app.label}: cached APK metadata points to missing stock input ${relative(metadataDestination)}.`);
   }
+}
+
+async function downloadZygiskAssets(repo) {
+  const cacheDir = fromRoot(".cache/zygisk");
+  const extractDir = join(cacheDir, "extracted");
+  if (existsSync(join(extractDir, "zygisk"))) {
+    console.log(`Zygisk assets already cached at ${relative(extractDir)}`);
+    return extractDir;
+  }
+
+  rmSync(cacheDir, { recursive: true, force: true });
+  mkdirSync(cacheDir, { recursive: true });
+
+  console.log(`Downloading Zygisk module from ${repo} (latest release)...`);
+  const releaseUrl = `https://api.github.com/repos/${repo}/releases/latest`;
+  const headers = {
+    Accept: "application/vnd.github.v3+json",
+    "User-Agent": "morph-builder",
+  };
+  if (env("GITHUB_TOKEN") && !env("GITHUB_TOKEN").includes("dummy")) {
+    headers.Authorization = `Bearer ${env("GITHUB_TOKEN")}`;
+  }
+
+  const response = await fetchWithRetry(releaseUrl, { headers });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch Zygisk release info from ${repo}: HTTP ${response.status}`);
+  }
+
+  const release = await response.json();
+  const zipAsset = (release.assets || []).find((a) => a.name.endsWith(".zip"));
+  if (!zipAsset) {
+    throw new Error(`No .zip asset found in ${repo} release ${release.tag_name}`);
+  }
+
+  const zipPath = join(cacheDir, zipAsset.name);
+  console.log(`Downloading ${zipAsset.name} (${release.tag_name})...`);
+  await downloadFile(zipAsset.browser_download_url, zipPath);
+
+  mkdirSync(extractDir, { recursive: true });
+  console.log(`Extracting Zygisk assets...`);
+  const result = spawnSync("jar", ["--extract", "--file", zipPath], {
+    cwd: extractDir,
+    env: process.env,
+    stdio: "inherit",
+  });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`Failed to extract Zygisk module zip (jar exit ${result.status})`);
+  }
+
+  if (!existsSync(join(extractDir, "zygisk"))) {
+    throw new Error(`Extracted Zygisk module does not contain a zygisk/ directory`);
+  }
+
+  console.log(`Zygisk assets ready (${release.tag_name}) at ${relative(extractDir)}`);
+  return extractDir;
 }
 
 async function downloadApks({ force = false } = {}) {
@@ -1617,7 +1685,21 @@ function mergePatchOptions(patch, existingEntry) {
   };
 }
 
-function createRootModule(moduleDir, { id, name, version, versionCode, description, apps }) {
+function copyDirRecursive(src, dest) {
+  mkdirSync(dest, { recursive: true });
+  const entries = readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = join(src, entry.name);
+    const destPath = join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+function createRootModule(moduleDir, { id, name, version, versionCode, description, apps, templatePath = null, zygiskAssets = null }) {
   rmSync(moduleDir, { recursive: true, force: true });
   mkdirSync(moduleDir, { recursive: true });
 
@@ -1628,39 +1710,107 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
     stagedStockDirName: app.id,
     fallbackSystemPath: rootSystemPathFor(app.rootApkPath),
   }));
-  writeFileSync(join(moduleDir, "module.prop"), [
-    `id=${id}`,
-    `name=${name}`,
-    `version=${version}`,
-    `versionCode=${versionCode}`,
-    "author=Mistu",
-    `description=${description}`,
-    "",
-  ].join("\n"));
 
-  writeTextFile(join(moduleDir, "customize.sh"), rootCustomizeScript(entries), 0o755);
+  if (templatePath && existsSync(templatePath)) {
+    console.log(`Using custom root module template from ${relative(templatePath)}`);
+    copyDirRecursive(templatePath, moduleDir);
 
-  writeTextFile(join(moduleDir, "post-mount.sh"), rootLifecycleScript(entries, "post-mount"), 0o755);
-  writeTextFile(join(moduleDir, "service.sh"), rootLifecycleScript(entries, "service"), 0o755);
-  writeTextFile(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames), 0o755);
-  writeMagiskInstaller(moduleDir);
-  writeFileSync(join(moduleDir, "system.prop"), [
-    "# Module intentionally keeps system properties unchanged.",
-    "",
-  ].join("\n"));
+    const appListInstall = entries.map((app) => [
+      app.packageName,
+      app.label,
+      app.stagedPatchedApkName,
+      app.stagedStockDirName,
+      app.fallbackSystemPath,
+    ].join("|")).join("\n");
 
-  writeFileSync(join(moduleDir, "README.md"), [
-    `# ${name}`,
-    "",
-    "Install this ZIP with Magisk, KernelSU, KernelSU Next, or APatch, then reboot.",
-    "During installation, the module registers the original package using the stock APK files, then bind-mounts the patched APK over the package base APK.",
-    "The module re-applies the bind mount and Play Store detach commands at boot.",
-    "This keeps the launcher entry tied to the original package while running the patched APK.",
-    "",
-    "Included apps:",
-    ...entries.map((app) => `- ${app.label}: ${app.packageName}`),
-    "",
-  ].join("\n"));
+    const appListLifecycle = entries.map((app) => [
+      app.packageName,
+      app.label,
+    ].join("|")).join("\n");
+
+    const replacements = {
+      "{{MODULE_ID}}": id,
+      "{{MODULE_NAME}}": name,
+      "{{VERSION}}": version,
+      "{{VERSION_CODE}}": String(versionCode),
+      "{{DESCRIPTION}}": description,
+    };
+
+    const processDir = (dir) => {
+      const dirEntries = readdirSync(dir, { withFileTypes: true });
+      for (const entry of dirEntries) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === "common" || entry.name === "zygisk" || entry.name === "system" || entry.name === "META-INF") {
+            continue;
+          }
+          processDir(fullPath);
+        } else {
+          let content = readFileSync(fullPath, "utf8");
+          for (const [placeholder, value] of Object.entries(replacements)) {
+            content = content.replaceAll(placeholder, value);
+          }
+          if (entry.name === "customize.sh") {
+            content = content.replaceAll("{{APP_LIST}}", appListInstall);
+          } else if (entry.name === "post-mount.sh" || entry.name === "service.sh") {
+            content = content.replaceAll("{{APP_LIST}}", appListLifecycle);
+          }
+          writeFileSync(fullPath, content);
+          if (entry.name.endsWith(".sh")) {
+            chmodSync(fullPath, 0o755);
+          }
+        }
+      }
+    };
+    processDir(moduleDir);
+    writeMagiskInstaller(moduleDir);
+  } else {
+    writeFileSync(join(moduleDir, "module.prop"), [
+      `id=${id}`,
+      `name=${name}`,
+      `version=${version}`,
+      `versionCode=${versionCode}`,
+      "author=Mistu",
+      `description=${description}`,
+      "",
+    ].join("\n"));
+
+    writeTextFile(join(moduleDir, "customize.sh"), rootCustomizeScript(entries), 0o755);
+
+    writeTextFile(join(moduleDir, "post-mount.sh"), rootLifecycleScript(entries, "post-mount"), 0o755);
+    writeTextFile(join(moduleDir, "service.sh"), rootLifecycleScript(entries, "service"), 0o755);
+    writeTextFile(join(moduleDir, "uninstall.sh"), rootUninstallScript(packageNames), 0o755);
+    writeMagiskInstaller(moduleDir);
+    writeFileSync(join(moduleDir, "system.prop"), [
+      "# Module intentionally keeps system properties unchanged.",
+      "",
+    ].join("\n"));
+
+    writeFileSync(join(moduleDir, "README.md"), [
+      `# ${name}`,
+      "",
+      "Install this ZIP with Magisk, KernelSU, KernelSU Next, or APatch, then reboot.",
+      "During installation, the module registers the original package using the stock APK files, then bind-mounts the patched APK over the package base APK.",
+      "The module re-applies the bind mount and Play Store detach commands at boot.",
+      "This keeps the launcher entry tied to the original package while running the patched APK.",
+      "",
+      "Included apps:",
+      ...entries.map((app) => `- ${app.label}: ${app.packageName}`),
+      "",
+    ].join("\n"));
+  }
+
+  if (zygiskAssets && existsSync(zygiskAssets)) {
+    console.log(`Bundling Zygisk assets from ${relative(zygiskAssets)}`);
+    const zygiskSrc = join(zygiskAssets, "zygisk");
+    const systemSrc = join(zygiskAssets, "system");
+    if (existsSync(zygiskSrc)) {
+      copyDirRecursive(zygiskSrc, join(moduleDir, "zygisk"));
+    }
+    if (existsSync(systemSrc)) {
+      copyDirRecursive(systemSrc, join(moduleDir, "system"));
+    }
+  }
 
   for (const app of entries) {
     const patchedDestination = join(moduleDir, "common", "patched", app.stagedPatchedApkName);

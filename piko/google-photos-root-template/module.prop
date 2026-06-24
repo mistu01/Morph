@@ -1,0 +1,6 @@
+id={{MODULE_ID}}
+name={{MODULE_NAME}}
+version={{VERSION}}
+versionCode={{VERSION_CODE}}
+author=Mistu & MeowDump
+description={{DESCRIPTION}} (with Unlimited Photos Storage Zygisk component)

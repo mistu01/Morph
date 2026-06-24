@@ -78,6 +78,7 @@ const childEnv = {
   THREADS_OPTIONS:        env("THREADS_OPTIONS")        || "config/devanced/threads-options.json",
   TIKTOK_OPTIONS:         env("TIKTOK_OPTIONS")         || "config/devanced/tiktok-options.json",
   FACEBOOK_OPTIONS:       env("FACEBOOK_OPTIONS")       || "config/devanced/facebook-options.json",
+  GOOGLE_PHOTOS_ZYGISK_REPO: env("GOOGLE_PHOTOS_ZYGISK_REPO") || "MeowDump/Unlimited-Photos-Storage",
 };
 
 if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
