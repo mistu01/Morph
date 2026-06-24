@@ -1435,6 +1435,9 @@ async function ensureAdoboPatchOptions(app, tools = null) {
       if (isGboardApp && patchKey === "toggle feature flags") {
         isEnabled = false;
       }
+      if (existingEntry.hasOwnProperty("enabled")) {
+        isEnabled = existingEntry.enabled;
+      }
 
       const newEntry = {
         enabled: isEnabled,
