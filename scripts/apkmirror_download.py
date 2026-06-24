@@ -240,20 +240,27 @@ def safe_filename(value: str) -> str:
 
 def select_version_page(org: str, repo: str, requested: str, slug: str = "") -> dict[str, str]:
     if requested and requested not in {"latest", "stable"}:
+        # Clean architecture suffixes from the requested version name for APKMirror URL lookup
+        requested_clean = re.sub(
+            r'-+(arm64-v8a|arm64_v8a|arm64|armeabi-v7a|armeabi_v7a|armv7|arm-v7a|armeabi|x86_64|x86-64|x86|mips|mips64|universal)$',
+            '',
+            requested,
+            flags=re.IGNORECASE
+        )
         release_slug = slug or repo
         # Try primary URL pattern with -release suffix
-        url1 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested.replace('.', '-')}-release/"
+        url1 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested_clean.replace('.', '-')}-release/"
         # Try secondary URL pattern without -release suffix
-        url2 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested.replace('.', '-')}/"
+        url2 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested_clean.replace('.', '-')}/"
         # Try tertiary URL pattern with clean version replacing dots with dashes
-        clean_requested = requested.replace('.', '-')
-        url3 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{clean_requested}/"
+        dots_to_dashes = requested_clean.replace('.', '-')
+        url3 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{dots_to_dashes}/"
         
         errors = []
         for url in [url1, url2, url3]:
             try:
                 ensure_page_exists(url)
-                return {"name": requested, "url": url}
+                return {"name": requested_clean, "url": url}
             except Exception as e:
                 errors.append(str(e))
                 
@@ -270,7 +277,6 @@ def select_version_page(org: str, repo: str, requested: str, slug: str = "") -> 
                     name = link.get_text(" ", strip=True)
                     href = link.get("href")
                     if name and href:
-                        import re
                         def clean(v: str) -> str:
                             v = v.lower().strip()
                             v = re.sub(r'[-_]', '.', v)
@@ -278,12 +284,13 @@ def select_version_page(org: str, repo: str, requested: str, slug: str = "") -> 
                             v = re.sub(r'\.+', '.', v)
                             v = v.strip('.')
                             return v
-                        if clean(name) == clean(requested) or clean(requested) in clean(name):
+                        if clean(name) == clean(requested_clean) or clean(requested_clean) in clean(name):
                             return {"name": name, "url": absolute_url(href)}
         except Exception as scrape_err:
             errors.append(f"Scrape fallback failed: {scrape_err}")
             
-        raise RuntimeError(f"Could not resolve APKMirror version page for {requested}. Tried: " + " | ".join(errors))
+        raise RuntimeError(f"Could not resolve APKMirror version page for {requested} (cleaned: {requested_clean}). Tried: " + " | ".join(errors))
+
 
 
 
@@ -419,8 +426,42 @@ def find_variant(variants: list[dict[str, str]], arch: str, dpi: str, file_type:
 def filter_variants(variants: list[dict[str, str]], dpi: str, file_type: str) -> list[dict[str, str]]:
     candidates = [item for item in variants if item["type"] == file_type]
     if dpi not in {"*", "any"}:
-        candidates = [item for item in candidates if item["dpi"].lower() == dpi.lower()]
+        candidates = [item for item in candidates if dpi_matches(dpi, item["dpi"])]
     return candidates
+
+
+def dpi_matches(requested: str, variant: str) -> bool:
+    r = requested.lower().strip()
+    v = variant.lower().strip()
+    if r == v:
+        return True
+    if r in {"*", "any"} or v in {"*", "any"}:
+        return True
+
+    def parse_dpi_range(s: str):
+        s = s.replace("dpi", "").strip()
+        if "-" in s:
+            parts = s.split("-")
+            try:
+                return int(parts[0]), int(parts[1])
+            except ValueError:
+                return None
+        else:
+            try:
+                val = int(s)
+                return val, val
+            except ValueError:
+                return None
+
+    r_range = parse_dpi_range(r)
+    v_range = parse_dpi_range(v)
+    if r_range and v_range:
+        r_min, r_max = r_range
+        v_min, v_max = v_range
+        return max(r_min, v_min) <= min(r_max, v_max)
+
+    return False
+
 
 
 def add_unique_variant(selected: list[dict[str, str]], variant: dict[str, str] | None) -> None:
