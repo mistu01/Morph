@@ -10,6 +10,7 @@
     "anddea": "node scripts/anddea-builder.mjs build",
     "hoodles": "node scripts/hoodles-builder.mjs build",
     "paresh": "node scripts/paresh-builder.mjs build",
+    "rushiranpise": "node scripts/rushiranpise-builder.mjs build",
     "download": "node scripts/morphe.mjs download",
     "options": "node scripts/morphe.mjs options",
     "root-modules": "node scripts/morphe.mjs root-modules",
