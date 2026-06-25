@@ -65,9 +65,10 @@ export const RUSHIRANPISE_APPS = {
   "twt-app":              { packageName: "de.nicidienase.twtapp",                 label: "TWT App" },
   "universal-tv-remote":  { packageName: "sensustech.universal.tv.remote.control", label: "Universal TV Remote" },
   "yatri":                { packageName: "in.tpsc.yatri",                         label: "Yatri" },
+  "windscribe":           { packageName: "com.windscribe.vpn",                    label: "Windscribe VPN" },
 };
 
-const rawTargets = env("BUILD_TARGETS") || "1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox";
+const rawTargets = env("BUILD_TARGETS") || "1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox,windscribe";
 const parsedTargets = rawTargets
   .split(/[,\s;.]+/)
   .map((t) => t.trim().toLowerCase())

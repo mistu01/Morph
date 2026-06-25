@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       targets:
-        description: "Supported: 1111-warp, adguard-nightly, aida64, blocker-hero, call-recorder, canva, case-tracker, citizen, cpu-z, crime-radar, flightradar24, greenify, hibernator, hola-vpn, http-mock, inscode-autoclicker, kill-apps, m-indicator, mirko, ml-manager, myperm, netguard, netmonster, netshare, nzb360, photo-editor, pialytic, proton-vpn, proxyman, psiphon, rar, sai, shareit, shexa, snipd, social-game-box, speedtest, splitwise, tasker, terabox, twt-app, universal-tv-remote, yatri"
+        description: "Supported: 1111-warp, adguard-nightly, aida64, blocker-hero, call-recorder, canva, case-tracker, citizen, cpu-z, crime-radar, flightradar24, greenify, hibernator, hola-vpn, http-mock, inscode-autoclicker, kill-apps, m-indicator, mirko, ml-manager, myperm, netguard, netmonster, netshare, nzb360, photo-editor, pialytic, proton-vpn, proxyman, psiphon, rar, sai, shareit, shexa, snipd, social-game-box, speedtest, splitwise, tasker, terabox, twt-app, universal-tv-remote, windscribe, yatri"
         required: true
-        default: "1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox"
+        default: "1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox,windscribe"
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
@@ -78,9 +78,9 @@ jobs:
           cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
           ## Rushiranpise supported targets
 
-          Default targets: `1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox`
+          Default targets: `1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox,windscribe`
 
-          `1111-warp`, `adguard-nightly`, `aida64`, `blocker-hero`, `call-recorder`, `canva`, `case-tracker`, `citizen`, `cpu-z`, `crime-radar`, `flightradar24`, `greenify`, `hibernator`, `hola-vpn`, `http-mock`, `inscode-autoclicker`, `kill-apps`, `m-indicator`, `mirko`, `ml-manager`, `myperm`, `netguard`, `netmonster`, `netshare`, `nzb360`, `photo-editor`, `pialytic`, `proton-vpn`, `proxyman`, `psiphon`, `rar`, `sai`, `shareit`, `shexa`, `snipd`, `social-game-box`, `speedtest`, `splitwise`, `tasker`, `terabox`, `twt-app`, `universal-tv-remote`, `yatri`
+          `1111-warp`, `adguard-nightly`, `aida64`, `blocker-hero`, `call-recorder`, `canva`, `case-tracker`, `citizen`, `cpu-z`, `crime-radar`, `flightradar24`, `greenify`, `hibernator`, `hola-vpn`, `http-mock`, `inscode-autoclicker`, `kill-apps`, `m-indicator`, `mirko`, `ml-manager`, `myperm`, `netguard`, `netmonster`, `netshare`, `nzb360`, `photo-editor`, `pialytic`, `proton-vpn`, `proxyman`, `psiphon`, `rar`, `sai`, `shareit`, `shexa`, `snipd`, `social-game-box`, `speedtest`, `splitwise`, `tasker`, `terabox`, `twt-app`, `universal-tv-remote`, `windscribe`, `yatri`
           EOF
 
       - name: Download Rushiranpise tools

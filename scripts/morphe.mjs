@@ -251,6 +251,7 @@ const appConfigs = {
     ["twt-app", "TWT App", "de.nicidienase.twtapp"],
     ["universal-tv-remote", "Universal TV Remote", "sensustech.universal.tv.remote.control"],
     ["yatri", "Yatri", "in.tpsc.yatri"],
+    ["windscribe", "Windscribe VPN", "com.windscribe.vpn", { apkmirrorOrg: "windscribe", apkmirrorRepo: "windscribe-vpn" }],
     // ── De-Vanced patches (https://github.com/RookieEnough/De-Vanced) ──────
     ["messenger",           "Messenger",             "com.facebook.orca",                     { apkpureSlug: "messenger" }],
     // google-photos is promoted to a dedicated config above (with root module support)
