@@ -210,8 +210,8 @@ const appConfigs = {
     ["truecaller", "Truecaller", "com.truecaller"],
     ["vn", "VN", "com.frontrow.vlog"],
     // ── rushiranpise/morphe-patches ──────
-    ["1111-warp", "1.1.1.1 + WARP", "com.cloudflare.onedotonedotonedotone", { apkmirrorOrg: "cloudflare", apkmirrorRepo: "1-1-1-1-safer-internet", apkmirrorSlug: "1-1-1-1-safer-internet", apkpureSlug: "1-1-1-1-faster-safer-internet", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
-    ["adguard-nightly", "AdGuard Nightly", "com.adguard.android", { url: "https://adguard.info/android/nightly/adguard-nightly.apk" }],
+    ["1111-warp", "1.1.1.1 + WARP", "com.cloudflare.onedotonedotonedotone", { apkmirrorOrg: "cloudflare-inc", apkmirrorRepo: "1-1-1-1-safer-internet", apkmirrorSlug: "1-1-1-1-safer-internet", apkpureSlug: "1-1-1-1-faster-safer-internet", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
+    ["adguard-nightly", "AdGuard Nightly", "com.adguard.android", { url: "https://agrd.io/android_nightly" }],
     ["aida64", "AIDA64", "com.finalwire.aida64", { apkmirrorOrg: "finalwire-ltd", apkmirrorRepo: "aida64" }],
     ["blocker-hero", "Blocker Hero", "com.nicholasregan.blockerhero"],
     ["call-recorder", "Call Recorder", "com.appstar.callrecorder", { apkmirrorOrg: "appstar-solutions", apkmirrorRepo: "call-recorder" }],
@@ -251,7 +251,7 @@ const appConfigs = {
     ["twt-app", "TWT App", "de.nicidienase.twtapp"],
     ["universal-tv-remote", "Universal TV Remote", "sensustech.universal.tv.remote.control"],
     ["yatri", "Yatri", "in.tpsc.yatri"],
-    ["windscribe", "Windscribe VPN", "com.windscribe.vpn", { apkmirrorOrg: "windscribe", apkmirrorRepo: "windscribe-vpn" }],
+    ["windscribe", "Windscribe VPN", "com.windscribe.vpn", { apkmirrorOrg: "windscribe-inc", apkmirrorRepo: "windscribe-vpn", apkmirrorSlug: "windscribe-vpn", apkpureSlug: "windscribe-vpn-fast-secure" }],
     // ── De-Vanced patches (https://github.com/RookieEnough/De-Vanced) ──────
     ["messenger",           "Messenger",             "com.facebook.orca",                     { apkpureSlug: "messenger" }],
     // google-photos is promoted to a dedicated config above (with root module support)
