@@ -23,7 +23,7 @@ if (command === "release-notes") {
 // ---------------------------------------------------------------------------
 export const RUSHIRANPISE_APPS = {
   "1111-warp":            { packageName: "com.cloudflare.onedotonedotonedotone",   label: "1.1.1.1 + WARP" },
-  "adguard-nightly":      { packageName: "com.adguard.android.contentblocker.nightly", label: "AdGuard Nightly" },
+  "adguard-nightly":      { packageName: "com.adguard.android", label: "AdGuard Nightly" },
   "aida64":               { packageName: "com.finalwire.aida64",                  label: "AIDA64" },
   "blocker-hero":         { packageName: "com.nicholasregan.blockerhero",          label: "Blocker Hero" },
   "call-recorder":        { packageName: "com.appstar.callrecorder",              label: "Call Recorder" },
