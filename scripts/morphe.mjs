@@ -210,7 +210,7 @@ const appConfigs = {
     ["truecaller", "Truecaller", "com.truecaller"],
     ["vn", "VN", "com.frontrow.vlog"],
     // ── rushiranpise/morphe-patches ──────
-    ["1111-warp", "1.1.1.1 + WARP", "com.cloudflare.onedotonedotonedotone", { apkmirrorOrg: "cloudflare", apkmirrorRepo: "1-1-1-1-faster-safer-internet", apkmirrorSlug: "1-1-1-1-faster-safer-internet", apkpureSlug: "1-1-1-1-faster-safer-internet", apkmirrorType: "bundle", apkmirrorArch: "universal", apkmirrorDpi: "120-640dpi" }],
+    ["1111-warp", "1.1.1.1 + WARP", "com.cloudflare.onedotonedotonedotone", { apkmirrorOrg: "cloudflare", apkmirrorRepo: "1-1-1-1-faster-safer-internet", apkmirrorSlug: "1-1-1-1-warp-safer-internet", apkpureSlug: "1-1-1-1-faster-safer-internet", apkmirrorType: "bundle", apkmirrorArch: "universal", apkmirrorDpi: "120-640dpi" }],
     ["adguard-nightly", "AdGuard Nightly", "com.adguard.android", { url: "https://agrd.io/android_nightly" }],
     ["aida64", "AIDA64", "com.finalwire.aida64", { apkmirrorOrg: "finalwire-ltd", apkmirrorRepo: "aida64" }],
     ["blocker-hero", "Blocker Hero", "com.nicholasregan.blockerhero"],
