@@ -94,6 +94,12 @@ const childEnv = {
   ROOT_ALLOW_OPTIONS_FILE: "1",
 };
 
+// Route all rushiranpise app option files to config/rushiranpise/
+for (const id of Object.keys(RUSHIRANPISE_APPS)) {
+  const prefix = id.replaceAll("-", "_").toUpperCase();
+  childEnv[`${prefix}_OPTIONS`] = `config/rushiranpise/${id}-options.json`;
+}
+
 if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
   childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
 }

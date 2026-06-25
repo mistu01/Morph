@@ -1,0 +1,16 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-25T21:05:44.392Z",
+            "source": "patches.mpp"
+        },
+        "patches": {
+            "Disable Analytics / Telemetry": {
+                "enabled": false
+            },
+            "Spoof WARP+ Unlimited UI": {
+                "enabled": true
+            }
+        }
+    }
+]

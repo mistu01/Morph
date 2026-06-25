@@ -1,0 +1,16 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-25T21:05:44.405Z",
+            "source": "patches.mpp"
+        },
+        "patches": {
+            "Remove Ads": {
+                "enabled": false
+            },
+            "Unlock Premium": {
+                "enabled": true
+            }
+        }
+    }
+]

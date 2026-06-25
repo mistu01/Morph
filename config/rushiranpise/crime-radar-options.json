@@ -1,0 +1,28 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-25T21:05:44.412Z",
+            "source": "patches.mpp"
+        },
+        "patches": {
+            "Bypass License Check": {
+                "enabled": true
+            },
+            "Bypass Subscription Paywall": {
+                "enabled": true
+            },
+            "Remove Item Limits": {
+                "enabled": true
+            },
+            "Suppress Premium Promotions": {
+                "enabled": true
+            },
+            "Unlock Followed Locations": {
+                "enabled": true
+            },
+            "Unlock Premium": {
+                "enabled": true
+            }
+        }
+    }
+]
