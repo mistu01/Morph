@@ -39,8 +39,8 @@ const rootEnabledPatches = new Set([
 ]);
 const rootStockInputExtensions = new Set([".apk", ".xapk", ".apkm", ".apks"]);
 const packageNamePattern = /^[a-z]\w*(\.[a-z]\w*)+$/;
-const rootBuild = truthy(env("ROOT_BUILD"));
-const packageNameOptionsDisabled = truthy(env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS"));
+export const rootBuild = truthy(env("ROOT_BUILD"));
+export const packageNameOptionsDisabled = truthy(env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS"));
 const defaultTargets = ["youtube", "youtube-music", "reddit"];
 const allYoutubeAbiVariants = [
   { artifactAbi: "arm64-v8a", apkmirrorArch: "arm64-v8a" },
@@ -48,7 +48,7 @@ const allYoutubeAbiVariants = [
 ];
 const youtubeAbiVariants = selectedYoutubeAbiVariants();
 
-const appConfigs = {
+export const morpheAppConfigs = {
   ...youtubeAbiAppConfigs({
     id: "youtube",
     label: "YouTube",
@@ -105,188 +105,10 @@ const appConfigs = {
     rootModuleName: "Mistu Reddit Root",
     rootApkPath: "system/app/Reddit/Reddit.apk",
   },
-  "google-photos": {
-    id: "google-photos",
-    label: "Google Photos",
-    apkpureName: "Google Photos",
-    packageName: "com.google.android.apps.photos",
-    apkpureSlug: "google-photos",
-    apkpurePage: "https://apkpure.com/google-photos/com.google.android.apps.photos",
-    uptodownSlug: "google-photos",
-    divxlandSlug: "google-photos",
-    apkmirrorOrg: "google-inc",
-    apkmirrorRepo: "google-photos",
-    apkmirrorType: env("GOOGLE_PHOTOS_APKMIRROR_TYPE") || env("APKMIRROR_TYPE") || "bundle",
-    apkmirrorArch: env("GOOGLE_PHOTOS_APKMIRROR_ARCH") || env("APKMIRROR_ARCH") || "arm64-v8a",
-    apkmirrorFallbackArch: env("GOOGLE_PHOTOS_APKMIRROR_FALLBACK_ARCH") || env("APKMIRROR_FALLBACK_ARCH") || "universal",
-    apkmirrorDpi: env("GOOGLE_PHOTOS_APKMIRROR_DPI") || env("APKMIRROR_DPI") || "120-640dpi",
-    patchedPackageName: packageNameOptionsDisabled ? "" : env("GOOGLE_PHOTOS_PATCHED_PACKAGE_NAME"),
-    requestedVersion: env("GOOGLE_PHOTOS_APK_VERSION"),
-    input: envPath("GOOGLE_PHOTOS_APK", "input/google-photos.apk"),
-    url: env("GOOGLE_PHOTOS_APK_URL"),
-    output: envPath("GOOGLE_PHOTOS_OUT", rootBuild ? "output/root/google-photos-root.apk" : "output/google-photos-patched.apk"),
-    options: envPath("GOOGLE_PHOTOS_OPTIONS", rootBuild ? "config/root/google-photos-options.json" : "config/google-photos-options.json"),
-    result: envPath("GOOGLE_PHOTOS_RESULT", rootBuild ? "output/root/google-photos-result.json" : "output/google-photos-result.json"),
-    rootModuleId: "mistu_google_photos_root",
-    rootModuleName: "Mistu Google Photos Root",
-    rootApkPath: "system/product/app/Photos/Photos.apk",
-    zygiskRepo: env("GOOGLE_PHOTOS_ZYGISK_REPO") || "MeowDump/Unlimited-Photos-Storage",
-    rootModuleTemplate: "config/devanced/templates/google-photos-root-template",
-  },
-  ...externalPatchAppConfigs([
-    ["adguard", "AdGuard", "com.adguard.android"],
-    ["alltrails", "AllTrails", "com.alltrails.alltrails"],
-    ["avocards", "Avocards", "com.avocards"],
-    ["busuu", "Busuu", "com.busuu.android.enc"],
-    ["cake", "Cake", "me.mycake"],
-    ["camscanner", "CamScanner", "com.intsig.camscanner"],
-    ["daily-pocket", "Daily Pocket", "kr.co.yjteam.dailypay"],
-    ["duolingo", "Duolingo", "com.duolingo"],
-    ["eggbun", "Eggbun", "kr.eggbun.eggconvo"],
-    ["fotmob", "FotMob", "com.mobilefootie.wc2010"],
-    ["github", "GitHub", "com.github.android"],
-    ["hellochinese", "HelloChinese", "com.hellochinese"],
-    ["ibispaint-x", "IbisPaint X", "jp.ne.ibis.ibispaintx.app"],
-    ["icon-packer", "Icon Packer", "cn.ommiao.iconpacker"],
-    ["lingory", "Lingory", "org.languageapp.lingory"],
-    ["lyfta", "Lyfta", "com.lyfta"],
-    ["macrofactor", "MacroFactor", "com.sbs.diet"],
-    ["macrofactor-workouts", "MacroFactor Workouts", "com.sbs.train"],
-    ["meme-generator", "Meme Generator", "com.zombodroid.MemeGenerator"],
-    ["merriam-webster", "Merriam-Webster", "com.merriamwebster"],
-    ["mimo", "Mimo", "com.getmimo"],
-    ["mirinae", "Mirinae", "com.mirinae.mirinae"],
-    ["myexpenses", "MyExpenses", "org.totschnig.myexpenses"],
-    ["myfitnesspal", "MyFitnessPal", "com.myfitnesspal.android"],
-    ["niagara-launcher", "Niagara Launcher", "bitpit.launcher"],
-    ["nomone-desktop", "NOMone Desktop", "nom.vrd"],
-    ["nova-launcher", "Nova Launcher", "com.teslacoilsw.launcher"],
-    ["pandora", "Pandora", "com.pandora.android"],
-    ["podcast-addict", "Podcast Addict", "com.bambuna.podcastaddict"],
-    ["prime-video", "Prime Video", "com.amazon.avod.thirdpartyclient"],
-    ["proton-vpn", "Proton VPN", "ch.protonvpn.android", {
-      apkmirrorOrg: "proton-technologies-ag",
-      apkmirrorRepo: "protonvpn-secure-and-free-vpn",
-      apkmirrorSlug: "proton-vpn-fast-secure-vpn",
-      apkmirrorType: "bundle",
-      apkmirrorFallbackArch: "universal",
-      apkmirrorDpi: "120-640dpi",
-    }],
-    ["pydroid3", "PyDroid3", "ru.iiec.pydroid3"],
-    ["rp-hypertrophy", "RP Hypertrophy", "com.rp.hypertrophy"],
-    ["showly", "Showly", "com.michaldrabik.showly2"],
-    ["sleep-as-android", "Sleep as Android", "com.urbandroid.sleep"],
-    ["smart-launcher", "Smart Launcher", "ginlemon.flowerfree"],
-    ["snorelab", "SnoreLab", "com.snorelab.app"],
-    ["sofascore", "Sofascore", "com.sofascore.results"],
-    ["solid-explorer", "Solid Explorer", "pl.solidexplorer2"],
-    ["soundcloud", "SoundCloud", "com.soundcloud.android"],
-    ["teuida", "Teuida", "net.teuida.teuida"],
-    ["ttmik-stories", "TTMIK Stories", "app.ttmikstories.android"],
-    ["ventusky", "Ventusky", "cz.ackee.ventusky"],
-    ["wallcraft", "Wallcraft", "com.wallpaperscraft.wallpaper"],
-    ["windy", "Windy", "com.windyty.android"],
-    ["world-map-quiz", "World Map Quiz", "com.qbis.guessthecountry"],
-    ["wps-office", "WPS Office", "cn.wps.moffice_eng"],
-    ["xodo", "Xodo", "com.xodo.pdf.reader"],
-    ["xrecorder", "XRecorder", "videoeditor.videorecorder.screenrecorder"],
-    ["alarmo", "Alarmo", "com.bytesong.missionalarm"],
-    ["crex", "CREX - Just Cricket", "in.cricketexchange.app.cricketexchange"],
-    ["cricbuzz", "Cricbuzz", "com.cricbuzz.android"],
-    ["document-scanner", "Document Scanner", "com.cv.docscanner"],
-    ["eyecon", "Eyecon Caller ID & Spam Block", "com.eyecon.global"],
-    ["fing", "Fing", "com.overlook.android.fing"],
-    ["jiohotstar", "JioHotstar", "in.startv.hotstar"],
-    ["lumina-walls", "Lumina Walls", "com.lumina.wallpapers"],
-    ["macrodroid", "MacroDroid", "com.arlosoft.macrodroid"],
-    ["mark", "Mark", "com.markOne.ss_app"],
-    ["plus-messenger", "Plus Messenger", "org.telegram.plus"],
-    ["prompter-pal", "Prompter Pal", "com.solid.teleprompter"],
-    ["sd-maid-se", "SD Maid SE", "eu.darken.sdmse"],
-    ["starsense-explorer", "StarSense Explorer", "com.celestron.skybox"],
-    ["telegram", "Telegram", "org.telegram.messenger.web"],
-    ["ticktick", "TickTick", "com.ticktick.task"],
-    ["trackit", "TrackIt", "app.vinztech.trackit"],
-    ["truecaller", "Truecaller", "com.truecaller"],
-    ["vn", "VN", "com.frontrow.vlog"],
-    // ── rushiranpise/morphe-patches ──────
-    ["1111-warp", "1.1.1.1 + WARP", "com.cloudflare.onedotonedotonedotone", { apkmirrorOrg: "cloudflare", apkmirrorRepo: "1-1-1-1-faster-safer-internet", apkmirrorSlug: "1-1-1-1-warp-safer-internet", apkpureSlug: "1-1-1-1-faster-safer-internet", apkmirrorType: "bundle", apkmirrorArch: "universal", apkmirrorDpi: "120-640dpi" }],
-    ["adguard-nightly", "AdGuard Nightly", "com.adguard.android", { apkmirrorOrg: "adguard-software-limited", apkmirrorRepo: "adguard", apkmirrorSlug: "adguard-for-android" }],
-    ["aida64", "AIDA64", "com.finalwire.aida64", { apkmirrorOrg: "finalwire-ltd", apkmirrorRepo: "aida64" }],
-    ["blocker-hero", "Blocker Hero", "com.nicholasregan.blockerhero"],
-    ["call-recorder", "Call Recorder", "com.appstar.callrecorder", { apkmirrorOrg: "appstar-solutions", apkmirrorRepo: "call-recorder" }],
-    ["canva", "Canva", "com.canva.editor", { apkmirrorOrg: "canva", apkmirrorRepo: "canva-graphic-design-video-collage-logo-maker", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "120-640dpi" }],
-    ["case-tracker", "Case Tracker", "com.saldous.casetracker"],
-    ["citizen", "Citizen", "com.sp0n.citizen", { apkmirrorOrg: "sp0n-inc", apkmirrorRepo: "citizen" }],
-    ["cpu-z", "CPU-Z", "com.cpuid.cpu_z", { apkmirrorOrg: "cpu-id", apkmirrorRepo: "cpu-z" }],
-    ["crime-radar", "Crime Radar", "com.newsbreak.crimeradar"],
-    ["flightradar24", "Flightradar24", "com.flightradar24free", { apkmirrorOrg: "flightradar24-ab", apkmirrorRepo: "flightradar24-flight-tracker", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
-    ["greenify", "Greenify", "com.oasisfeng.greenify", { apkmirrorOrg: "oasis-feng", apkmirrorRepo: "greenify" }],
-    ["hibernator", "Hibernator", "com.tafayor.hibernator", { apkmirrorOrg: "tafayor", apkmirrorRepo: "hibernator-hibernate-apps-save-battery" }],
-    ["hola-vpn", "Hola VPN Proxy Plus", "org.hola.play", { apkmirrorOrg: "hola-vpn", apkmirrorRepo: "hola-free-vpn", apkpureSlug: "hola-vpn-proxy-plus" }],
-    ["http-mock", "HTTP Mock", "com.shexa.httpmock"],
-    ["inscode-autoclicker", "Inscode Auto Clicker", "com.inscode.autoclicker"],
-    ["kill-apps", "Kill Apps", "com.zenzen.killapps", { apkmirrorOrg: "tafayor", apkmirrorRepo: "killapps-close-all-apps-running" }],
-    ["m-indicator", "m-Indicator", "com.mobond.mindicator", { apkmirrorOrg: "mobond", apkmirrorRepo: "m-indicator-mumbai" }],
-    ["mirko", "Mirko", "it.mirko.bus"],
-    ["ml-manager", "ML Manager", "com.javiersantos.mlmanager.pro"],
-    ["myperm", "MyPerm", "app.myperm"],
-    ["netguard", "NetGuard", "eu.faircode.netguard", { apkmirrorOrg: "marcel-bokhorst", apkmirrorRepo: "netguard-no-root-firewall" }],
-    ["netmonster", "NetMonster", "cz.mroczis.netmonster", { apkmirrorOrg: "milan-mroczkowski", apkmirrorRepo: "netmonster" }],
-    ["netshare", "NetShare", "kha.prog.mikrotik", { apkmirrorOrg: "netshare-soft-creations", apkmirrorRepo: "netshare-no-root-tethering" }],
-    ["nzb360", "nzb360", "com.kevinforeman.nzb360", { apkmirrorOrg: "kevin-foreman", apkmirrorRepo: "nzb360-nzb-manager" }],
-    ["photo-editor", "Photo Editor", "com.iudesk.android.photo.editor", { apkmirrorOrg: "iudesk", apkmirrorRepo: "photo-editor" }],
-    ["pialytic", "Pialytic", "com.pialytic.app"],
-    ["proxyman", "Proxyman", "me.nickchan.proxyman"],
-    ["psiphon", "Psiphon", "com.psiphon3", { apkmirrorOrg: "psiphon-inc", apkmirrorRepo: "psiphon-pro" }],
-    ["sai", "SAI", "com.aefyr.sai", { apkmirrorOrg: "polychromaticfox", apkmirrorRepo: "split-apks-installer-sai" }],
-    ["shareit", "SHAREit", "com.lenovo.anyshare.gps", { apkmirrorOrg: "shareit-technologies-co-ltd", apkmirrorRepo: "shareit-connect-transfer", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "120-640dpi" }],
-    ["shexa", "Shexa", "com.shexa.app"],
-    ["snipd", "Snipd", "ai.snipd.app"],
-    ["social-game-box", "Social Game Box", "com.gamebox.social"],
-    ["speedtest", "Speedtest", "org.zwanoo.android.speedtest", { apkmirrorOrg: "ookla", apkmirrorRepo: "speedtest-by-ookla-2", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
-    ["splitwise", "Splitwise", "com.Splitwise.SplitwiseMobile", { apkmirrorOrg: "splitwise", apkmirrorRepo: "splitwise", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
-    ["tasker", "Tasker", "net.dinglisch.android.taskerm", { apkmirrorOrg: "joaomgcd", apkmirrorRepo: "tasker" }],
-    ["terabox", "TeraBox", "com.dubox.drive", { apkmirrorOrg: "flextech-inc", apkmirrorRepo: "terabox-cloud-storage-backup", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
-    ["twt-app", "TWT App", "de.nicidienase.twtapp"],
-    ["universal-tv-remote", "Universal TV Remote", "sensustech.universal.tv.remote.control"],
-    ["yatri", "Yatri", "in.tpsc.yatri"],
-    ["windscribe", "Windscribe VPN", "com.windscribe.vpn", { apkmirrorOrg: "windscribe", apkmirrorRepo: "windscribe-vpn", apkmirrorSlug: "windscribe-fast-secure-vpn", apkpureSlug: "windscribe-vpn-fast-secure", apkmirrorType: "bundle", apkmirrorDpi: "320-640dpi" }],
-    // ── De-Vanced patches (https://github.com/RookieEnough/De-Vanced) ──────
-    ["messenger",           "Messenger",             "com.facebook.orca",                     { apkpureSlug: "messenger" }],
-    // google-photos is promoted to a dedicated config above (with root module support)
-    ["threads",             "Threads",               "com.instagram.barcelona",                 { apkmirrorOrg: "instagram", apkmirrorRepo: "threads-an-instagram-app" }],
-    ["tiktok",              "TikTok",                "com.zhiliaoapp.musically",               { apkmirrorOrg: "tiktok-pte-ltd", apkmirrorRepo: "tiktok-including-musical-ly" }],
-    ["adobe-photoshopmix",  "Adobe Photoshop Mix",   "com.adobe.photoshopmix",                 {}],
-    ["amazon",              "Amazon Shopping",       "com.amazon.mShop.android.shopping",      { apkmirrorOrg: "amazon-mobile-llc", apkmirrorRepo: "amazon-shopping" }],
-    ["angulus",             "Angulus",               "com.drinkplusplus.angulus",               {}],
-    ["bandcamp",            "Bandcamp",              "com.bandcamp.android",                    { apkmirrorOrg: "bandcamp", apkmirrorRepo: "bandcamp" }],
-    ["disney-plus",         "Disney+",               "com.disney.disneyplus",                  { apkmirrorOrg: "disney", apkmirrorRepo: "disney" }],
-    ["facebook",            "Facebook",              "com.facebook.katana",                     { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook" }],
-    ["gmx-mail",            "GMX Mail",              "de.gmx.mobile.android.mail",              {}],
-    ["google-news",         "Google News",           "com.google.android.apps.magazines",       { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-news" }],
-    ["google-recorder",     "Google Recorder",       "com.google.android.apps.recorder",        { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-recorder" }],
-    ["hexedit",             "HexEdit",               "com.myprog.hexedit",                      {}],
-    ["icon-pack-studio",    "Icon Pack Studio",      "ginlemon.iconpackstudio",                 {}],
-    ["inshorts",            "Inshorts",              "com.nis.app",                             {}],
-    ["ir-plus",             "IR+",                   "net.binarymode.android.irplus",           {}],
-    ["letterboxd",          "Letterboxd",            "com.letterboxd.letterboxd",               { apkmirrorOrg: "letterboxd-pty-ltd", apkmirrorRepo: "letterboxd" }],
-    ["ms-office-lens",      "Microsoft Office Lens", "com.microsoft.office.officelens",         { apkmirrorOrg: "microsoft-corporation", apkmirrorRepo: "microsoft-office-lens-pdf-scanner" }],
-    ["nothing-smartcenter", "Nothing Smart Center",  "com.nothing.smartcenter",                 {}],
-    ["nu-nl",               "nu.nl",                 "nl.sanomamedia.android.nu",               {}],
-    ["peacock",             "Peacock",               "com.peacocktv.peacockandroid",            { apkmirrorOrg: "peacocktv", apkmirrorRepo: "peacock-stream-tv-movies" }],
-    ["photomath",           "Photomath",             "com.microblink.photomath",                { apkmirrorOrg: "google-inc", apkmirrorRepo: "photomath" }],
-    ["pixiv",               "Pixiv",                 "jp.pxv.android",                          {}],
-    ["proton-mail",         "Proton Mail",           "ch.protonmail.android",                   { apkmirrorOrg: "proton-technologies-ag", apkmirrorRepo: "protonmail-encrypted-email" }],
-    ["rar",                 "RAR",                   "com.rarlab.rar",                          { apkmirrorOrg: "rarlab", apkmirrorRepo: "rar" }],
-    ["strava",              "Strava",                "com.strava",                              { apkmirrorOrg: "strava-inc", apkmirrorRepo: "strava-running-and-cycling-gps" }],
-    ["tumblr",              "Tumblr",                "com.tumblr",                              { apkmirrorOrg: "tumblr-inc", apkmirrorRepo: "tumblr" }],
-    ["twitch",              "Twitch",                "tv.twitch.android.app",                   { apkmirrorOrg: "twitch-interactive-inc", apkmirrorRepo: "twitch" }],
-    ["viber",               "Viber",                 "com.viber.voip",                          { apkmirrorOrg: "viber-media-s-a-r-l", apkmirrorRepo: "viber-messenger" }],
-    ["9gag",                "9GAG",                  "com.ninegag.android.app",                 { apkmirrorOrg: "9gag", apkmirrorRepo: "9gag-funny-gif-meme-video-pics-cosplay-social" }],
-    ["gboard",              "Gboard",                "com.google.android.inputmethod.latin",    { apkmirrorOrg: "google-inc", apkmirrorRepo: "gboard-the-google-keyboard", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "120-640dpi" }],
-    ["imdb",                "IMDb",                  "com.imdb.mobile",                         { apkmirrorOrg: "imdb", apkmirrorRepo: "imdb-movies-tv-shows" }],
-  ]),
+};
+
+export let appConfigs = {
+  ...morpheAppConfigs
 };
 
 
@@ -322,7 +144,7 @@ const apkeepTool = {
   meta: fromRoot(".cache/tools/apkeep.json"),
 };
 
-function youtubeAbiAppConfigs(config) {
+export function youtubeAbiAppConfigs(config) {
   return Object.fromEntries(youtubeAbiVariants.map((variant) => {
     const id = youtubeAbiTargetId(config.id, variant);
     const envPrefix = envPrefixFor(config.id);
@@ -367,7 +189,7 @@ function youtubeAbiAppConfigs(config) {
       options: envPathValue(
         env(`${variantEnvPrefix}_OPTIONS`)
         || env(`${envPrefix}_OPTIONS`)
-        || (rootBuild ? `config/root/${config.id}-options.json` : `config/${config.id}-options.json`),
+        || (rootBuild ? `config/${env("MORPHE_BUILDER") || "morphe"}/root/${config.id}-options.json` : `config/${env("MORPHE_BUILDER") || "morphe"}/${config.id}-options.json`),
       ),
       result: envPath(`${variantEnvPrefix}_RESULT`, rootBuild ? rootResult : standardResult),
       rootModuleId: `${config.rootModuleId}_${variant.artifactAbi.replaceAll("-", "_")}`,
@@ -376,7 +198,7 @@ function youtubeAbiAppConfigs(config) {
   }));
 }
 
-function externalPatchAppConfigs(entries) {
+export function externalPatchAppConfigs(entries) {
   return Object.fromEntries(entries.map(([id, label, packageName, overrides = {}]) => {
     const envPrefix = envPrefixFor(id);
     const apkpureSlug = overrides.apkpureSlug || id;
@@ -401,7 +223,7 @@ function externalPatchAppConfigs(entries) {
       input: envPath(`${envPrefix}_APK`, `input/${id}.apk`),
       url: env(`${envPrefix}_APK_URL`) || overrides.url || "",
       output: envPath(`${envPrefix}_OUT`, `output/${id}-patched.apk`),
-      options: envPath(`${envPrefix}_OPTIONS`, `config/${id}-options.json`),
+      options: envPath(`${envPrefix}_OPTIONS`, `config/${env("MORPHE_BUILDER") || "morphe"}/${id}-options.json`),
       result: envPath(`${envPrefix}_RESULT`, `output/${id}-result.json`),
     }];
   }));
@@ -438,12 +260,22 @@ function normalizeYoutubeAbi(value) {
   return normalized;
 }
 
-main().catch((error) => {
-  console.error(`\nerror: ${error.message}`);
-  process.exit(1);
-});
+const isMain = process.argv[1] && (
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url) ||
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+);
+
+if (isMain) {
+  main().catch((error) => {
+    console.error(`\nerror: ${error.message}`);
+    process.exit(1);
+  });
+}
 
 async function main() {
+  const builderConfigs = await loadBuilderConfigs();
+  Object.assign(appConfigs, builderConfigs);
+
   switch (command) {
     case "build":
       await build();
@@ -480,6 +312,23 @@ async function main() {
     default:
       throw new Error(`Unknown command "${command}". Run "node scripts/morphe.mjs help".`);
   }
+}
+
+async function loadBuilderConfigs() {
+  const builderName = env("MORPHE_BUILDER") || "morphe";
+  if (builderName === "morphe") return {};
+  const builderPath = join(root, `scripts/${builderName}-builder.mjs`);
+  if (existsSync(builderPath)) {
+    try {
+      const module = await import(`file://${builderPath}`);
+      if (module.appConfigs) {
+        return module.appConfigs;
+      }
+    } catch (err) {
+      console.warn(`warning: failed to load builder configs from ${builderName}: ${err.message}`);
+    }
+  }
+  return {};
 }
 
 async function build() {
@@ -788,7 +637,11 @@ async function packageRootModules() {
       zygiskAssets = await downloadZygiskAssets(app.zygiskRepo);
     }
     
-    const templatePath = app.rootModuleTemplate ? fromRoot(app.rootModuleTemplate) : null;
+    const builderName = env("MORPHE_BUILDER") || "morphe";
+    const defaultTemplate = `config/${builderName}/templates/root-module`;
+    const templatePath = app.rootModuleTemplate
+      ? fromRoot(app.rootModuleTemplate)
+      : (existsSync(fromRoot(defaultTemplate)) ? fromRoot(defaultTemplate) : null);
 
     createRootModule(moduleDir, {
       id: app.rootModuleId,
@@ -1780,6 +1633,7 @@ function createRootModule(moduleDir, { id, name, version, versionCode, descripti
       "{{VERSION}}": version,
       "{{VERSION_CODE}}": String(versionCode),
       "{{DESCRIPTION}}": description,
+      "{{PACKAGE_NAMES}}": packageNames.join(" "),
     };
 
     const processDir = (dir) => {
@@ -3722,15 +3576,15 @@ function normalizeTag(version) {
   return version.startsWith("v") ? version : `v${version}`;
 }
 
-function env(name) {
+export function env(name) {
   return process.env[name]?.trim();
 }
 
-function envPath(name, fallback) {
+export function envPath(name, fallback) {
   return resolveMaybeRoot(env(name) || fallback);
 }
 
-function envPathValue(value) {
+export function envPathValue(value) {
   return resolveMaybeRoot(value);
 }
 
@@ -3746,7 +3600,7 @@ function relative(file) {
   return file.replace(`${root}\\`, "").replace(`${root}/`, "");
 }
 
-function envPrefixFor(id) {
+export function envPrefixFor(id) {
   return id.replaceAll("-", "_").toUpperCase();
 }
 

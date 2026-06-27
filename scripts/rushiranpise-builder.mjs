@@ -11,7 +11,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const command = process.argv[2] || "build";
 const args = process.argv.slice(3);
 
-if (command === "release-notes") {
+const isMain = process.argv[1] && (
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url) ||
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+);
+
+if (isMain && command === "release-notes") {
   generateReleaseNotes();
   process.exit(0);
 }
@@ -68,59 +73,118 @@ export const RUSHIRANPISE_APPS = {
   "windscribe":           { packageName: "com.windscribe.vpn",                    label: "Windscribe VPN" },
 };
 
-const rawTargets = env("BUILD_TARGETS") || "1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox,windscribe";
-const parsedTargets = rawTargets
-  .split(/[,\s;.]+/)
-  .map((t) => t.trim().toLowerCase())
-  .filter(Boolean);
+import { externalPatchAppConfigs } from "./morphe.mjs";
 
-validateTargets(parsedTargets);
+export const appConfigs = externalPatchAppConfigs([
+  ["1111-warp",           "1.1.1.1 + WARP",        "com.cloudflare.onedotonedotonedotone"],
+  ["adguard-nightly",     "AdGuard Nightly",       "com.adguard.android"],
+  ["aida64",              "AIDA64",                "com.finalwire.aida64"],
+  ["blocker-hero",         "Blocker Hero",          "com.nicholasregan.blockerhero"],
+  ["call-recorder",        "Call Recorder",         "com.appstar.callrecorder"],
+  ["canva",                "Canva",                 "com.canva.editor"],
+  ["case-tracker",         "Case Tracker",          "com.saldous.casetracker"],
+  ["citizen",              "Citizen",               "com.sp0n.citizen"],
+  ["cpu-z",                "CPU-Z",                 "com.cpuid.cpu_z"],
+  ["crime-radar",          "Crime Radar",           "com.newsbreak.crimeradar"],
+  ["flightradar24",        "Flightradar24",         "com.flightradar24free"],
+  ["greenify",             "Greenify",              "com.oasisfeng.greenify"],
+  ["hibernator",           "Hibernator",            "com.tafayor.hibernator"],
+  ["hola-vpn",             "Hola VPN Proxy Plus",   "org.hola.play"],
+  ["http-mock",            "HTTP Mock",             "com.shexa.httpmock"],
+  ["inscode-autoclicker",  "Inscode Auto Clicker",  "com.inscode.autoclicker"],
+  ["kill-apps",            "Kill Apps",             "com.zenzen.killapps"],
+  ["m-indicator",          "m-Indicator",           "com.mobond.mindicator"],
+  ["mirko",                "Mirko",                 "it.mirko.bus"],
+  ["ml-manager",           "ML Manager",            "com.javiersantos.mlmanager.pro"],
+  ["myperm",               "MyPerm",                "app.myperm"],
+  ["netguard",             "NetGuard",              "eu.faircode.netguard"],
+  ["netmonster",           "NetMonster",            "cz.mroczis.netmonster"],
+  ["netshare",             "NetShare",              "kha.prog.mikrotik"],
+  ["nzb360",               "nzb360",                "com.kevinforeman.nzb360"],
+  ["photo-editor",         "Photo Editor",          "com.iudesk.android.photo.editor"],
+  ["pialytic",             "Pialytic",              "com.pialytic.app"],
+  ["proton-vpn",           "Proton VPN",            "ch.protonvpn.android", {
+    apkmirrorOrg: "proton-technologies-ag",
+    apkmirrorRepo: "protonvpn-secure-and-free-vpn",
+    apkmirrorSlug: "proton-vpn-fast-secure-vpn",
+    apkmirrorType: "bundle",
+    apkmirrorFallbackArch: "universal",
+    apkmirrorDpi: "120-640dpi",
+  }],
+  ["proxyman",             "Proxyman",              "me.nickchan.proxyman"],
+  ["psiphon",              "Psiphon",               "com.psiphon3"],
+  ["rar",                  "RAR",                   "com.rarlab.rar"],
+  ["sai",                  "SAI",                   "com.aefyr.sai"],
+  ["shareit",              "SHAREit",               "com.lenovo.anyshare.gps"],
+  ["shexa",                "Shexa",                 "com.shexa.app"],
+  ["snipd",                "Snipd",                 "ai.snipd.app"],
+  ["social-game-box",      "Social Game Box",       "com.gamebox.social"],
+  ["speedtest",            "Speedtest",             "org.zwanoo.android.speedtest"],
+  ["splitwise",            "Splitwise",             "com.Splitwise.SplitwiseMobile"],
+  ["tasker",               "Tasker",                "net.dinglisch.android.taskerm"],
+  ["terabox",              "TeraBox",               "com.dubox.drive"],
+  ["twt-app",              "TWT App",               "de.nicidienase.twtapp"],
+  ["universal-tv-remote",  "Universal TV Remote",   "sensustech.universal.tv.remote.control"],
+  ["yatri",                "Yatri",                 "in.tpsc.yatri"],
+  ["windscribe",           "Windscribe VPN",        "com.windscribe.vpn"],
+]);
 
-const buildTargets = parsedTargets.join(",");
+if (isMain) {
+  const rawTargets = env("BUILD_TARGETS") || "1111-warp,nzb360,adguard-nightly,hola-vpn,proton-vpn,terabox,windscribe";
+  const parsedTargets = rawTargets
+    .split(/[,\s;.]+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
 
-const childEnv = {
-  ...process.env,
-  BUILD_TARGETS: buildTargets,
-  APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
-  APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
-  APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
-  APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
-  MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
-  // Rushiranpise patch source
-  MORPHE_PATCHES_PROVIDER: "github",
-  MORPHE_PATCHES_REPO: env("RUSHIRANPISE_PATCHES_REPO") || "rushiranpise/morphe-patches",
-  MORPHE_PATCHES_VERSION: env("RUSHIRANPISE_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
-  MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
-  MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
-  ROOT_ALLOW_OPTIONS_FILE: "1",
-};
+  validateTargets(parsedTargets);
 
-// Route all rushiranpise app option files to config/rushiranpise/
-for (const id of Object.keys(RUSHIRANPISE_APPS)) {
-  const prefix = id.replaceAll("-", "_").toUpperCase();
-  childEnv[`${prefix}_OPTIONS`] = `config/rushiranpise/${id}-options.json`;
+  const buildTargets = parsedTargets.join(",");
+
+  const childEnv = {
+    ...process.env,
+    MORPHE_BUILDER: "rushiranpise",
+    BUILD_TARGETS: buildTargets,
+    APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
+    APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
+    APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
+    APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
+    MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
+    // Rushiranpise patch source
+    MORPHE_PATCHES_PROVIDER: "github",
+    MORPHE_PATCHES_REPO: env("RUSHIRANPISE_PATCHES_REPO") || "rushiranpise/morphe-patches",
+    MORPHE_PATCHES_VERSION: env("RUSHIRANPISE_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
+    MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
+    MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
+    ROOT_ALLOW_OPTIONS_FILE: "1",
+  };
+
+  // Route all rushiranpise app option files to config/rushiranpise/
+  for (const id of Object.keys(RUSHIRANPISE_APPS)) {
+    const prefix = id.replaceAll("-", "_").toUpperCase();
+    childEnv[`${prefix}_OPTIONS`] = `config/rushiranpise/${id}-options.json`;
+  }
+
+  if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
+    childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
+  }
+
+  const result = spawnSync(
+    process.execPath,
+    [join(root, "scripts/morphe.mjs"), command, ...args],
+    {
+      cwd: root,
+      env: childEnv,
+      stdio: "inherit",
+    },
+  );
+
+  if (result.error) {
+    console.error(`rushiranpise-builder failed to start: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  process.exit(result.status ?? 1);
 }
-
-if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
-  childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
-}
-
-const result = spawnSync(
-  process.execPath,
-  [join(root, "scripts/morphe.mjs"), command, ...args],
-  {
-    cwd: root,
-    env: childEnv,
-    stdio: "inherit",
-  },
-);
-
-if (result.error) {
-  console.error(`rushiranpise-builder failed to start: ${result.error.message}`);
-  process.exit(1);
-}
-
-process.exit(result.status ?? 1);
 
 // ---------------------------------------------------------------------------
 // Helpers

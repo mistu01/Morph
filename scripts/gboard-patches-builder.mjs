@@ -11,7 +11,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const command = process.argv[2] || "build";
 const args = process.argv.slice(3);
 
-if (command === "release-notes") {
+const isMain = process.argv[1] && (
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url) ||
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+);
+
+if (isMain && command === "release-notes") {
   generateReleaseNotes();
   process.exit(0);
 }
@@ -24,53 +29,62 @@ export const GBOARD_PATCHES_APPS = {
   "gboard": { packageName: "com.google.android.inputmethod.latin", label: "Gboard" },
 };
 
-const rawTargets = env("BUILD_TARGETS") || "gboard";
-const parsedTargets = rawTargets
-  .split(/[,\s;.]+/)
-  .map((t) => t.trim().toLowerCase())
-  .filter(Boolean);
+import { externalPatchAppConfigs } from "./morphe.mjs";
 
-validateTargets(parsedTargets);
+export const appConfigs = externalPatchAppConfigs([
+  ["gboard", "Gboard", "com.google.android.inputmethod.latin", { apkmirrorOrg: "google-inc", apkmirrorRepo: "gboard-the-google-keyboard", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "120-640dpi" }],
+]);
 
-const buildTargets = parsedTargets.join(",");
+if (isMain) {
+  const rawTargets = env("BUILD_TARGETS") || "gboard";
+  const parsedTargets = rawTargets
+    .split(/[,\s;.]+/)
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
 
-const childEnv = {
-  ...process.env,
-  BUILD_TARGETS: buildTargets,
-  APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
-  APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
-  APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
-  APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
-  MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
-  // Gboard patches source
-  MORPHE_PATCHES_REPO: env("GBOARD_PATCHES_REPO") || "jasonwu1994/Gboard-patches",
-  MORPHE_PATCHES_VERSION: env("GBOARD_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
-  MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
-  MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
-  ROOT_ALLOW_OPTIONS_FILE: "1",
-  GBOARD_OPTIONS: env("GBOARD_OPTIONS") || "config/gboard-patches-options.json",
-};
+  validateTargets(parsedTargets);
 
-if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
-  childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
+  const buildTargets = parsedTargets.join(",");
+
+  const childEnv = {
+    ...process.env,
+    MORPHE_BUILDER: "gboard-patches",
+    BUILD_TARGETS: buildTargets,
+    APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
+    APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
+    APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
+    APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
+    MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
+    // Gboard patches source
+    MORPHE_PATCHES_REPO: env("GBOARD_PATCHES_REPO") || "jasonwu1994/Gboard-patches",
+    MORPHE_PATCHES_VERSION: env("GBOARD_PATCHES_VERSION") || env("MORPHE_PATCHES_VERSION") || "stable",
+    MORPHE_CREATE_DEFAULT_OPTIONS: env("MORPHE_CREATE_DEFAULT_OPTIONS") || "1",
+    MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
+    ROOT_ALLOW_OPTIONS_FILE: "1",
+    GBOARD_OPTIONS: env("GBOARD_OPTIONS") || "config/gboard-patches/gboard-options.json",
+  };
+
+  if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
+    childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
+  }
+
+  const result = spawnSync(
+    process.execPath,
+    [join(root, "scripts/morphe.mjs"), command, ...args],
+    {
+      cwd: root,
+      env: childEnv,
+      stdio: "inherit",
+    },
+  );
+
+  if (result.error) {
+    console.error(`gboard-patches-builder failed to start: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  process.exit(result.status ?? 1);
 }
-
-const result = spawnSync(
-  process.execPath,
-  [join(root, "scripts/morphe.mjs"), command, ...args],
-  {
-    cwd: root,
-    env: childEnv,
-    stdio: "inherit",
-  },
-);
-
-if (result.error) {
-  console.error(`gboard-patches-builder failed to start: ${result.error.message}`);
-  process.exit(1);
-}
-
-process.exit(result.status ?? 1);
 
 // ---------------------------------------------------------------------------
 // Helpers

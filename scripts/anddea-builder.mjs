@@ -9,12 +9,20 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const command = process.argv[2] || "build";
 const args = process.argv.slice(3);
 
-if (command === "release-notes") {
+const isMain = process.argv[1] && (
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url) ||
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+);
+
+if (isMain && command === "release-notes") {
   generateReleaseNotes();
   process.exit(0);
 }
 
+export const appConfigs = {}; // inherits youtube and youtube-music from morphe
+
 const childEnv = {
+  MORPHE_BUILDER: "anddea",
   ...process.env,
   BUILD_TARGETS: env("BUILD_TARGETS") || "youtube,youtube-music",
   APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
@@ -30,26 +38,28 @@ const childEnv = {
   YOUTUBE_MUSIC_OPTIONS: env("YOUTUBE_MUSIC_OPTIONS") || "config/anddea/youtube-music-options.json",
 };
 
-if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
-  childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
+if (isMain) {
+  if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
+    childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
+  }
+
+  const result = spawnSync(
+    process.execPath,
+    [join(root, "scripts/morphe.mjs"), command, ...args],
+    {
+      cwd: root,
+      env: childEnv,
+      stdio: "inherit",
+    },
+  );
+
+  if (result.error) {
+    console.error(`anddea-builder failed to start: ${result.error.message}`);
+    process.exit(1);
+  }
+
+  process.exit(result.status ?? 1);
 }
-
-const result = spawnSync(
-  process.execPath,
-  [join(root, "scripts/morphe.mjs"), command, ...args],
-  {
-    cwd: root,
-    env: childEnv,
-    stdio: "inherit",
-  },
-);
-
-if (result.error) {
-  console.error(`anddea-builder failed to start: ${result.error.message}`);
-  process.exit(1);
-}
-
-process.exit(result.status ?? 1);
 
 function defaultPatchArgs() {
   const args = [];
