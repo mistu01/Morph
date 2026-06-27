@@ -211,7 +211,7 @@ const appConfigs = {
     ["vn", "VN", "com.frontrow.vlog"],
     // ── rushiranpise/morphe-patches ──────
     ["1111-warp", "1.1.1.1 + WARP", "com.cloudflare.onedotonedotonedotone", { apkmirrorOrg: "cloudflare", apkmirrorRepo: "1-1-1-1-faster-safer-internet", apkmirrorSlug: "1-1-1-1-warp-safer-internet", apkpureSlug: "1-1-1-1-faster-safer-internet", apkmirrorType: "bundle", apkmirrorArch: "universal", apkmirrorDpi: "120-640dpi" }],
-    ["adguard-nightly", "AdGuard Nightly", "com.adguard.android", { url: "https://agrd.io/android_nightly" }],
+    ["adguard-nightly", "AdGuard Nightly", "com.adguard.android", { apkmirrorOrg: "adguard-software-limited", apkmirrorRepo: "adguard", apkmirrorSlug: "adguard-for-android" }],
     ["aida64", "AIDA64", "com.finalwire.aida64", { apkmirrorOrg: "finalwire-ltd", apkmirrorRepo: "aida64" }],
     ["blocker-hero", "Blocker Hero", "com.nicholasregan.blockerhero"],
     ["call-recorder", "Call Recorder", "com.appstar.callrecorder", { apkmirrorOrg: "appstar-solutions", apkmirrorRepo: "call-recorder" }],
@@ -223,7 +223,7 @@ const appConfigs = {
     ["flightradar24", "Flightradar24", "com.flightradar24free", { apkmirrorOrg: "flightradar24-ab", apkmirrorRepo: "flightradar24-flight-tracker", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
     ["greenify", "Greenify", "com.oasisfeng.greenify", { apkmirrorOrg: "oasis-feng", apkmirrorRepo: "greenify" }],
     ["hibernator", "Hibernator", "com.tafayor.hibernator", { apkmirrorOrg: "tafayor", apkmirrorRepo: "hibernator-hibernate-apps-save-battery" }],
-    ["hola-vpn", "Hola VPN Proxy Plus", "org.hola", { apkmirrorOrg: "hola-vpn", apkmirrorRepo: "hola-free-vpn" }],
+    ["hola-vpn", "Hola VPN Proxy Plus", "org.hola.play", { apkmirrorOrg: "hola-vpn", apkmirrorRepo: "hola-free-vpn", apkpureSlug: "hola-vpn-proxy-plus" }],
     ["http-mock", "HTTP Mock", "com.shexa.httpmock"],
     ["inscode-autoclicker", "Inscode Auto Clicker", "com.inscode.autoclicker"],
     ["kill-apps", "Kill Apps", "com.zenzen.killapps", { apkmirrorOrg: "tafayor", apkmirrorRepo: "killapps-close-all-apps-running" }],

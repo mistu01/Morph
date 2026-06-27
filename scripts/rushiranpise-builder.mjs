@@ -35,7 +35,7 @@ export const RUSHIRANPISE_APPS = {
   "flightradar24":        { packageName: "com.flightradar24free",                 label: "Flightradar24" },
   "greenify":             { packageName: "com.oasisfeng.greenify",                label: "Greenify" },
   "hibernator":           { packageName: "com.tafayor.hibernator",                label: "Hibernator" },
-  "hola-vpn":             { packageName: "org.hola",                              label: "Hola VPN Proxy Plus" },
+  "hola-vpn":             { packageName: "org.hola.play",                         label: "Hola VPN Proxy Plus" },
   "http-mock":            { packageName: "com.shexa.httpmock",                    label: "HTTP Mock" },
   "inscode-autoclicker":  { packageName: "com.inscode.autoclicker",               label: "Inscode Auto Clicker" },
   "kill-apps":            { packageName: "com.zenzen.killapps",                   label: "Kill Apps" },
