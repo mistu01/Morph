@@ -1,0 +1,31 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:58:07.093799900Z",
+            "source": "patches.mpp",
+            "sha256": "cd9f54fa98b2cb5a97c76ddbdcbeebd8f6bc5f95610c257097ac822282b4cf26"
+        },
+        "patches": {
+            "Hide app icon": {
+                "enabled": false
+            },
+            "Enable debug": {
+                "enabled": false
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable Pairip license check": {
+                "enabled": false
+            },
+            "Enable Premium": {
+                "enabled": true
+            }
+        }
+    }
+]

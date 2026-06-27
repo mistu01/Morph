@@ -1,0 +1,40 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:57:32.930918800Z",
+            "source": "patches.mpp",
+            "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
+        },
+        "patches": {
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Block audio ads": {
+                "enabled": true
+            },
+            "Block embedded ads": {
+                "enabled": true
+            },
+            "Block video ads": {
+                "enabled": true
+            },
+            "Show deleted messages": {
+                "enabled": true
+            },
+            "Auto claim channel points": {
+                "enabled": true
+            },
+            "Debug mode": {
+                "enabled": false
+            }
+        }
+    }
+]

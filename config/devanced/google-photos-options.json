@@ -35,7 +35,7 @@
     {
         "meta": {
             "created_at": "2026-06-24T12:22:05.986011400Z",
-            "updated_at": "2026-06-24T12:24:15.354011Z",
+            "updated_at": "2026-06-27T13:56:34.125426700Z",
             "source": "patches.mpp",
             "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
         },
@@ -50,45 +50,6 @@
                     "updatePermissions": false,
                     "updateProviders": false
                 }
-            },
-            "Always allow deep-linking": {
-                "enabled": true
-            },
-            "Skip ads": {
-                "enabled": true
-            },
-            "Unlimited track skipping": {
-                "enabled": true
-            },
-            "Unlock Unlimited": {
-                "enabled": true
-            },
-            "Prevent log upload": {
-                "enabled": true
-            },
-            "Hide ads": {
-                "enabled": true
-            },
-            "Remove play limits": {
-                "enabled": true
-            },
-            "Hide 'Sponsored Stories'": {
-                "enabled": true
-            },
-            "Hide story ads": {
-                "enabled": true
-            },
-            "Force enable FreePhone": {
-                "enabled": true
-            },
-            "Hide Premium upgrade button": {
-                "enabled": true
-            },
-            "Enable CustomTabs": {
-                "enabled": true
-            },
-            "GmsCore support": {
-                "enabled": true
             },
             "Enable DCIM folders backup control": {
                 "enabled": true
@@ -120,193 +81,11 @@
                     ]
                 }
             },
+            "GmsCore support": {
+                "enabled": true
+            },
             "Fix selected account persistence": {
                 "enabled": true
-            },
-            "Remove device restrictions": {
-                "enabled": true
-            },
-            "Disable ads": {
-                "enabled": true
-            },
-            "Unlock pro": {
-                "enabled": true
-            },
-            "Remove ads": {
-                "enabled": true
-            },
-            "Unlock app icons": {
-                "enabled": true
-            },
-            "Hide inbox ads": {
-                "enabled": true
-            },
-            "Hide inbox subtabs": {
-                "enabled": true
-            },
-            "Disable typing indicator": {
-                "enabled": true
-            },
-            "Hide Facebook button": {
-                "enabled": true
-            },
-            "Remove Meta AI": {
-                "enabled": true
-            },
-            "Hide OneDrive migration": {
-                "enabled": true
-            },
-            "Show K1 token(s)": {
-                "enabled": true
-            },
-            "Spoof certificate": {
-                "enabled": true
-            },
-            "Spoof device ID": {
-                "enabled": true
-            },
-            "Hide update popup": {
-                "enabled": true
-            },
-            "Unlock plus": {
-                "enabled": true
-            },
-            "Bypass login": {
-                "enabled": true
-            },
-            "Remove free accounts limit": {
-                "enabled": true
-            },
-            "Remove 'Sent from' signature": {
-                "enabled": true
-            },
-            "Hide purchase reminder": {
-                "enabled": true
-            },
-            "Disable telemetry": {
-                "enabled": true
-            },
-            "Enable offline sync": {
-                "enabled": true
-            },
-            "Hide distractions": {
-                "enabled": true,
-                "options": {
-                    "upselling": true,
-                    "promo": true,
-                    "followSuggestions": true,
-                    "challengeSuggestions": true,
-                    "joinChallenge": false,
-                    "joinClub": false,
-                    "activityLookback": false
-                }
-            },
-            "Add 'Give Kudos' button to 'Group Activity'": {
-                "enabled": true
-            },
-            "Add media download": {
-                "enabled": true
-            },
-            "Overwrite media upload parameters": {
-                "enabled": true,
-                "options": {
-                    "compressionQuality": null,
-                    "maxDuration": null,
-                    "maxSize": null
-                }
-            },
-            "Enable password login": {
-                "enabled": true
-            },
-            "Block Snowplow tracking": {
-                "enabled": true
-            },
-            "Disable Quick Edit": {
-                "enabled": true
-            },
-            "Unlock subscription features": {
-                "enabled": true
-            },
-            "Feed filter": {
-                "enabled": true
-            },
-            "Remember clear display": {
-                "enabled": true
-            },
-            "Downloads": {
-                "enabled": true
-            },
-            "Show seekbar": {
-                "enabled": true
-            },
-            "Playback speed": {
-                "enabled": true
-            },
-            "Disable login requirement": {
-                "enabled": true
-            },
-            "Fix Google login": {
-                "enabled": true
-            },
-            "Enable Open Debug": {
-                "enabled": true
-            },
-            "Settings": {
-                "enabled": true
-            },
-            "Sanitize sharing links": {
-                "enabled": true
-            },
-            "Disable dashboard ads": {
-                "enabled": true
-            },
-            "Disable Ad-Free Banner": {
-                "enabled": true
-            },
-            "Disable in-app update": {
-                "enabled": true
-            },
-            "Disable blog notification reminder": {
-                "enabled": true
-            },
-            "Disable gift message popup": {
-                "enabled": true
-            },
-            "Disable Tumblr TV": {
-                "enabled": true
-            },
-            "Fix old versions": {
-                "enabled": false
-            },
-            "Block audio ads": {
-                "enabled": true
-            },
-            "Block embedded ads": {
-                "enabled": true
-            },
-            "Block video ads": {
-                "enabled": true
-            },
-            "Show deleted messages": {
-                "enabled": true
-            },
-            "Auto claim channel points": {
-                "enabled": true
-            },
-            "Debug mode": {
-                "enabled": false
-            },
-            "Hide Ads": {
-                "enabled": true
-            },
-            "Hide navigation buttons": {
-                "enabled": false,
-                "options": {
-                    "hideExplore": true,
-                    "hidePay": true,
-                    "hideCamera": true,
-                    "hideMarketplace": true
-                }
             }
         }
     }

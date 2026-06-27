@@ -1,0 +1,83 @@
+[
+  {
+    "meta": {
+      "created_at": "2026-06-27T13:55:53.169728800Z",
+      "updated_at": "2026-06-27T13:55:53.492Z",
+      "source": "jkennethcarino/adobo 1.2.0"
+    },
+    "patches": {
+      "Disable mobile ads": {
+        "enabled": false,
+        "options": {
+          "disableAppLovinMax": true,
+          "disableBigo": true,
+          "disableGoogleAdMob": true,
+          "disableMetaAudienceNetwork": true,
+          "disableMintegral": true,
+          "disableMyTarget": true,
+          "disablePangle": true,
+          "disableTopOn": true,
+          "disableUnity": true,
+          "disableVungle": true,
+          "disableYandex": true
+        }
+      },
+      "Block ads, trackers, and analytics": {
+        "enabled": false,
+        "options": {
+          "hosts": "C:\\Users\\Admin\\Desktop\\Morph\\.cache\\tools\\empty-hosts.txt",
+          "redirectionIp": "0.0.0.0",
+          "isWildcard": true
+        }
+      },
+      "Spoof signature verification": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.ninegag.android.app",
+          "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "Deactivate Firebase Analytics": {
+        "enabled": false,
+        "options": {}
+      },
+      "Spoof Firebase certificate hash": {
+        "enabled": false,
+        "options": {
+          "certificateHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "Deactivate Firebase Performance Monitoring": {
+        "enabled": false,
+        "options": {}
+      },
+      "Spoof Advertising ID": {
+        "enabled": false,
+        "options": {}
+      },
+      "Remove internet permission": {
+        "enabled": false
+      },
+      "Change package name": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.mistu.android.9gag",
+          "updatePermissions": true,
+          "updateOtherPermissions": true,
+          "updateProviders": true
+        }
+      },
+      "Disable metrics collection in WebView": {
+        "enabled": false,
+        "options": {}
+      },
+      "Disable Google Safe Browsing in WebView": {
+        "enabled": false,
+        "options": {}
+      },
+      "Remove 9GAG's ads, trackers, and analytics": {
+        "enabled": true
+      }
+    }
+  }
+]

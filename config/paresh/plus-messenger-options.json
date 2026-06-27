@@ -1,0 +1,41 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-27T14:00:22.308311700Z",
+            "source": "patches.mpp",
+            "sha256": "dc4b55ada5356e13b64eb2802778ac8da77d2737f54743ac16d500b47bd71704"
+        },
+        "patches": {
+            "Disable analytics": {
+                "enabled": true
+            },
+            "Disable auto update": {
+                "enabled": true
+            },
+            "Remove ads": {
+                "enabled": true
+            },
+            "Anti-delete messages": {
+                "enabled": true
+            },
+            "Anti-disappearing media": {
+                "enabled": true
+            },
+            "Anti-screenshot notification": {
+                "enabled": true
+            },
+            "Bypass channel restrictions": {
+                "enabled": true
+            },
+            "Hide typing indicator": {
+                "enabled": true
+            },
+            "Bypass integrity": {
+                "enabled": true
+            },
+            "Plus Premium": {
+                "enabled": true
+            }
+        }
+    }
+]

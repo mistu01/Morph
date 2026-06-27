@@ -1,0 +1,32 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-27T14:00:12.846422400Z",
+            "source": "patches.mpp",
+            "sha256": "dc4b55ada5356e13b64eb2802778ac8da77d2737f54743ac16d500b47bd71704"
+        },
+        "patches": {
+            "Remove ads": {
+                "enabled": true
+            },
+            "Bypass signature check": {
+                "enabled": true
+            },
+            "Enable screen mirroring": {
+                "enabled": true
+            },
+            "Enable all codecs": {
+                "enabled": true
+            },
+            "Force HDR10": {
+                "enabled": true
+            },
+            "Premium unlock": {
+                "enabled": true
+            },
+            "Enable screenshots": {
+                "enabled": true
+            }
+        }
+    }
+]

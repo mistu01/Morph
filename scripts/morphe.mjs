@@ -99,7 +99,7 @@ export const morpheAppConfigs = {
     input: envPath("REDDIT_APK", "input/reddit.apk"),
     url: env("REDDIT_APK_URL"),
     output: envPath("REDDIT_OUT", rootBuild ? "output/root/reddit-root.apk" : "output/reddit-patched.apk"),
-    options: envPath("REDDIT_OPTIONS", rootBuild ? "config/root/reddit-options.json" : "config/reddit-options.json"),
+    options: envPath("REDDIT_OPTIONS", rootBuild ? `config/${env("MORPHE_BUILDER") || "morphe"}/root/reddit-options.json` : `config/${env("MORPHE_BUILDER") || "morphe"}/reddit-options.json`),
     result: envPath("REDDIT_RESULT", rootBuild ? "output/root/reddit-result.json" : "output/reddit-result.json"),
     rootModuleId: "mistu_reddit_root",
     rootModuleName: "Mistu Reddit Root",

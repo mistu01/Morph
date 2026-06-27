@@ -1,0 +1,139 @@
+[
+  {
+    "meta": {
+      "created_at": "2026-06-27T13:53:26.727410800Z",
+      "updated_at": "2026-06-27T13:54:27.246Z",
+      "source": "MorpheApp/morphe-patches 1.32.0"
+    },
+    "patches": {
+      "Bypass certificate checks": {
+        "enabled": true,
+        "options": {}
+      },
+      "Change header": {
+        "enabled": true,
+        "options": {
+          "custom": null
+        }
+      },
+      "Change miniplayer color": {
+        "enabled": true,
+        "options": {}
+      },
+      "Change package name": {
+        "enabled": true,
+        "options": {
+          "packageName": "com.mistu.android.youtube.music",
+          "updatePermissions": true,
+          "updateProviders": true,
+          "updateProvidersStrings": true
+        }
+      },
+      "Change start page": {
+        "enabled": true,
+        "options": {}
+      },
+      "Check watch history domain name resolution": {
+        "enabled": true,
+        "options": {}
+      },
+      "Custom branding": {
+        "enabled": true,
+        "options": {
+          "customName": null,
+          "customIcon": null
+        }
+      },
+      "Disable DRC audio": {
+        "enabled": true,
+        "options": {}
+      },
+      "Disable Play Store updates": {
+        "enabled": false,
+        "options": {}
+      },
+      "Disable QUIC protocol": {
+        "enabled": true,
+        "options": {}
+      },
+      "Enable debugging": {
+        "enabled": true,
+        "options": {}
+      },
+      "Enable exclusive audio playback": {
+        "enabled": true,
+        "options": {}
+      },
+      "Enable forced miniplayer": {
+        "enabled": true,
+        "options": {}
+      },
+      "Enable swipe to dismiss miniplayer": {
+        "enabled": true,
+        "options": {}
+      },
+      "Force original audio": {
+        "enabled": true,
+        "options": {}
+      },
+      "GmsCore support": {
+        "enabled": true,
+        "options": {}
+      },
+      "Hide ads": {
+        "enabled": true,
+        "options": {}
+      },
+      "Hide buttons": {
+        "enabled": true,
+        "options": {}
+      },
+      "Hide category bar": {
+        "enabled": true,
+        "options": {}
+      },
+      "Hide music video ads": {
+        "enabled": true,
+        "options": {}
+      },
+      "Miniplayer previous and next buttons": {
+        "enabled": true,
+        "options": {}
+      },
+      "Navigation bar": {
+        "enabled": true,
+        "options": {}
+      },
+      "Override certificate pinning": {
+        "enabled": false,
+        "options": {}
+      },
+      "Permanent repeat": {
+        "enabled": true,
+        "options": {}
+      },
+      "Remove background playback restrictions": {
+        "enabled": true,
+        "options": {}
+      },
+      "Sanitize sharing links": {
+        "enabled": true,
+        "options": {}
+      },
+      "Spoof video streams": {
+        "enabled": true,
+        "options": {}
+      },
+      "Theme": {
+        "enabled": true,
+        "options": {
+          "darkThemeBackgroundColor": "@android:color/black"
+        }
+      },
+      "Track crossfade": {
+        "enabled": true,
+        "options": {}
+      }
+    }
+  }
+]

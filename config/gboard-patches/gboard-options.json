@@ -2,8 +2,8 @@
   {
     "meta": {
       "created_at": "2026-06-24T12:40:36.128344500Z",
-      "updated_at": "2026-06-24T17:14:45.277Z",
-      "source": "jasonwu1994/Gboard-patches 1.12.0"
+      "updated_at": "2026-06-27T13:57:49.318Z",
+      "source": "jasonwu1994/Gboard-patches 1.13.0"
     },
     "patches": {
       "Zhuyin Quick Traditional/Simplified Toggle": {
@@ -83,6 +83,10 @@
         "options": {}
       },
       "English QWERTY Up-Flick Uppercase": {
+        "enabled": true,
+        "options": {}
+      },
+      "Swipeable Custom Top Row": {
         "enabled": true,
         "options": {}
       }

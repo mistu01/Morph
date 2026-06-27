@@ -1,0 +1,25 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:57:17.219012300Z",
+            "source": "patches.mpp",
+            "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
+        },
+        "patches": {
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Hide ads": {
+                "enabled": true
+            }
+        }
+    }
+]
