@@ -551,7 +551,6 @@ async function build() {
       "--out", app.output,
       "--result-file", app.result,
       "--temporary-files-path", temporaryFilesPath,
-      "--purge",
       "--force"
     );
 

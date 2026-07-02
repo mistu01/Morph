@@ -476,7 +476,6 @@ async function buildApp(app, tools) {
     app.result,
     "--temporary-files-path",
     temporaryFilesPath,
-    "--purge",
   ];
 
   appendSigningArgs(args);
