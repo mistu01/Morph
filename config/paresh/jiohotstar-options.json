@@ -1,32 +1,33 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-27T14:00:12.846422400Z",
-            "source": "patches.mpp",
-            "sha256": "dc4b55ada5356e13b64eb2802778ac8da77d2737f54743ac16d500b47bd71704"
-        },
-        "patches": {
-            "Remove ads": {
-                "enabled": true
-            },
-            "Bypass signature check": {
-                "enabled": true
-            },
-            "Enable screen mirroring": {
-                "enabled": true
-            },
-            "Enable all codecs": {
-                "enabled": true
-            },
-            "Force HDR10": {
-                "enabled": true
-            },
-            "Premium unlock": {
-                "enabled": true
-            },
-            "Enable screenshots": {
-                "enabled": true
-            }
-        }
+  {
+    "meta": {
+      "created_at": "2026-06-27T14:00:12.846422400Z",
+      "updated_at": "2026-07-08T20:10:55.317209200Z",
+      "source": "Paresh-Maheshwari/paresh-patches 1.19.0",
+      "sha256": "857a6796ad0380738889d073e4134361a39344d09e2b6f6e281c1cc4ed3b1d28"
+    },
+    "patches": {
+      "Remove ads": {
+        "enabled": true
+      },
+      "Bypass signature check": {
+        "enabled": true
+      },
+      "Enable screen mirroring": {
+        "enabled": true
+      },
+      "Enable all codecs": {
+        "enabled": true
+      },
+      "Force HDR10": {
+        "enabled": true
+      },
+      "Premium unlock": {
+        "enabled": true
+      },
+      "Enable screenshots": {
+        "enabled": true
+      }
     }
+  }
 ]

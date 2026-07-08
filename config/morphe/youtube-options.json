@@ -2,10 +2,14 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:53:19.597922Z",
-      "updated_at": "2026-06-27T13:54:19.953Z",
-      "source": "MorpheApp/morphe-patches 1.32.0"
+      "updated_at": "2026-07-08T19:59:12.247Z",
+      "source": "MorpheApp/morphe-patches 1.33.0"
     },
     "patches": {
+      "Add to queue": {
+        "enabled": false,
+        "options": {}
+      },
       "Alternative thumbnails": {
         "enabled": true,
         "options": {}
@@ -211,6 +215,10 @@
         "enabled": true,
         "options": {}
       },
+      "Network proxy": {
+        "enabled": false,
+        "options": {}
+      },
       "Open Shorts in regular player": {
         "enabled": true,
         "options": {}
@@ -312,6 +320,10 @@
       },
       "Video quality": {
         "enabled": true,
+        "options": {}
+      },
+      "Voice over translation": {
+        "enabled": false,
         "options": {}
       }
     }

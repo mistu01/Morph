@@ -1,25 +1,26 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-27T13:57:11.000240200Z",
-            "source": "patches.mpp",
-            "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
-        },
-        "patches": {
-            "Override certificate pinning": {
-                "enabled": false
-            },
-            "Change package name": {
-                "enabled": false,
-                "options": {
-                    "packageName": "Default",
-                    "updatePermissions": false,
-                    "updateProviders": false
-                }
-            },
-            "Hide OneDrive migration": {
-                "enabled": true
-            }
+  {
+    "meta": {
+      "created_at": "2026-06-27T13:57:11.000240200Z",
+      "updated_at": "2026-07-08T20:06:26.806621200Z",
+      "source": "RookieEnough/De-Vanced 1.0.4",
+      "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
+    },
+    "patches": {
+      "Override certificate pinning": {
+        "enabled": false
+      },
+      "Change package name": {
+        "enabled": false,
+        "options": {
+          "packageName": "Default",
+          "updatePermissions": false,
+          "updateProviders": false
         }
+      },
+      "Hide OneDrive migration": {
+        "enabled": true
+      }
     }
+  }
 ]

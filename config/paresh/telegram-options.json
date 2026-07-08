@@ -1,41 +1,42 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-27T14:00:33.828100400Z",
-            "source": "patches.mpp",
-            "sha256": "dc4b55ada5356e13b64eb2802778ac8da77d2737f54743ac16d500b47bd71704"
-        },
-        "patches": {
-            "Disable auto update": {
-                "enabled": true
-            },
-            "Remove ads": {
-                "enabled": true
-            },
-            "Anti-delete messages": {
-                "enabled": true
-            },
-            "Anti-disappearing media": {
-                "enabled": true
-            },
-            "Bypass channel restrictions": {
-                "enabled": true
-            },
-            "Bypass content restrictions": {
-                "enabled": true
-            },
-            "Download speed boost": {
-                "enabled": true
-            },
-            "Hide typing indicator": {
-                "enabled": true
-            },
-            "Bypass integrity": {
-                "enabled": true
-            },
-            "Telegram Premium": {
-                "enabled": true
-            }
-        }
+  {
+    "meta": {
+      "created_at": "2026-06-27T14:00:33.828100400Z",
+      "updated_at": "2026-07-08T20:11:24.561522100Z",
+      "source": "Paresh-Maheshwari/paresh-patches 1.19.0",
+      "sha256": "857a6796ad0380738889d073e4134361a39344d09e2b6f6e281c1cc4ed3b1d28"
+    },
+    "patches": {
+      "Disable auto update": {
+        "enabled": true
+      },
+      "Remove ads": {
+        "enabled": true
+      },
+      "Anti-delete messages": {
+        "enabled": true
+      },
+      "Anti-disappearing media": {
+        "enabled": true
+      },
+      "Bypass channel restrictions": {
+        "enabled": true
+      },
+      "Bypass content restrictions": {
+        "enabled": true
+      },
+      "Download speed boost": {
+        "enabled": true
+      },
+      "Hide typing indicator": {
+        "enabled": true
+      },
+      "Bypass integrity": {
+        "enabled": true
+      },
+      "Telegram Premium": {
+        "enabled": true
+      }
     }
+  }
 ]

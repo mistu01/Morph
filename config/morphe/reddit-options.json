@@ -1,216 +1,76 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-23T20:14:18.557516300Z",
-            "updated_at": "2026-06-23T20:19:40.270Z",
-            "source": "jkennethcarino/adobo 1.2.0"
-        },
-        "patches": {
-            "Disable mobile ads": {
-                "enabled": true,
-                "options": {
-                    "disableAppLovinMax": true,
-                    "disableBigo": true,
-                    "disableGoogleAdMob": true,
-                    "disableMetaAudienceNetwork": true,
-                    "disableMintegral": true,
-                    "disableMyTarget": true,
-                    "disablePangle": true,
-                    "disableTopOn": true,
-                    "disableUnity": true,
-                    "disableVungle": true,
-                    "disableYandex": true
-                }
-            },
-            "Block ads, trackers, and analytics": {
-                "enabled": true,
-                "options": {
-                    "hosts": "C:\\Users\\Admin\\Desktop\\Morph\\.cache\\tools\\empty-hosts.txt",
-                    "redirectionIp": "0.0.0.0",
-                    "isWildcard": true
-                }
-            },
-            "Spoof signature verification": {
-                "enabled": false,
-                "options": {
-                    "packageName": "com.reddit.frontpage",
-                    "signature": "0000000000000000000000000000000000000000000000000000000000000000"
-                }
-            },
-            "Deactivate Firebase Analytics": {
-                "enabled": false
-            },
-            "Spoof Firebase certificate hash": {
-                "enabled": false,
-                "options": {
-                    "certificateHash": "0000000000000000000000000000000000000000000000000000000000000000"
-                }
-            },
-            "Deactivate Firebase Performance Monitoring": {
-                "enabled": false
-            },
-            "Spoof Advertising ID": {
-                "enabled": false
-            },
-            "Remove internet permission": {
-                "enabled": false
-            },
-            "Change package name": {
-                "enabled": false,
-                "options": {
-                    "packageName": "com.mistu.android.reddit",
-                    "updatePermissions": true,
-                    "updateOtherPermissions": true,
-                    "updateProviders": true
-                }
-            },
-            "Disable metrics collection in WebView": {
-                "enabled": false
-            },
-            "Disable Google Safe Browsing in WebView": {
-                "enabled": false
-            },
-            "Remove ads and telemetry": {
-                "enabled": true
-            },
-            "Hide awards": {
-                "enabled": false
-            },
-            "Hide upvote scores": {
-                "enabled": false,
-                "options": {
-                    "hidePostScores": true,
-                    "hideCommentScores": true
-                }
-            },
-            "Hide share count": {
-                "enabled": false
-            },
-            "Colorize comment indent lines": {
-                "enabled": true,
-                "options": {
-                    "indentLineColors1": "#2A9D8F",
-                    "indentLineColors2": "#C96B2C",
-                    "indentLineColors3": "#7A8F3A",
-                    "indentLineColors4": "#8C4A5B",
-                    "indentLineColors5": "#4A6FA5",
-                    "indentLineColors6": "#B85C38",
-                    "indentLineColors7": "#6B7A2B",
-                    "indentLineColors8": "#7B5E8E"
-                }
-            },
-            "Hide user community badges": {
-                "enabled": false
-            },
-            "Hide community highlights": {
-                "enabled": false
-            },
-            "Hide user flairs": {
-                "enabled": false
-            },
-            "Disable home feed swipe": {
-                "enabled": false
-            },
-            "Disable post detail swipe": {
-                "enabled": false
-            },
-            "Disable screenshot banner": {
-                "enabled": true
-            },
-            "Hide Ask button from search bar": {
-                "enabled": false
-            },
-            "Hide prominent search bar": {
-                "enabled": false
-            },
-            "Hide post view counts": {
-                "enabled": true
-            },
-            "Disable home screen redirect": {
-                "enabled": true
-            },
-            "Open external links directly": {
-                "enabled": true
-            },
-            "Sanitize share links": {
-                "enabled": true
-            }
-        }
+  {
+    "meta": {
+      "created_at": "2026-06-23T20:14:18.557516300Z",
+      "updated_at": "2026-07-08T20:15:18.797Z",
+      "source": "MorpheApp/morphe-patches 1.33.0"
     },
-    {
-        "meta": {
-            "created_at": "2026-06-23T20:14:18.557516300Z",
-            "updated_at": "2026-06-27T13:54:29.927082600Z",
-            "source": "patches.mpp",
-            "sha256": "d4c14b476b1e7e43b0b9b6ef437ec0eaa7ee2ccb38720890b0c78f45e5dba3ca"
-        },
-        "patches": {
-            "Override certificate pinning": {
-                "enabled": false
-            },
-            "Change package name": {
-                "enabled": false,
-                "options": {
-                    "packageName": "com.mistu.android.reddit",
-                    "updatePermissions": true,
-                    "updateProviders": true,
-                    "updateProvidersStrings": false
-                }
-            },
-            "Disable Play Store updates": {
-                "enabled": false
-            },
-            "Hide ads": {
-                "enabled": true
-            },
-            "Hide Ask button": {
-                "enabled": true
-            },
-            "Custom branding name for Reddit": {
-                "enabled": false,
-                "options": {
-                    "appName": "Reddit Morphe"
-                }
-            },
-            "Hide recommended communities shelf": {
-                "enabled": true
-            },
-            "Disable modern home": {
-                "enabled": true
-            },
-            "Hide navigation buttons": {
-                "enabled": true
-            },
-            "Disable screenshot popup": {
-                "enabled": true
-            },
-            "Hide Reddit search": {
-                "enabled": false
-            },
-            "Hide sidebar components": {
-                "enabled": true
-            },
-            "Remove subreddit dialog": {
-                "enabled": true
-            },
-            "Hide Trending Today shelf": {
-                "enabled": true
-            },
-            "Show view count": {
-                "enabled": true
-            },
-            "Spoof signature": {
-                "enabled": true
-            },
-            "Open links directly": {
-                "enabled": true
-            },
-            "Open links externally": {
-                "enabled": true
-            },
-            "Sanitize sharing links": {
-                "enabled": true
-            }
+    "patches": {
+      "Override certificate pinning": {
+        "enabled": false
+      },
+      "Change package name": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.mistu.android.reddit",
+          "updatePermissions": true,
+          "updateProviders": true
         }
+      },
+      "Disable Play Store updates": {
+        "enabled": false
+      },
+      "Hide ads": {
+        "enabled": true
+      },
+      "Hide Ask button": {
+        "enabled": true
+      },
+      "Custom branding name for Reddit": {
+        "enabled": false,
+        "options": {
+          "appName": "Reddit Morphe"
+        }
+      },
+      "Hide communities shelf": {
+        "enabled": true
+      },
+      "Disable modern home": {
+        "enabled": true
+      },
+      "Hide navigation buttons": {
+        "enabled": true
+      },
+      "Disable screenshot popup": {
+        "enabled": true
+      },
+      "Hide Reddit search": {
+        "enabled": false
+      },
+      "Hide sidebar components": {
+        "enabled": true
+      },
+      "Remove subreddit dialog": {
+        "enabled": true
+      },
+      "Hide Trending shelves": {
+        "enabled": true
+      },
+      "Show view count": {
+        "enabled": true
+      },
+      "Spoof signature": {
+        "enabled": true
+      },
+      "Open links directly": {
+        "enabled": true
+      },
+      "Open links externally": {
+        "enabled": true
+      },
+      "Sanitize sharing links": {
+        "enabled": true
+      }
     }
+  }
 ]

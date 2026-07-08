@@ -2,8 +2,8 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:53:26.727410800Z",
-      "updated_at": "2026-06-27T13:54:27.246Z",
-      "source": "MorpheApp/morphe-patches 1.32.0"
+      "updated_at": "2026-07-08T19:59:35.326Z",
+      "source": "MorpheApp/morphe-patches 1.33.0"
     },
     "patches": {
       "Bypass certificate checks": {
@@ -104,6 +104,10 @@
         "enabled": true,
         "options": {}
       },
+      "Network proxy": {
+        "enabled": false,
+        "options": {}
+      },
       "Override certificate pinning": {
         "enabled": false,
         "options": {}
@@ -118,6 +122,14 @@
       },
       "Sanitize sharing links": {
         "enabled": true,
+        "options": {}
+      },
+      "Scrobbling": {
+        "enabled": false,
+        "options": {}
+      },
+      "SponsorBlock": {
+        "enabled": false,
         "options": {}
       },
       "Spoof video streams": {

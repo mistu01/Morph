@@ -1,52 +1,53 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-27T13:56:38.308836100Z",
-            "source": "patches.mpp",
-            "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
-        },
-        "patches": {
-            "Override certificate pinning": {
-                "enabled": false
-            },
-            "Change package name": {
-                "enabled": false,
-                "options": {
-                    "packageName": "Default",
-                    "updatePermissions": false,
-                    "updateProviders": false
-                }
-            },
-            "Feed filter": {
-                "enabled": true
-            },
-            "Remember clear display": {
-                "enabled": true
-            },
-            "Downloads": {
-                "enabled": true
-            },
-            "Show seekbar": {
-                "enabled": true
-            },
-            "Playback speed": {
-                "enabled": true
-            },
-            "Disable login requirement": {
-                "enabled": true
-            },
-            "Fix Google login": {
-                "enabled": true
-            },
-            "Enable Open Debug": {
-                "enabled": true
-            },
-            "Settings": {
-                "enabled": true
-            },
-            "Sanitize sharing links": {
-                "enabled": true
-            }
+  {
+    "meta": {
+      "created_at": "2026-06-27T13:56:38.308836100Z",
+      "updated_at": "2026-07-08T20:07:07.415241300Z",
+      "source": "RookieEnough/De-Vanced 1.0.4",
+      "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
+    },
+    "patches": {
+      "Override certificate pinning": {
+        "enabled": false
+      },
+      "Change package name": {
+        "enabled": false,
+        "options": {
+          "packageName": "Default",
+          "updatePermissions": false,
+          "updateProviders": false
         }
+      },
+      "Feed filter": {
+        "enabled": true
+      },
+      "Remember clear display": {
+        "enabled": true
+      },
+      "Downloads": {
+        "enabled": true
+      },
+      "Show seekbar": {
+        "enabled": true
+      },
+      "Playback speed": {
+        "enabled": true
+      },
+      "Disable login requirement": {
+        "enabled": true
+      },
+      "Fix Google login": {
+        "enabled": true
+      },
+      "Enable Open Debug": {
+        "enabled": true
+      },
+      "Settings": {
+        "enabled": true
+      },
+      "Sanitize sharing links": {
+        "enabled": true
+      }
     }
+  }
 ]

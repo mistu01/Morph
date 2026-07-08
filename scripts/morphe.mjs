@@ -995,6 +995,11 @@ async function selectedPatchReleaseTag() {
   const version = env("MORPHE_PATCHES_VERSION") || "latest";
 
   selectedPatchReleaseTagPromise ||= (async () => {
+    const normalized = String(version || "").toLowerCase();
+    if (normalized && !["latest", "stable", "dev", "pre", "preview", "prerelease", "pre-release"].includes(normalized)) {
+      return normalizeTag(version);
+    }
+
     const release = await releaseForVersion(releaseAssets.patches, version, {
       prereleaseKeyword: true,
     });

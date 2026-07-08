@@ -1,171 +1,172 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-24T13:02:42.905835300Z",
-            "source": "piko-patches.mpp",
-            "sha256": "0e79533f498acacabc6d716dea5a42c146235a81dc4a258508759abc7b72d9c3"
-        },
-        "patches": {
-            "Disable ads": {
-                "enabled": true
-            },
-            "Hide suggested content": {
-                "enabled": true
-            },
-            "Open links externally": {
-                "enabled": true
-            },
-            "Disable comments": {
-                "enabled": true
-            },
-            "Disable explore": {
-                "enabled": true
-            },
-            "Disable highlights": {
-                "enabled": true
-            },
-            "Disable stories": {
-                "enabled": true
-            },
-            "Disable analytics": {
-                "enabled": true
-            },
-            "Disable discover people": {
-                "enabled": true
-            },
-            "Hide reshare button": {
-                "enabled": true
-            },
-            "Disable typing status": {
-                "enabled": true
-            },
-            "View live anonymously": {
-                "enabled": true
-            },
-            "View stories anonymously": {
-                "enabled": true
-            },
-            "Sanitize share links": {
-                "enabled": true
-            },
-            "Validate links": {
-                "enabled": true
-            },
-            "Amoled theme": {
-                "enabled": true
-            },
-            "Remove build expired popup": {
-                "enabled": true
-            },
-            "Change like animation": {
-                "enabled": true
-            },
-            "Clone": {
-                "enabled": false,
-                "options": {
-                    "packageName": "com.instagram.android.piko",
-                    "appName": "Piko Instagram"
-                }
-            },
-            "Copy comment": {
-                "enabled": true
-            },
-            "Save media comment": {
-                "enabled": true
-            },
-            "Download voice message": {
-                "enabled": true
-            },
-            "Make ephemeral media permanent": {
-                "enabled": true
-            },
-            "Disable video autoplay": {
-                "enabled": true
-            },
-            "Hide group creation button on sharesheet": {
-                "enabled": true
-            },
-            "Hide navigation buttons": {
-                "enabled": true
-            },
-            "Hide notes tray": {
-                "enabled": true
-            },
-            "Hide stories tray": {
-                "enabled": true
-            },
-            "Limit feed to following profiles": {
-                "enabled": true
-            },
-            "Disable double tap like": {
-                "enabled": true
-            },
-            "Download media": {
-                "enabled": true
-            },
-            "External downloader": {
-                "enabled": true
-            },
-            "View DMs anonymously": {
-                "enabled": true
-            },
-            "Improve image viewing": {
-                "enabled": true
-            },
-            "Unlock developer options": {
-                "enabled": true
-            },
-            "Unlock employee options": {
-                "enabled": true
-            },
-            "Allow user network certificate": {
-                "enabled": true
-            },
-            "More options on post": {
-                "enabled": true
-            },
-            "Disable screenshot detection": {
-                "enabled": true
-            },
-            "Disable Reels scrolling": {
-                "enabled": true
-            },
-            "Remove empty bottom space": {
-                "enabled": true
-            },
-            "Add settings": {
-                "enabled": true
-            },
-            "Customise story ring size": {
-                "enabled": true
-            },
-            "Customise story timestamp": {
-                "enabled": true
-            },
-            "Disable story flipping": {
-                "enabled": true
-            },
-            "View story mentions": {
-                "enabled": true
-            },
-            "Stories audio autoplay": {
-                "enabled": true
-            },
-            "Unlock Plus benefits": {
-                "enabled": true
-            },
-            "Follow back indicator": {
-                "enabled": true
-            },
-            "More options on profile": {
-                "enabled": true
-            },
-            "Change version code": {
-                "enabled": true,
-                "options": {
-                    "versionCode": 2147483647
-                }
-            }
+  {
+    "meta": {
+      "created_at": "2026-06-24T13:02:42.905835300Z",
+      "updated_at": "2026-07-08T20:04:01.391515400Z",
+      "source": "crimera/piko 3.7.0",
+      "sha256": "2e7ee1114dc860a2719cab0db5d26dd7c34b38df6becbc74cbe6355b43370641"
+    },
+    "patches": {
+      "Disable ads": {
+        "enabled": true
+      },
+      "Hide suggested content": {
+        "enabled": true
+      },
+      "Open links externally": {
+        "enabled": true
+      },
+      "Disable comments": {
+        "enabled": true
+      },
+      "Disable explore": {
+        "enabled": true
+      },
+      "Disable highlights": {
+        "enabled": true
+      },
+      "Disable stories": {
+        "enabled": true
+      },
+      "Disable analytics": {
+        "enabled": true
+      },
+      "Disable discover people": {
+        "enabled": true
+      },
+      "Hide reshare button": {
+        "enabled": true
+      },
+      "Disable typing status": {
+        "enabled": true
+      },
+      "View live anonymously": {
+        "enabled": true
+      },
+      "View stories anonymously": {
+        "enabled": true
+      },
+      "Sanitize share links": {
+        "enabled": true
+      },
+      "Validate links": {
+        "enabled": true
+      },
+      "Amoled theme": {
+        "enabled": true
+      },
+      "Remove build expired popup": {
+        "enabled": true
+      },
+      "Change like animation": {
+        "enabled": true
+      },
+      "Clone": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.instagram.android.piko",
+          "appName": "Piko Instagram"
         }
+      },
+      "Copy comment": {
+        "enabled": true
+      },
+      "Save media comment": {
+        "enabled": true
+      },
+      "Download voice message": {
+        "enabled": true
+      },
+      "Make ephemeral media permanent": {
+        "enabled": true
+      },
+      "Disable video autoplay": {
+        "enabled": true
+      },
+      "Hide group creation button on sharesheet": {
+        "enabled": true
+      },
+      "Hide navigation buttons": {
+        "enabled": true
+      },
+      "Hide notes tray": {
+        "enabled": true
+      },
+      "Hide stories tray": {
+        "enabled": true
+      },
+      "Limit feed to following profiles": {
+        "enabled": true
+      },
+      "Disable double tap like": {
+        "enabled": true
+      },
+      "Download media": {
+        "enabled": true
+      },
+      "External downloader": {
+        "enabled": true
+      },
+      "View DMs anonymously": {
+        "enabled": true
+      },
+      "Improve image viewing": {
+        "enabled": true
+      },
+      "Unlock developer options": {
+        "enabled": true
+      },
+      "Unlock employee options": {
+        "enabled": true
+      },
+      "Allow user network certificate": {
+        "enabled": true
+      },
+      "More options on post": {
+        "enabled": true
+      },
+      "Disable screenshot detection": {
+        "enabled": true
+      },
+      "Disable Reels scrolling": {
+        "enabled": true
+      },
+      "Remove empty bottom space": {
+        "enabled": true
+      },
+      "Add settings": {
+        "enabled": true
+      },
+      "Customise story ring size": {
+        "enabled": true
+      },
+      "Customise story timestamp": {
+        "enabled": true
+      },
+      "Disable story flipping": {
+        "enabled": true
+      },
+      "View story mentions": {
+        "enabled": true
+      },
+      "Stories audio autoplay": {
+        "enabled": true
+      },
+      "Unlock Plus benefits": {
+        "enabled": true
+      },
+      "Friendship status indicator": {
+        "enabled": true
+      },
+      "More options on profile": {
+        "enabled": true
+      },
+      "Change version code": {
+        "enabled": true,
+        "options": {
+          "versionCode": 2147483647
+        }
+      }
     }
+  }
 ]

@@ -1,15 +1,54 @@
 [
-    {
-        "meta": {
-            "created_at": "2026-06-25T21:05:44.430Z",
-            "updated_at": "2026-06-27T14:01:43.973957Z",
-            "source": "patches.mpp",
-            "sha256": "d38053ab553b0e292a1c82ee04feb8e6a7427fc23437fcd0d140216d2c99d6ea"
-        },
-        "patches": {
-            "Unlock Premium": {
-                "enabled": true
-            }
+  {
+    "meta": {
+      "created_at": "2026-06-25T21:05:44.430Z",
+      "updated_at": "2026-07-08T20:13:27.368177900Z",
+      "source": "rushiranpise/morphe-patches 1.10.1",
+      "sha256": "cdfbcb47ad94a77daa8ce03e3cc21db92fc1009fde8e4f52d77618af7f0e7f4d"
+    },
+    "patches": {
+      "Unlock Premium": {
+        "enabled": true
+      },
+      "Provide Original app certificate": {
+        "enabled": false,
+        "options": {
+          "originalApkPath": null,
+          "manualCertSha1": null,
+          "manualCertSha256": null,
+          "manualCertBase64": null
         }
+      },
+      "Spoof Widevine / DRM level": {
+        "enabled": false,
+        "options": {
+          "securityLevel": "L1",
+          "hdcpLevel": "HDCP_V2_2"
+        }
+      },
+      "Fix Firebase after re-signing": {
+        "enabled": false
+      },
+      "GmsCore support (MicroG)": {
+        "enabled": false,
+        "options": {
+          "gmsCoreVendor": "app.revanced.android.gms",
+          "mainActivityName": null,
+          "packageName": null
+        }
+      },
+      "Spoof install source": {
+        "enabled": false,
+        "options": {
+          "installerPackageName": "com.android.vending"
+        }
+      },
+      "Spoof app signature": {
+        "enabled": false,
+        "options": {
+          "packageName": null
+        }
+      }
     }
+  }
 ]
