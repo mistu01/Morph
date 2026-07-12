@@ -12,9 +12,9 @@ on:
         required: true
         default: "dev"
       patches_version:
-        description: "Piko patches channel: dev or stable"
+        description: "Piko patches channel: latest/stable (recommended), dev (prerelease), or an exact tag like v3.8.0-dev.4. Note: piko v3.8.0-dev.3+ may fail Instagram ghost/privacy patches due to a broken inbox action-bar fingerprint."
         required: true
-        default: "dev"
+        default: "latest"
       continue_on_error:
         description: "Pass --continue-on-error so compatible patches can still be applied if one patch fails"
         required: true
@@ -261,8 +261,8 @@ jobs:
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
-          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
-          resolved_patches_url="$(node -e 'const fs = require("node:fs"); const repo = "crimera/piko"; let tag = process.env.MORPHE_PATCHES_VERSION || "dev"; let url = `https://github.com/${repo}/releases`; try { const meta = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")); tag = meta.tag || tag; url = meta.url || `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`; } catch {} process.stdout.write(url);')"
+          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MORPHE_PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_patches_url="$(node -e 'const fs = require("node:fs"); const repo = "crimera/piko"; let tag = process.env.MORPHE_PATCHES_VERSION || "latest"; let url = `https://github.com/${repo}/releases`; try { const meta = JSON.parse(fs.readFileSync(".cache/tools/piko-patches.json", "utf8")); tag = meta.tag || tag; url = meta.url || `https://github.com/${repo}/releases/tag/${encodeURIComponent(tag)}`; } catch {} process.stdout.write(url);')"
           resolved_instagram_version="$(node -e 'const fs = require("node:fs"); let version = process.env.INSTAGRAM_APK_VERSION_INPUT || "auto"; try { version = JSON.parse(fs.readFileSync("output/instagram-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
           resolved_twitter_version="$(node -e 'const fs = require("node:fs"); let version = process.env.TWITTER_APK_VERSION_INPUT || "auto"; try { version = JSON.parse(fs.readFileSync("output/twitter-result.json", "utf8")).packageVersion || version; } catch {} process.stdout.write(version);')"
 

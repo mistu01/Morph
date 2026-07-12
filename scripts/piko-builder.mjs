@@ -161,10 +161,13 @@ async function getLatestReleaseTag(repo) {
 }
 
 async function getReleaseByTag(repo, tag) {
-  if (tag === "latest") {
+  const normalized = String(tag || "").trim().toLowerCase();
+
+  // "stable" is documented in the workflow UI; treat it as latest non-prerelease.
+  if (normalized === "latest" || normalized === "stable") {
     return githubJson(`https://api.github.com/repos/${repo}/releases/latest`);
   }
-  if (tag === "dev") {
+  if (normalized === "dev") {
     const releases = await githubJson(`https://api.github.com/repos/${repo}/releases?per_page=100`);
     const devRelease = releases.find((r) => !r.draft && r.prerelease);
     if (!devRelease) {
@@ -215,7 +218,9 @@ async function createOptions() {
 async function downloadTools() {
   console.log("==> Downloading Morphe tools...");
   const cliTag = env("MORPHE_CLI_VERSION") || "latest";
-  const patchesTag = env("MORPHE_PATCHES_VERSION") || "dev";
+  // Prefer stable/latest by default. piko v3.8.0-dev.3+ currently breaks Instagram
+  // ghost/privacy patches via a failing inbox action-bar fingerprint dependency.
+  const patchesTag = env("MORPHE_PATCHES_VERSION") || "latest";
 
   const cliRelease = await getReleaseByTag(cliRepo, cliTag);
   const patchesRelease = await getReleaseByTag(patchesRepo, patchesTag);
@@ -578,16 +583,28 @@ async function build() {
     console.log(`\nRunning Morphe CLI patcher: java -Xmx1536M ${patchArgs.join(" ")}`);
     const patchProc = spawnSync("java", ["-Xmx1536M", ...patchArgs], { stdio: "inherit" });
 
+    // Always surface failed-patch details when a result file exists. With
+    // --continue-on-error the process can still exit 0 even though some patches failed.
+    if (existsSync(app.result)) {
+      try {
+        const resultJson = JSON.parse(readFileSync(app.result, "utf8"));
+        const failed = Array.isArray(resultJson.failedPatches) ? resultJson.failedPatches : [];
+        if (failed.length > 0) {
+          console.error(`\n${app.label}: ${failed.length} patch(es) failed:`);
+          for (const entry of failed) {
+            const name = entry?.patch?.name || entry?.patch || "Unknown";
+            const reason = String(entry?.reason || "No reason provided").trim();
+            console.error(`\n- ${name}\n${reason}`);
+          }
+          logKnownPatchFailureHints(app, failed);
+        }
+      } catch (err) {
+        console.warn(`Could not parse result file for ${app.label}: ${err.message}`);
+      }
+    }
+
     if (patchProc.status !== 0) {
       console.error(`Patcher failed for ${app.label}. Check stdout logs above.`);
-      // Read and print the result file if it exists
-      if (existsSync(app.result)) {
-        try {
-          const resultJson = JSON.parse(readFileSync(app.result, "utf8"));
-          console.error("\nFailed patches detail:");
-          console.error(JSON.stringify(resultJson.failedPatches, null, 2));
-        } catch {}
-      }
       if (env("CONTINUE_ON_ERROR") !== "true") {
         throw new Error(`Patching failed for ${app.label}.`);
       }
@@ -635,8 +652,17 @@ async function build() {
           summaryMd += `  <details><summary>Click to view failed patches</summary>\n\n  \`\`\`\n`;
           for (const entry of resultJson.failedPatches) {
             const name = entry?.patch?.name || entry?.patch || "Unknown";
-            const reason = entry?.reason || "No reason provided";
-            summaryMd += `  - ${name}: ${reason.split('\n')[0]}\n`;
+            const reason = String(entry?.reason || "No reason provided").trim();
+            // Keep the full nested exception so root fingerprint/dependency failures are visible.
+            const indented = reason
+              .split("\n")
+              .map((line, index) => (index === 0 ? `  - ${name}: ${line}` : `    ${line}`))
+              .join("\n");
+            summaryMd += `${indented}\n`;
+          }
+          const hint = knownPatchFailureHint(app, resultJson.failedPatches);
+          if (hint) {
+            summaryMd += `\n  ${hint}\n`;
           }
           summaryMd += `  \`\`\`\n  </details>\n`;
         }
@@ -653,6 +679,51 @@ async function build() {
 
   writeFileSync(fromRoot("output/build-summary.md"), summaryMd);
   console.log(`\nWritten build summary to output/build-summary.md`);
+}
+
+/** Instagram ghost/privacy patches that share chat+inbox action-bar dependencies. */
+const INSTAGRAM_GHOST_PRIVACY_PATCHES = new Set([
+  "Disable typing status",
+  "View DMs anonymously",
+  "View live anonymously",
+  "View stories anonymously",
+]);
+
+function knownPatchFailureHint(app, failedPatches) {
+  if (!app || app.id !== "instagram" || !Array.isArray(failedPatches) || failedPatches.length === 0) {
+    return "";
+  }
+
+  const failedNames = failedPatches.map((entry) => entry?.patch?.name || entry?.patch || "");
+  const ghostFailures = failedNames.filter((name) => INSTAGRAM_GHOST_PRIVACY_PATCHES.has(name));
+  if (ghostFailures.length === 0) {
+    return "";
+  }
+
+  const reasons = failedPatches
+    .map((entry) => String(entry?.reason || ""))
+    .join("\n");
+  const looksLikeSharedDependency =
+    /depends on "BytecodePatch@/i.test(reasons) || /Failed to match the fingerprint/i.test(reasons);
+
+  if (!looksLikeSharedDependency) {
+    return "";
+  }
+
+  return [
+    "Note: These Instagram privacy/ghost patches all depend on shared unnamed",
+    "chat/inbox action-bar bytecode patches in crimera/piko. On piko v3.8.0-dev.3+",
+    "the new inbox action-bar fingerprint often fails on Instagram 435.x, which",
+    "cascades to all four patches. Workaround: set patches_version to `latest`",
+    "(stable v3.7.0) or `v3.8.0-dev.2` until upstream fixes the fingerprint.",
+  ].join(" ");
+}
+
+function logKnownPatchFailureHints(app, failedPatches) {
+  const hint = knownPatchFailureHint(app, failedPatches);
+  if (hint) {
+    console.error(`\n${hint}`);
+  }
 }
 
 async function renameVersionedBuildOutput(app, version) {
