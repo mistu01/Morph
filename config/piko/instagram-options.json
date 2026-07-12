@@ -3,8 +3,7 @@
     "meta": {
       "created_at": "2026-06-24T13:02:42.905835300Z",
       "updated_at": "2026-07-12T18:00:00.000000000Z",
-      "source": "crimera/piko (Morph options; prefer patches_version=latest/stable for ghost/privacy patches)",
-      "notes": "Ghost/privacy patches (Disable typing status, View DMs/live/stories anonymously) depend on chat+inbox action-bar helper patches in piko. Those helpers regressed on piko v3.8.0-dev.3+ for Instagram 435.x."
+      "source": "crimera/piko (Morph options; prefer patches_version=latest/stable for ghost/privacy patches)"
     },
     "patches": {
       "Disable ads": {
