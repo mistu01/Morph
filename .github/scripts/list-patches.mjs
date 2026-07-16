@@ -1,4 +1,5 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
 
 const listPath = '.cache/tools/patches-list.json';
 if (!existsSync(listPath)) {
@@ -16,16 +17,24 @@ try {
 
 const allPatches = patchesData.patches || [];
 
-// Load options overrides
+function findOptionsFiles(directory) {
+  if (!existsSync(directory)) return [];
+
+  const files = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...findOptionsFiles(path));
+    } else if (entry.isFile() && entry.name.endsWith('-options.json')) {
+      files.push(path);
+    }
+  }
+  return files;
+}
+
+// Load options overrides from every current builder configuration.
 const optionsOverride = {};
-const candidates = [
-  'config/youtube-options.json', 'config/youtube-music-options.json',
-  'config/reddit-options.json', 'config/twitter-options.json', 'config/instagram-options.json',
-  'config/gboard-options.json', 'config/gboard-patches-options.json',
-  'config/piko/instagram-options.json', 'config/piko/twitter-options.json',
-  '.morphe-action/options/youtube-stable.json', '.morphe-action/options/youtube-music-stable.json',
-  '.morphe-action/options/reddit-stable.json',
-];
+const candidates = findOptionsFiles('config');
 for (const p of candidates) {
   if (!existsSync(p)) continue;
   try {
