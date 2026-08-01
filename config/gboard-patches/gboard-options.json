@@ -2,8 +2,8 @@
   {
     "meta": {
       "created_at": "2026-06-24T12:40:36.128344500Z",
-      "updated_at": "2026-07-08T20:02:29.542Z",
-      "source": "jasonwu1994/Gboard-patches 1.14.0"
+      "updated_at": "2026-08-01T20:36:22.000000000Z",
+      "source": "jasonwu1994/Gboard-patches 2.4.0"
     },
     "patches": {
       "Zhuyin Quick Traditional/Simplified Toggle": {

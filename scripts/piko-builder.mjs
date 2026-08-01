@@ -225,7 +225,7 @@ async function downloadTools() {
   const cliRelease = await getReleaseByTag(cliRepo, cliTag);
   const patchesRelease = await getReleaseByTag(patchesRepo, patchesTag);
 
-  const cliAsset = cliRelease.assets.find((a) => a.name.startsWith("morphe-cli-") && a.name.endsWith("-all.jar"));
+  const cliAsset = cliRelease.assets.find((a) => (a.name.startsWith("morphe-cli-") || a.name.startsWith("morphe-desktop-") || a.name.startsWith("morphe-")) && a.name.endsWith("-all.jar"));
   if (!cliAsset) {
     throw new Error(`No matching morphe-cli asset found in release ${cliRelease.tag_name}`);
   }
@@ -259,34 +259,41 @@ async function downloadTools() {
   const patchesListUrl = `https://raw.githubusercontent.com/${patchesRepo}/${patchesRelease.tag_name}/patches-list.json`;
   await downloadFile(patchesListUrl, patchesListDest);
 
-  console.log("Downloading x-shim patches...");
-  let xShimTag = "";
-  try {
-    const response = await fetch("https://gitlab.com/api/v4/projects/inotia00%2Fx-shim/releases");
-    if (!response.ok) {
-      throw new Error(`GitLab request failed (${response.status})`);
+  const cleanPatchesTag = (patchesRelease.tag_name || "").replace(/^v/i, "");
+  const isPiko12_5_OrNewer = compareVersions(cleanPatchesTag, "12.5.0-release.0") >= 0 || compareVersions(cleanPatchesTag, "12.5.0") >= 0;
+
+  if (isPiko12_5_OrNewer) {
+    console.log(`Piko patches ${patchesRelease.tag_name} >= 12.5.0-release.0: X-Shim is not required.`);
+  } else {
+    console.log("Downloading x-shim patches...");
+    let xShimTag = "";
+    try {
+      const response = await fetch("https://gitlab.com/api/v4/projects/inotia00%2Fx-shim/releases");
+      if (!response.ok) {
+        throw new Error(`GitLab request failed (${response.status})`);
+      }
+      const releases = await response.json();
+      const latestRelease = releases[0];
+      if (!latestRelease) {
+        throw new Error("No releases found for x-shim");
+      }
+      xShimTag = latestRelease.tag_name;
+      const mppLink = latestRelease.assets?.links?.find(l => l.name.startsWith("patches-") && l.name.endsWith(".mpp"));
+      if (!mppLink) {
+        throw new Error(`No patches .mpp link found in x-shim release ${xShimTag}`);
+      }
+      const xShimUrl = mppLink.direct_asset_url || mppLink.url;
+      console.log(`Downloading x-shim patches ${xShimTag} -> ${xShimDest}`);
+      await downloadFile(xShimUrl, xShimDest);
+      writeFileSync(xShimMetaDest, JSON.stringify({
+        repo: "inotia00/x-shim",
+        tag: xShimTag,
+        url: xShimUrl,
+        downloadedAt: new Date().toISOString(),
+      }, null, 2));
+    } catch (error) {
+      console.warn(`Warning: Could not download x-shim patches: ${error.message}`);
     }
-    const releases = await response.json();
-    const latestRelease = releases[0];
-    if (!latestRelease) {
-      throw new Error("No releases found for x-shim");
-    }
-    xShimTag = latestRelease.tag_name;
-    const mppLink = latestRelease.assets?.links?.find(l => l.name.startsWith("patches-") && l.name.endsWith(".mpp"));
-    if (!mppLink) {
-      throw new Error(`No patches .mpp link found in x-shim release ${xShimTag}`);
-    }
-    const xShimUrl = mppLink.direct_asset_url || mppLink.url;
-    console.log(`Downloading x-shim patches ${xShimTag} -> ${xShimDest}`);
-    await downloadFile(xShimUrl, xShimDest);
-    writeFileSync(xShimMetaDest, JSON.stringify({
-      repo: "inotia00/x-shim",
-      tag: xShimTag,
-      url: xShimUrl,
-      downloadedAt: new Date().toISOString(),
-    }, null, 2));
-  } catch (error) {
-    console.warn(`Warning: Could not download x-shim patches: ${error.message}`);
   }
 
   console.log("Tools downloaded successfully.");
@@ -514,7 +521,9 @@ async function build() {
       "--patches", tools.patches,
     ];
 
-    const isTwitterShimNeeded = app.id === "twitter" && compareVersions(version, "11.88") >= 0;
+    const cleanPatchesTag = (tools.patchesTag || "").replace(/^v/i, "");
+    const isPiko12_5_OrNewer = compareVersions(cleanPatchesTag, "12.5.0-release.0") >= 0 || compareVersions(cleanPatchesTag, "12.5.0") >= 0;
+    const isTwitterShimNeeded = app.id === "twitter" && compareVersions(version, "11.88") >= 0 && !isPiko12_5_OrNewer;
     if (isTwitterShimNeeded) {
       if (!existsSync(tools.xShimPatches)) {
         throw new Error(`x-shim patches file is required for patching Twitter version >= 11.88 but it was not found at ${tools.xShimPatches}.`);

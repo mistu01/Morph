@@ -2,8 +2,8 @@
   {
     "meta": {
       "created_at": "2026-06-24T13:02:39.783544600Z",
-      "updated_at": "2026-07-08T20:04:06.698785600Z",
-      "source": "crimera/piko 3.7.0",
+      "updated_at": "2026-08-01T20:36:22.000000000Z",
+      "source": "crimera/piko 3.8.0 / 12.5.0-release.0+ (Starting 12.5.0-release.0 X-Shim is not required)",
       "sha256": "2e7ee1114dc860a2719cab0db5d26dd7c34b38df6becbc74cbe6355b43370641"
     },
     "patches": {

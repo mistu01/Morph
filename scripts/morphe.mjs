@@ -121,7 +121,7 @@ const releaseAssets = {
   cli: {
     repo: "MorpheApp/morphe-cli",
     versionEnv: "MORPHE_CLI_VERSION",
-    assetPattern: /^morphe-cli-.+-all\.jar$/,
+    assetPattern: /^morphe-(?:cli|desktop)-.+-all\.jar$/,
     output: fromRoot(".cache/tools/morphe-cli.jar"),
     meta: fromRoot(".cache/tools/morphe-cli.json"),
     prereleaseKeyword: true,
