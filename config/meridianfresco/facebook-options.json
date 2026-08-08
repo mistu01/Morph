@@ -1,0 +1,17 @@
+[
+  {
+    "meta": {
+      "created_at": "2026-08-09T00:00:00.000000000Z",
+      "updated_at": "2026-08-09T00:00:00.000000000Z",
+      "source": "meridianfresco/morphe-meta-patches 1.0.0"
+    },
+    "patches": {
+      "Hide 'Sponsored Stories'": {
+        "enabled": true
+      },
+      "Hide story ads": {
+        "enabled": true
+      }
+    }
+  }
+]

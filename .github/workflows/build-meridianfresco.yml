@@ -1,0 +1,191 @@
+name: Build MeridianFresco Meta Patches APKs
+
+on:
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "Supported: facebook"
+        required: true
+        default: "facebook"
+      cli_version:
+        description: "Morphe CLI tag, or latest"
+        required: true
+        default: "dev"
+      patches_version:
+        description: "meridianfresco/morphe-meta-patches: stable, dev, latest, or an explicit tag"
+        required: true
+        default: "dev"
+      continue_on_error:
+        description: "Pass --continue-on-error so compatible patches can still be applied if one patch fails"
+        required: true
+        type: boolean
+        default: true
+      include_patches:
+        description: "Comma-separated disabled patches to enable for this run. Leave blank to use default patch selection."
+        required: false
+        default: ""
+      create_release:
+        description: "Create a GitHub Release and attach patched APKs"
+        required: true
+        type: boolean
+        default: true
+      upload_artifact:
+        description: "Upload patched APKs as a short-lived workflow artifact"
+        required: true
+        type: boolean
+        default: true
+
+env:
+  APK_SOURCE: apkmirror,apkpure
+  APK_VERSION_SOURCE: recommended
+  APK_FALLBACK_TO_LATEST: "false"
+  APKMIRROR_ARCH: arm64-v8a
+  MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: "1"
+
+jobs:
+  build:
+    name: Build recommended APKs
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: python -m pip install -r requirements.txt
+
+      - name: Show supported apps
+        run: |
+          cat <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          ## MeridianFresco Meta Patches supported targets
+
+          Default targets: `facebook`
+
+          `facebook`
+          EOF
+
+      - name: Download MeridianFresco patches tools
+        env:
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          MERIDIANFRESCO_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MERIDIANFRESCO_PATCHES_REPO: meridianfresco/morphe-meta-patches
+          MORPHE_PATCHES_REPO: meridianfresco/morphe-meta-patches
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/meridianfresco-builder.mjs tools
+
+      - name: Restore optional signing keystore
+        env:
+          APK_KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_B64 }}
+          APK_KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          APK_KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          APK_KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+        run: bash .github/scripts/restore-morphe-keystore.sh
+
+      - name: List available patches
+        run: node .github/scripts/list-patches.mjs >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Configure patch flags
+        env:
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          INCLUDE_PATCHES: ${{ inputs.include_patches }}
+        run: |
+          node <<'NODE' >> "$GITHUB_ENV"
+          const args = [];
+          if (process.env.CONTINUE_ON_ERROR === 'true') args.push('--continue-on-error');
+          const include = (process.env.INCLUDE_PATCHES || '').split(',').map(s => s.trim()).filter(Boolean);
+          for (const patch of include) { args.push('--enable', patch); }
+          if (include.length) process.stderr.write(`Enabling extra patches: ${include.join(', ')}\n`);
+          console.log(`MORPHE_EXTRA_ARGS_JSON=${JSON.stringify(args)}`);
+          NODE
+
+      - name: Build patched APKs
+        env:
+          BUILD_TARGETS: ${{ inputs.targets }}
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          MERIDIANFRESCO_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MORPHE_PATCHES_VERSION: ${{ inputs.patches_version }}
+          MERIDIANFRESCO_PATCHES_REPO: meridianfresco/morphe-meta-patches
+          MORPHE_PATCHES_REPO: meridianfresco/morphe-meta-patches
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          SIGNER_NAME: Mistu
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/meridianfresco-builder.mjs build
+
+      - name: Validate release outputs
+        if: ${{ inputs.create_release || inputs.upload_artifact }}
+        env:
+          BUILD_TARGETS: ${{ inputs.targets }}
+        run: node scripts/meridianfresco-builder.mjs release-check
+
+      - name: Prepare release metadata
+        if: ${{ inputs.create_release || inputs.upload_artifact }}
+        env:
+          BUILD_TARGETS: ${{ inputs.targets }}
+          MERIDIANFRESCO_PATCHES_VERSION: ${{ inputs.patches_version }}
+        run: |
+          release_date="$(date -u +'%Y-%m-%d')"
+          release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
+          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.MERIDIANFRESCO_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          release_prerelease_flag=""
+          if [[ "${resolved_patches_tag,,}" == *dev* || "${resolved_patches_tag,,}" == *pre* || "${resolved_patches_tag,,}" == *beta* || "${resolved_patches_tag,,}" == *rc* ]]; then
+            release_prerelease_flag="--prerelease"
+          fi
+
+          echo "RELEASE_TAG=meridianfresco-${release_stamp}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=MeridianFresco Meta Patches ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
+
+          node scripts/meridianfresco-builder.mjs release-notes > release-notes.md
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release_args=()
+          if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then
+            release_args+=("$RELEASE_PRERELEASE_FLAG")
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            output/*.apk \
+            "${release_args[@]}" \
+            --title "$RELEASE_NAME" \
+            --notes-file release-notes.md
+
+      - name: Upload patched APKs
+        if: ${{ inputs.upload_artifact }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: meridianfresco-patched-apks
+          path: |
+            output/*.apk
+            output/*-result.json
+            release-notes.md
+          if-no-files-found: error
+          retention-days: 1
