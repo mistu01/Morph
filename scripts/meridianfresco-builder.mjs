@@ -31,7 +31,7 @@ export const MERIDIANFRESCO_APPS = {
 import { externalPatchAppConfigs } from "./morphe.mjs";
 
 export const appConfigs = externalPatchAppConfigs([
-  ["facebook", "Facebook", "com.facebook.katana", { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook" }],
+  ["facebook", "Facebook", "com.facebook.katana", { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
 ]);
 
 if (isMain) {

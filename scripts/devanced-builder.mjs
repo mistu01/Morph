@@ -103,7 +103,7 @@ export const appConfigs = {
     ["bandcamp",            "Bandcamp",              "com.bandcamp.android",                    { apkmirrorOrg: "bandcamp", apkmirrorRepo: "bandcamp" }],
     ["cricbuzz",            "Cricbuzz",              "com.cricbuzz.android",                    {}],
     ["disney-plus",         "Disney+",               "com.disney.disneyplus",                  { apkmirrorOrg: "disney", apkmirrorRepo: "disney" }],
-    ["facebook",            "Facebook",              "com.facebook.katana",                     { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook" }],
+    ["facebook",            "Facebook",              "com.facebook.katana",                     { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
     ["gmx-mail",            "GMX Mail",              "de.gmx.mobile.android.mail",              {}],
     ["google-news",         "Google News",           "com.google.android.apps.magazines",       { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-news" }],
     ["google-recorder",     "Google Recorder",       "com.google.android.apps.recorder",        { apkmirrorOrg: "google-inc", apkmirrorRepo: "google-recorder" }],
