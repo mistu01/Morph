@@ -24,6 +24,10 @@ on:
         description: "Comma-separated disabled patches to enable for this run. Leave blank to use default patch selection."
         required: false
         default: ""
+      apk_url:
+        description: "Optional direct URL to a Facebook APK/APKM/XAPK file"
+        required: false
+        default: ""
       create_release:
         description: "Create a GitHub Release and attach patched APKs"
         required: true
@@ -37,8 +41,8 @@ on:
 
 env:
   APK_SOURCE: apkmirror,apkpure
-  APK_VERSION_SOURCE: recommended
-  APK_FALLBACK_TO_LATEST: "false"
+  APK_VERSION_SOURCE: latest
+  APK_FALLBACK_TO_LATEST: "true"
   APKMIRROR_ARCH: arm64-v8a
   FACEBOOK_APKMIRROR_TYPE: bundle
   MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: "1"
@@ -133,6 +137,7 @@ jobs:
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
+          FACEBOOK_APK_URL: ${{ inputs.apk_url }}
           MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/meridianfresco-builder.mjs build

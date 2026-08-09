@@ -50,9 +50,9 @@ if (isMain) {
     MORPHE_BUILDER: "meridianfresco",
     BUILD_TARGETS: buildTargets,
     APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
-    APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
+    APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "latest",
     APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
-    APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
+    APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "true",
     MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI: env("MORPHE_ALLOW_UNIVERSAL_APKS_FOR_ABI") || "1",
     // MeridianFresco patch source
     MORPHE_PATCHES_REPO: env("MERIDIANFRESCO_PATCHES_REPO") || "meridianfresco/morphe-meta-patches",
