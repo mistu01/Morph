@@ -61,6 +61,7 @@ if (isMain) {
     MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
     ROOT_ALLOW_OPTIONS_FILE: "1",
     FACEBOOK_OPTIONS: env("FACEBOOK_OPTIONS") || "config/meridianfresco/facebook-options.json",
+    FACEBOOK_APK_VERSION: env("FACEBOOK_APK_VERSION") || env("APK_VERSION") || "498.0.0.54.74",
   };
 
   if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {

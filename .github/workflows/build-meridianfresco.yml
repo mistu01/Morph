@@ -24,6 +24,10 @@ on:
         description: "Comma-separated disabled patches to enable for this run. Leave blank to use default patch selection."
         required: false
         default: ""
+      facebook_version:
+        description: "Facebook APK version (default: 498.0.0.54.74)"
+        required: true
+        default: "498.0.0.54.74"
       apk_url:
         description: "Optional direct URL to a Facebook APK/APKM/XAPK file"
         required: false
@@ -137,6 +141,7 @@ jobs:
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
+          FACEBOOK_APK_VERSION: ${{ inputs.facebook_version }}
           FACEBOOK_APK_URL: ${{ inputs.apk_url }}
           MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
           GITHUB_TOKEN: ${{ github.token }}
