@@ -331,6 +331,12 @@ def ensure_page_exists(url: str) -> None:
 
 def select_variants(version_page: dict[str, str], args: argparse.Namespace) -> list[dict[str, str]]:
     soup = soup_from_url(version_page["url"])
+    variants = parse_variants(soup)
+    if variants:
+        selected = selected_variants_for_arches(variants, args)
+        if selected:
+            return selected
+
     direct = direct_download_button(soup)
     if direct:
         return [{
@@ -341,19 +347,14 @@ def select_variants(version_page: dict[str, str], args: argparse.Namespace) -> l
             "url": direct,
         }]
 
-    variants = parse_variants(soup)
-    if not variants:
-        raise RuntimeError(f"Could not find APKMirror variants at {version_page['url']}")
-
-    selected = selected_variants_for_arches(variants, args)
-    if not selected:
+    if variants:
         summary = ", ".join(f"{item['version']} {item['type']} {item['arch']} {item['dpi']}" for item in variants[:12])
         raise RuntimeError(
             f"Could not find APKMirror {args.type.upper()} variant for "
             f"arch={args.arch}, dpi={args.dpi}. Available: {summary or 'none'}"
         )
 
-    return selected
+    raise RuntimeError(f"Could not find APKMirror variants at {version_page['url']}")
 
 
 def selected_variants_for_arches(variants: list[dict[str, str]], args: argparse.Namespace) -> list[dict[str, str]]:
