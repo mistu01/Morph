@@ -44,7 +44,9 @@ if (isMain) {
     ...process.env,
     MORPHE_BUILDER: "meridianfresco",
     BUILD_TARGETS: parsedTargets.join(","),
-    APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
+    // Patch bundle v1.0.0 targets com.facebook.katana 490.0.0.63.82; APKMirror
+    // does not carry this version, so APKPure must be the primary source.
+    APK_SOURCE: env("APK_SOURCE") || "apkpure,apkmirror",
     APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "latest",
     APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
     APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "true",
@@ -56,7 +58,7 @@ if (isMain) {
     MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
     ROOT_ALLOW_OPTIONS_FILE: "1",
     FACEBOOK_OPTIONS: env("FACEBOOK_OPTIONS") || "config/meridianfresco/facebook-options.json",
-    FACEBOOK_APK_VERSION: env("FACEBOOK_APK_VERSION") || env("APK_VERSION") || "498.0.0.54.74",
+    FACEBOOK_APK_VERSION: env("FACEBOOK_APK_VERSION") || env("APK_VERSION") || "490.0.0.63.82",
   };
 
   applyDefaultPatchArgs(childEnv, command);
