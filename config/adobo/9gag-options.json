@@ -2,10 +2,43 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:55:53.169728800Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
-      "source": "jkennethcarino/adobo 1.2.0"
+      "updated_at": "2026-08-16T22:32:51.297Z",
+      "source": "jkennethcarino/adobo 1.3.0"
     },
     "patches": {
+      "Block ads, trackers, and analytics": {
+        "enabled": false,
+        "options": {
+          "hosts": "C:\\Users\\Admin\\Desktop\\Morph\\.cache\\tools\\empty-hosts.txt",
+          "redirectionIp": "0.0.0.0",
+          "isWildcard": true
+        }
+      },
+      "Change package name": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.mistu.android.9gag",
+          "updatePermissions": true,
+          "updateOtherPermissions": true,
+          "updateProviders": true
+        }
+      },
+      "Deactivate Firebase Analytics": {
+        "enabled": false,
+        "options": {}
+      },
+      "Deactivate Firebase Performance Monitoring": {
+        "enabled": false,
+        "options": {}
+      },
+      "Disable Google Safe Browsing in WebView": {
+        "enabled": false,
+        "options": {}
+      },
+      "Disable metrics collection in WebView": {
+        "enabled": false,
+        "options": {}
+      },
       "Disable mobile ads": {
         "enabled": false,
         "options": {
@@ -22,22 +55,19 @@
           "disableYandex": true
         }
       },
-      "Block ads, trackers, and analytics": {
+      "Remove 9GAG's ads, trackers, and analytics": {
+        "enabled": true
+      },
+      "Remove internet permission": {
+        "enabled": false
+      },
+      "Replace Google Maps API key": {
         "enabled": false,
         "options": {
-          "hosts": "C:\\Users\\Admin\\Desktop\\Morph\\.cache\\tools\\empty-hosts.txt",
-          "redirectionIp": "0.0.0.0",
-          "isWildcard": true
+          "apiKey": null
         }
       },
-      "Spoof signature verification": {
-        "enabled": false,
-        "options": {
-          "packageName": "com.ninegag.android.app",
-          "signature": "0000000000000000000000000000000000000000000000000000000000000000"
-        }
-      },
-      "Deactivate Firebase Analytics": {
+      "Spoof Advertising ID": {
         "enabled": false,
         "options": {}
       },
@@ -47,36 +77,12 @@
           "certificateHash": "0000000000000000000000000000000000000000000000000000000000000000"
         }
       },
-      "Deactivate Firebase Performance Monitoring": {
-        "enabled": false,
-        "options": {}
-      },
-      "Spoof Advertising ID": {
-        "enabled": false,
-        "options": {}
-      },
-      "Remove internet permission": {
-        "enabled": false
-      },
-      "Change package name": {
+      "Spoof signature verification": {
         "enabled": false,
         "options": {
-          "packageName": "com.mistu.android.9gag",
-          "updatePermissions": true,
-          "updateOtherPermissions": true,
-          "updateProviders": true
+          "packageName": "com.ninegag.android.app",
+          "signature": "0000000000000000000000000000000000000000000000000000000000000000"
         }
-      },
-      "Disable metrics collection in WebView": {
-        "enabled": false,
-        "options": {}
-      },
-      "Disable Google Safe Browsing in WebView": {
-        "enabled": false,
-        "options": {}
-      },
-      "Remove 9GAG's ads, trackers, and analytics": {
-        "enabled": true
       }
     }
   }

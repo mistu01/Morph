@@ -2,8 +2,8 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:53:26.727410800Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
-      "source": "MorpheApp/morphe-patches 1.38.0"
+      "updated_at": "2026-08-16T22:32:51.282Z",
+      "source": "MorpheApp/morphe-patches 1.39.1"
     },
     "patches": {
       "Bypass certificate checks": {
@@ -16,18 +16,15 @@
           "custom": null
         }
       },
+      "Change installer source": {
+        "enabled": false,
+        "options": {
+          "packageInstallerName": "com.android.vending"
+        }
+      },
       "Change miniplayer color": {
         "enabled": true,
         "options": {}
-      },
-      "Change package name": {
-        "enabled": true,
-        "options": {
-          "packageName": "com.mistu.android.youtube.music",
-          "updatePermissions": true,
-          "updateProviders": true,
-          "updateProvidersStrings": true
-        }
       },
       "Change start page": {
         "enabled": true,
@@ -36,6 +33,17 @@
       "Check watch history domain name resolution": {
         "enabled": true,
         "options": {}
+      },
+      "Clone app": {
+        "enabled": false,
+        "options": {
+          "packageName": "Default",
+          "updatePermissions": false,
+          "updateProviders": false
+        }
+      },
+      "Crossfade": {
+        "enabled": true
       },
       "Custom branding": {
         "enabled": true,
@@ -55,6 +63,12 @@
       "Disable QUIC protocol": {
         "enabled": true,
         "options": {}
+      },
+      "Disable dislike redirection": {
+        "enabled": true
+      },
+      "Downloads": {
+        "enabled": true
       },
       "Enable debugging": {
         "enabled": true,
@@ -88,13 +102,17 @@
         "enabled": true,
         "options": {}
       },
-      "Hide category bar": {
-        "enabled": true,
-        "options": {}
+      "Hide filter bar": {
+        "enabled": true
       },
-      "Hide music video ads": {
-        "enabled": true,
-        "options": {}
+      "Hide flyout menu components": {
+        "enabled": true
+      },
+      "Hide layout components": {
+        "enabled": true
+      },
+      "Hide music action buttons": {
+        "enabled": true
       },
       "Miniplayer previous and next buttons": {
         "enabled": true,
@@ -112,13 +130,21 @@
         "enabled": false,
         "options": {}
       },
-      "Permanent repeat": {
-        "enabled": true,
-        "options": {}
+      "Remember repeat state": {
+        "enabled": true
+      },
+      "Remember shuffle state": {
+        "enabled": true
       },
       "Remove background playback restrictions": {
         "enabled": true,
         "options": {}
+      },
+      "Remove viewer discretion dialog": {
+        "enabled": true
+      },
+      "Return YouTube Dislike": {
+        "enabled": true
       },
       "Sanitize sharing links": {
         "enabled": true,
@@ -128,9 +154,15 @@
         "enabled": false,
         "options": {}
       },
+      "Settings menu filter": {
+        "enabled": true
+      },
       "SponsorBlock": {
         "enabled": false,
         "options": {}
+      },
+      "Spoof app version": {
+        "enabled": true
       },
       "Spoof video streams": {
         "enabled": true,
@@ -142,9 +174,8 @@
           "darkThemeBackgroundColor": "@android:color/black"
         }
       },
-      "Track crossfade": {
-        "enabled": true,
-        "options": {}
+      "Third-party lyrics": {
+        "enabled": true
       }
     }
   }

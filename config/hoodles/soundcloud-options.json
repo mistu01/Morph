@@ -2,15 +2,11 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:59:23.383549200Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
-      "source": "hoo-dles/morphe-patches 1.39.0",
-      "sha256": "b9f0f5d183dc31ff7b4bcc736e0d75cc5b498960db21254cb8f38b69c4e371f5"
+      "updated_at": "2026-08-16T22:32:51.385Z",
+      "source": "hoo-dles/morphe-patches 1.40.0"
     },
     "patches": {
-      "Hide app icon": {
-        "enabled": false
-      },
-      "Enable debug": {
+      "AMOLED dark theme": {
         "enabled": false
       },
       "Change package name": {
@@ -27,11 +23,14 @@
       "Disable telemetry": {
         "enabled": true
       },
-      "AMOLED dark theme": {
+      "Enable SoundCloud Go": {
+        "enabled": true
+      },
+      "Enable debug": {
         "enabled": false
       },
-      "Enable SoundCloud Go+": {
-        "enabled": true
+      "Hide app icon": {
+        "enabled": false
       }
     }
   }

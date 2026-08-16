@@ -1,9 +1,11 @@
 [
   {
+    "meta": {
+      "source": "RookieEnough/De-Vanced 1.2.1",
+      "updated_at": "2026-08-16T22:32:51.333Z",
+      "created_at": "2026-08-16T22:32:51.333Z"
+    },
     "patches": {
-      "Override certificate pinning": {
-        "enabled": false
-      },
       "Change package name": {
         "enabled": false,
         "options": {
@@ -21,42 +23,8 @@
       "GmsCore support": {
         "enabled": true
       },
-      "Extension": {
-        "enabled": true
-      },
-      "Restore backup toggle": {
-        "enabled": true
-      },
-      "Spoof features": {
-        "enabled": true
-      }
-    },
-    "meta": {
-      "source": "RookieEnough/De-Vanced 1.0.4",
-      "updated_at": "2026-08-01T20:36:22.000000000Z"
-    }
-  },
-  {
-    "meta": {
-      "created_at": "2026-06-24T12:22:05.986011400Z",
-      "updated_at": "2026-07-08T20:05:54.354292800Z",
-      "source": "patches.mpp",
-      "sha256": "2d5e8f954344e05212c4301bc8ffabcb1d04cc1e93b556630fb43d524aa2b0b9"
-    },
-    "patches": {
       "Override certificate pinning": {
         "enabled": false
-      },
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
-        }
-      },
-      "Enable DCIM folders backup control": {
-        "enabled": true
       },
       "Spoof features": {
         "enabled": true,
@@ -70,6 +38,11 @@
             "com.google.android.apps.photos.PIXEL_2018_PRELOAD",
             "com.google.android.apps.photos.PIXEL_2019_MIDYEAR_PRELOAD",
             "com.google.android.apps.photos.PIXEL_2019_PRELOAD",
+            "com.google.android.feature.PIXEL_EXPERIENCE",
+            "com.google.android.feature.PIXEL_2017_EXPERIENCE",
+            "com.google.android.feature.PIXEL_2018_EXPERIENCE",
+            "com.google.android.feature.PIXEL_2019_MIDYEAR_EXPERIENCE",
+            "com.google.android.feature.PIXEL_2019_EXPERIENCE",
             "com.google.android.feature.PIXEL_2020_MIDYEAR_EXPERIENCE",
             "com.google.android.feature.PIXEL_2020_EXPERIENCE",
             "com.google.android.feature.PIXEL_2021_MIDYEAR_EXPERIENCE",
@@ -81,15 +54,11 @@
             "com.google.android.feature.PIXEL_2024_MIDYEAR_EXPERIENCE",
             "com.google.android.feature.PIXEL_2024_EXPERIENCE",
             "com.google.android.feature.PIXEL_2025_MIDYEAR_EXPERIENCE",
-            "com.google.android.feature.PIXEL_2025_EXPERIENCE"
+            "com.google.android.feature.PIXEL_2025_EXPERIENCE",
+            "com.google.android.feature.PIXEL_2026_MIDYEAR_EXPERIENCE",
+            "com.google.android.feature.PIXEL_2026_EXPERIENCE"
           ]
         }
-      },
-      "GmsCore support": {
-        "enabled": true
-      },
-      "Fix selected account persistence": {
-        "enabled": true
       }
     }
   }

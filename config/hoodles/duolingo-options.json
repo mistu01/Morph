@@ -2,17 +2,10 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:58:15.194303100Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
-      "source": "hoo-dles/morphe-patches 1.39.0",
-      "sha256": "b9f0f5d183dc31ff7b4bcc736e0d75cc5b498960db21254cb8f38b69c4e371f5"
+      "updated_at": "2026-08-16T22:34:34.798Z",
+      "source": "hoo-dles/morphe-patches 1.40.0"
     },
     "patches": {
-      "Hide app icon": {
-        "enabled": false
-      },
-      "Enable debug": {
-        "enabled": false
-      },
       "Change package name": {
         "enabled": false,
         "options": {
@@ -24,9 +17,6 @@
       "Disable Pairip license check": {
         "enabled": false
       },
-      "Enable debug mode": {
-        "enabled": false
-      },
       "Disable dynamic app icon": {
         "enabled": false
       },
@@ -35,6 +25,15 @@
         "options": {
           "premiumVariant": "SUPER"
         }
+      },
+      "Enable debug": {
+        "enabled": false
+      },
+      "Enable debug mode": {
+        "enabled": false
+      },
+      "Hide app icon": {
+        "enabled": false
       }
     }
   }

@@ -1,16 +1,20 @@
 #!/usr/bin/env node
 
-import { spawnSync } from "node:child_process";
-import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import {
+  applyDefaultPatchArgs,
+  builderRoot,
+  env,
+  isMainScript,
+  parseTargets,
+  runMorphe,
+  validateTargets,
+} from "./builder-common.mjs";
+import { externalPatchAppConfigs } from "./morphe.mjs";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const root = builderRoot(import.meta.url);
 const command = process.argv[2] || "build";
 const args = process.argv.slice(3);
-const isMain = process.argv[1] && (
-  resolve(process.argv[1]) === fileURLToPath(import.meta.url) ||
-  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
-);
+const isMain = isMainScript(import.meta.url);
 
 const supportedTargets = new Set([
   "adguard",
@@ -63,8 +67,6 @@ const supportedTargets = new Set([
   "xodo",
   "xrecorder",
 ]);
-
-import { externalPatchAppConfigs } from "./morphe.mjs";
 
 export const appConfigs = externalPatchAppConfigs([
   ["adguard", "AdGuard", "com.adguard.android"],
@@ -126,14 +128,14 @@ export const appConfigs = externalPatchAppConfigs([
 ]);
 
 if (isMain) {
-  const buildTargets = env("BUILD_TARGETS") || "proton-vpn";
+  const parsedTargets = parseTargets(env("BUILD_TARGETS") || "proton-vpn");
 
-  validateTargets(buildTargets);
+  validateTargets(command, parsedTargets, { supported: supportedTargets, family: "Hoodles" });
 
   const childEnv = {
     ...process.env,
     MORPHE_BUILDER: "hoodles",
-    BUILD_TARGETS: buildTargets,
+    BUILD_TARGETS: parsedTargets.join(","),
     APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
     APK_VERSION_SOURCE: "recommended",
     APK_LATEST_COMPATIBLE_ONLY: "",
@@ -147,50 +149,6 @@ if (isMain) {
     MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS: env("MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS") || "1",
   };
 
-  if (command === "build" && !env("MORPHE_EXTRA_ARGS_JSON")) {
-    childEnv.MORPHE_EXTRA_ARGS_JSON = JSON.stringify(defaultPatchArgs());
-  }
-
-  const result = spawnSync(
-    process.execPath,
-    [join(root, "scripts/morphe.mjs"), command, ...args],
-    {
-      cwd: root,
-      env: childEnv,
-      stdio: "inherit",
-    },
-  );
-
-  if (result.error) {
-    console.error(`hoodles-builder failed to start: ${result.error.message}`);
-    process.exit(1);
-  }
-
-  process.exit(result.status ?? 1);
-}
-
-function defaultPatchArgs() {
-  const args = [];
-  if (truthy(env("CONTINUE_ON_ERROR") || "true")) args.push("--continue-on-error");
-  return args;
-}
-
-function validateTargets(value) {
-  if (!["build", "download", "options", "release-check", "release-notes"].includes(command)) return;
-
-  const requested = value.split(",").map((target) => target.trim().toLowerCase()).filter(Boolean);
-  const unknown = requested.filter((target) => !supportedTargets.has(target));
-  if (unknown.length) {
-    console.error(`Unsupported Hoodles target(s): ${unknown.join(", ")}`);
-    console.error(`Supported Hoodles targets: ${[...supportedTargets].join(", ")}`);
-    process.exit(1);
-  }
-}
-
-function env(name) {
-  return process.env[name] || "";
-}
-
-function truthy(value) {
-  return ["1", "true", "yes", "on"].includes(String(value).toLowerCase());
+  applyDefaultPatchArgs(childEnv, command, { forcePatch: false });
+  runMorphe({ root, command, args, childEnv, builderName: "hoodles" });
 }

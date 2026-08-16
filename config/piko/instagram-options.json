@@ -2,7 +2,7 @@
   {
     "meta": {
       "created_at": "2026-06-24T13:02:42.905835300Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
+      "updated_at": "2026-08-16T22:35:59.969Z",
       "source": "crimera/piko 3.8.0 / 12.5.0-release.0+ (Morph options)"
     },
     "patches": {
@@ -49,9 +49,6 @@
         "enabled": true
       },
       "Validate links": {
-        "enabled": true
-      },
-      "Amoled theme": {
         "enabled": true
       },
       "Remove build expired popup": {

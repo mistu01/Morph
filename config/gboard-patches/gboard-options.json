@@ -2,15 +2,31 @@
   {
     "meta": {
       "created_at": "2026-06-24T12:40:36.128344500Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
-      "source": "jasonwu1994/Gboard-patches 2.4.0"
+      "updated_at": "2026-08-16T22:32:51.362Z",
+      "source": "jasonwu1994/Gboard-patches 2.11.0"
     },
     "patches": {
-      "Zhuyin Quick Traditional/Simplified Toggle": {
+      "AI Writing Tools": {
+        "enabled": true,
+        "options": {}
+      },
+      "Access Points menu style": {
+        "enabled": true
+      },
+      "Add Gboard Signature Bypass": {
         "enabled": false,
         "options": {}
       },
-      "Emojis, stickers & GIFs Tab Order": {
+      "Advanced Voice Typing": {
+        "enabled": true
+      },
+      "Change emoji size": {
+        "enabled": true
+      },
+      "Clipboard Custom Character Limit": {
+        "enabled": true
+      },
+      "Clipboard Enhancements": {
         "enabled": true,
         "options": {}
       },
@@ -18,63 +34,44 @@
         "enabled": true,
         "options": {}
       },
+      "Developer options": {
+        "enabled": true
+      },
+      "Emojis, stickers & GIFs Tab Order": {
+        "enabled": true,
+        "options": {}
+      },
       "Enable Inline Autofill Suggestions": {
         "enabled": true,
         "options": {}
       },
-      "Add Gboard Signature Bypass": {
-        "enabled": false,
+      "Enable OCR / Scan Text": {
+        "enabled": true
+      },
+      "Enable accessibility layout": {
+        "enabled": true
+      },
+      "Enable cursor trackpad mode": {
+        "enabled": true
+      },
+      "Enable split keyboard": {
+        "enabled": true
+      },
+      "English QWERTY Up-Flick Uppercase": {
+        "enabled": true,
         "options": {}
+      },
+      "G Logo on Spacebar": {
+        "enabled": true
       },
       "Grammar Checker": {
         "enabled": true,
         "options": {}
       },
-      "Enable Undo/Redo feature": {
-        "enabled": true,
-        "options": {}
-      },
-      "Zhuyin Slide Input": {
-        "enabled": false,
-        "options": {}
-      },
-      "Web Clipboard": {
-        "enabled": true,
-        "options": {}
-      },
-      "Package Rename": {
-        "enabled": false,
-        "options": {}
-      },
-      "AI Writing Tools": {
-        "enabled": true,
-        "options": {}
-      },
-      "Settings Homepage Override": {
-        "enabled": true,
-        "options": {}
-      },
-      "Clipboard Entity Extraction": {
-        "enabled": true,
-        "options": {}
-      },
-      "Clipboard Enhancements": {
-        "enabled": true,
-        "options": {}
-      },
-      "Latin Globe Key Ignore Interval": {
-        "enabled": true,
-        "options": {}
-      },
-      "Clipboard Item Edit": {
-        "enabled": true,
-        "options": {}
+      "Incognito Mode Toggle": {
+        "enabled": true
       },
       "Inline Suggestions": {
-        "enabled": true,
-        "options": {}
-      },
-      "Chinese Online Voice Input": {
         "enabled": true,
         "options": {}
       },
@@ -82,7 +79,18 @@
         "enabled": true,
         "options": {}
       },
-      "English QWERTY Up-Flick Uppercase": {
+      "Latin Globe Key Ignore Interval": {
+        "enabled": true,
+        "options": {}
+      },
+      "Long-Press Editing Shortcuts": {
+        "enabled": true
+      },
+      "Package Rename": {
+        "enabled": false,
+        "options": {}
+      },
+      "Settings Homepage Override": {
         "enabled": true,
         "options": {}
       },
@@ -90,8 +98,23 @@
         "enabled": true,
         "options": {}
       },
+      "Use Bluetooth Microphone": {
+        "enabled": true
+      },
+      "Web Clipboard": {
+        "enabled": true,
+        "options": {}
+      },
       "Zhuyin Bottom Row Key Sizes": {
         "enabled": true,
+        "options": {}
+      },
+      "Zhuyin Quick Traditional/Simplified Toggle": {
+        "enabled": false,
+        "options": {}
+      },
+      "Zhuyin Slide Input": {
+        "enabled": false,
         "options": {}
       }
     }

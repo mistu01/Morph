@@ -2,10 +2,69 @@
   {
     "meta": {
       "created_at": "2026-06-27T13:55:30.862687100Z",
-      "updated_at": "2026-08-01T20:36:22.000000000Z",
-      "source": "jkennethcarino/adobo 1.2.0"
+      "updated_at": "2026-08-16T22:32:51.303Z",
+      "source": "jkennethcarino/adobo 1.3.0"
     },
     "patches": {
+      "Block ads, trackers, and analytics": {
+        "enabled": false,
+        "options": {
+          "hosts": "C:\\Users\\Admin\\Desktop\\Morph\\.cache\\tools\\empty-hosts.txt",
+          "redirectionIp": "0.0.0.0",
+          "isWildcard": true
+        }
+      },
+      "Change package name": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.mistu.android.reddit",
+          "updatePermissions": true,
+          "updateOtherPermissions": true,
+          "updateProviders": true
+        }
+      },
+      "Colorize comment indent lines": {
+        "enabled": true,
+        "options": {
+          "isCurrentLevelOnly": false,
+          "indentLineColors1": "#2A9D8F",
+          "indentLineColors2": "#C96B2C",
+          "indentLineColors3": "#7A8F3A",
+          "indentLineColors4": "#8C4A5B",
+          "indentLineColors5": "#4A6FA5",
+          "indentLineColors6": "#B85C38",
+          "indentLineColors7": "#6B7A2B",
+          "indentLineColors8": "#7B5E8E"
+        }
+      },
+      "Deactivate Firebase Analytics": {
+        "enabled": false,
+        "options": {}
+      },
+      "Deactivate Firebase Performance Monitoring": {
+        "enabled": false,
+        "options": {}
+      },
+      "Disable Google Safe Browsing in WebView": {
+        "enabled": false,
+        "options": {}
+      },
+      "Disable bottom navigation bar auto-hide": {
+        "enabled": false
+      },
+      "Disable home feed auto-refresh": {
+        "enabled": false
+      },
+      "Disable home feed swipe": {
+        "enabled": false
+      },
+      "Disable home screen redirect": {
+        "enabled": true
+      },
+      "Disable metrics collection in WebView": {
+        "enabled": false,
+        "options": {}
+      },
       "Disable mobile ads": {
         "enabled": false,
         "options": {
@@ -22,100 +81,6 @@
           "disableYandex": true
         }
       },
-      "Block ads, trackers, and analytics": {
-        "enabled": false,
-        "options": {
-          "hosts": "C:\\Users\\Admin\\Desktop\\Morph\\.cache\\tools\\empty-hosts.txt",
-          "redirectionIp": "0.0.0.0",
-          "isWildcard": true
-        }
-      },
-      "Spoof signature verification": {
-        "enabled": false,
-        "options": {
-          "packageName": "com.reddit.frontpage",
-          "signature": "0000000000000000000000000000000000000000000000000000000000000000"
-        }
-      },
-      "Deactivate Firebase Analytics": {
-        "enabled": false,
-        "options": {}
-      },
-      "Spoof Firebase certificate hash": {
-        "enabled": false,
-        "options": {
-          "certificateHash": "0000000000000000000000000000000000000000000000000000000000000000"
-        }
-      },
-      "Deactivate Firebase Performance Monitoring": {
-        "enabled": false,
-        "options": {}
-      },
-      "Spoof Advertising ID": {
-        "enabled": false,
-        "options": {}
-      },
-      "Remove internet permission": {
-        "enabled": false
-      },
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "com.mistu.android.reddit",
-          "updatePermissions": true,
-          "updateOtherPermissions": true,
-          "updateProviders": true
-        }
-      },
-      "Disable metrics collection in WebView": {
-        "enabled": false,
-        "options": {}
-      },
-      "Disable Google Safe Browsing in WebView": {
-        "enabled": false,
-        "options": {}
-      },
-      "Remove ads and telemetry": {
-        "enabled": true
-      },
-      "Hide awards": {
-        "enabled": false
-      },
-      "Hide upvote scores": {
-        "enabled": false,
-        "options": {
-          "hidePostScores": true,
-          "hideCommentScores": true
-        }
-      },
-      "Hide share count": {
-        "enabled": false
-      },
-      "Colorize comment indent lines": {
-        "enabled": true,
-        "options": {
-          "indentLineColors1": "#2A9D8F",
-          "indentLineColors2": "#C96B2C",
-          "indentLineColors3": "#7A8F3A",
-          "indentLineColors4": "#8C4A5B",
-          "indentLineColors5": "#4A6FA5",
-          "indentLineColors6": "#B85C38",
-          "indentLineColors7": "#6B7A2B",
-          "indentLineColors8": "#7B5E8E"
-        }
-      },
-      "Hide user community badges": {
-        "enabled": false
-      },
-      "Hide community highlights": {
-        "enabled": false
-      },
-      "Hide user flairs": {
-        "enabled": false
-      },
-      "Disable home feed swipe": {
-        "enabled": false
-      },
       "Disable post detail swipe": {
         "enabled": false
       },
@@ -125,20 +90,71 @@
       "Hide Ask button from search bar": {
         "enabled": false
       },
-      "Hide prominent search bar": {
+      "Hide awards": {
         "enabled": false
+      },
+      "Hide community highlights": {
+        "enabled": false
+      },
+      "Hide community menu badge": {
+        "enabled": true
       },
       "Hide post view counts": {
         "enabled": true
       },
-      "Disable home screen redirect": {
-        "enabled": true
+      "Hide prominent search bar": {
+        "enabled": false
+      },
+      "Hide share count": {
+        "enabled": false
+      },
+      "Hide upvote scores": {
+        "enabled": false,
+        "options": {
+          "hidePostScores": true,
+          "hideCommentScores": true
+        }
+      },
+      "Hide user community badges": {
+        "enabled": false
+      },
+      "Hide user flairs": {
+        "enabled": false
       },
       "Open external links directly": {
         "enabled": true
       },
+      "Remove ads and telemetry": {
+        "enabled": true
+      },
+      "Remove internet permission": {
+        "enabled": false
+      },
+      "Replace Google Maps API key": {
+        "enabled": false,
+        "options": {
+          "apiKey": null
+        }
+      },
       "Sanitize share links": {
         "enabled": true
+      },
+      "Spoof Advertising ID": {
+        "enabled": false,
+        "options": {}
+      },
+      "Spoof Firebase certificate hash": {
+        "enabled": false,
+        "options": {
+          "certificateHash": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "Spoof signature verification": {
+        "enabled": false,
+        "options": {
+          "packageName": "com.reddit.frontpage",
+          "signature": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
       }
     }
   }
