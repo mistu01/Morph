@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import io
 import json
 import re
 import shutil
@@ -14,6 +15,11 @@ from urllib.parse import unquote, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from bs4 import BeautifulSoup
+
+try:
+    import cloudscraper
+except ImportError:  # optional hardening; requirements.txt pins it
+    cloudscraper = None
 
 
 BASE_URL = "https://www.apkmirror.com"
@@ -568,9 +574,56 @@ def open_url(url: str, referer: str = "", accept: str | None = None):
     except HTTPError as exc:
         body = exc.read().decode("utf-8", "ignore")
         detail = " JavaScript/cookie challenge" if "Enable JavaScript" in body or "Just a moment..." in body else ""
+        fallback = _cloudscraper_open(url, headers)
+        if fallback is not None:
+            return fallback
         raise RuntimeError(f"HTTP {exc.code} for {url}.{detail}") from exc
     except URLError as exc:
+        fallback = _cloudscraper_open(url, headers)
+        if fallback is not None:
+            return fallback
         raise RuntimeError(f"Network error for {url}: {exc.reason}") from exc
+
+
+class _ResponseAdapter:
+    """urllib-compatible view over a requests/cloudscraper response."""
+
+    def __init__(self, response, content: bytes):
+        self._response = response
+        self._stream = io.BytesIO(content)
+        self.headers = response.headers
+        self.status = response.status_code
+
+    def read(self, amount: int = -1) -> bytes:
+        return self._stream.read(amount)
+
+    def geturl(self) -> str:
+        return str(self._response.url)
+
+    def close(self) -> None:
+        self._stream.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_args):
+        self.close()
+
+
+def _cloudscraper_open(url: str, headers: dict):
+    """Retry a blocked request through cloudscraper (Cloudflare challenge bypass)."""
+    if cloudscraper is None:
+        return None
+    try:
+        scraper = cloudscraper.create_scraper()
+        response = scraper.get(url, headers=headers, timeout=90)
+        text_head = response.text[:2000]
+        if response.status_code == 200 and "Just a moment..." not in text_head and "Enable JavaScript" not in text_head:
+            return _ResponseAdapter(response, response.content)
+        print(f"cloudscraper fallback got HTTP {response.status_code} for {url}", file=sys.stderr)
+    except Exception as exc:
+        print(f"cloudscraper fallback failed for {url}: {exc}", file=sys.stderr)
+    return None
 
 
 def absolute_url(value: str) -> str:

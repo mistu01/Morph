@@ -44,9 +44,11 @@ if (isMain) {
     ...process.env,
     MORPHE_BUILDER: "meridianfresco",
     BUILD_TARGETS: parsedTargets.join(","),
-    // Patch bundle v1.0.0 targets com.facebook.katana 490.0.0.63.82; APKMirror
-    // does not carry this version, so APKPure must be the primary source.
-    APK_SOURCE: env("APK_SOURCE") || "apkpure,apkmirror",
+    // The Facebook patches require the split APK bundle (.apkm) — universal
+    // single APKs (all APKPure offers for 490.0.0.63.82) are Redex-obfuscated
+    // and fail fingerprint matching. APKMirror only, so a failed bundle fetch
+    // errors loudly instead of silently producing an unpatchable universal APK.
+    APK_SOURCE: env("APK_SOURCE") || "apkmirror",
     APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "latest",
     APK_LATEST_COMPATIBLE_ONLY: env("APK_LATEST_COMPATIBLE_ONLY"),
     APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "true",
