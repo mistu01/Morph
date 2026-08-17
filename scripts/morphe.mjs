@@ -1261,9 +1261,12 @@ async function ensureInput(app) {
   }
 
   if (app.url) {
-    mkdirSync(dirname(app.input), { recursive: true });
+    const extension = extensionFromDownload(app.url, "").replace(/^\./, "");
+    const destination = extension ? replaceExtension(app.input, `.${extension}`) : app.input;
+    mkdirSync(dirname(destination), { recursive: true });
     console.log(`Downloading private input for ${app.label}`);
-    await downloadFile(app.url, app.input);
+    await downloadFile(app.url, destination);
+    app.input = destination;
     return;
   }
 

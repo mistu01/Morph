@@ -32,7 +32,16 @@ export const MERIDIANFRESCO_APPS = {
 };
 
 export const appConfigs = externalPatchAppConfigs([
-  ["facebook", "Facebook", "com.facebook.katana", { apkmirrorOrg: "facebook-2", apkmirrorRepo: "facebook", apkmirrorType: "bundle", apkmirrorFallbackArch: "universal", apkmirrorDpi: "nodpi" }],
+  ["facebook", "Facebook", "com.facebook.katana", {
+    apkmirrorOrg: "facebook-2",
+    apkmirrorRepo: "facebook",
+    apkmirrorType: "bundle",
+    apkmirrorFallbackArch: "universal",
+    apkmirrorDpi: "nodpi",
+    // APKMirror's Cloudflare blocks automated fetches; default to the
+    // repo-hosted split bundle (release apk-cache-facebook-490.0.0.63.82).
+    url: env("FACEBOOK_APK_URL") || "https://github.com/mistu01/Morph/releases/download/apk-cache-facebook-490.0.0.63.82/facebook-490.0.0.63.82-457019892-arm64-v8a-bundle.apkm",
+  }],
 ]);
 
 if (isMain) {

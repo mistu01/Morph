@@ -29,9 +29,9 @@ on:
         required: true
         default: "490.0.0.63.82"
       apk_url:
-        description: "Optional direct URL to a Facebook APK/APKM/XAPK file"
+        description: "Direct URL to a Facebook APK/APKM/XAPK file. Defaults to the repo-hosted 490.0.0.63.82 arm64-v8a split bundle (see release apk-cache-facebook-490.0.0.63.82) because APKMirror's Cloudflare blocks CI runners."
         required: false
-        default: ""
+        default: "https://github.com/mistu01/Morph/releases/download/apk-cache-facebook-490.0.0.63.82/facebook-490.0.0.63.82-457019892-arm64-v8a-bundle.apkm"
       create_release:
         description: "Create a GitHub Release and attach patched APKs"
         required: true
@@ -44,12 +44,14 @@ on:
         default: true
 
 env:
-  # The Facebook patches only fingerprint-match against the split APK bundle
-  # (.apkm) from APKMirror. APKPure serves 490.0.0.63.82 as universal single
-  # APKs, which are Redex-obfuscated and fail every patch, so APKMirror is the
-  # only allowed source: a failed fetch aborts loudly instead of shipping an
-  # unpatchable APK. Use the apk_url input to supply a bundle manually if
-  # APKMirror is unavailable.
+  # The Facebook patches only fingerprint-match the split APK bundle (.apkm)
+  # of 490.0.0.63.82. APKMirror — the only public bundle source — blocks CI
+  # runners with Cloudflare, and APKPure serves 490 only as universal APKs
+  # that fail every patch. The workflow therefore downloads a repo-hosted
+  # copy of the bundle via the apk_url input default (release
+  # apk-cache-facebook-490.0.0.63.82). APK_SOURCE stays apkmirror-only so a
+  # manual run with a cleared apk_url fails loudly instead of fetching an
+  # unpatchable universal APK.
   APK_SOURCE: apkmirror
   APK_VERSION_SOURCE: latest
   APK_FALLBACK_TO_LATEST: "true"
