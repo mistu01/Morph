@@ -180,8 +180,7 @@ export function youtubeAbiAppConfigs(config) {
         || env("APKMIRROR_DPI")
         || "any",
       patchedPackageName: packageNameOptionsDisabled ? "" : env(`${variantEnvPrefix}_PATCHED_PACKAGE_NAME`)
-        || env(`${envPrefix}_PATCHED_PACKAGE_NAME`)
-        || (config.id === "youtube" ? "com.mistu.android.youtube" : "com.mistu.android.youtube.music"),
+        || env(`${envPrefix}_PATCHED_PACKAGE_NAME`),
       requestedVersion: env(`${variantEnvPrefix}_APK_VERSION`) || env(`${envPrefix}_APK_VERSION`),
       input: envPathValue(env(`${variantEnvPrefix}_APK`) || env(`${envPrefix}_APK`) || `input/${id}.apk`),
       url: env(`${variantEnvPrefix}_APK_URL`) || env(`${envPrefix}_APK_URL`),
@@ -502,12 +501,14 @@ async function buildApp(app, tools) {
 async function writeBuildFailure(app, error) {
   mkdirSync(dirname(app.result), { recursive: true });
   const existing = await readJson(app.result);
+  const appVersion = await appVersionFor(app);
   await writeJson(app.result, {
     ...(existing || {}),
     app: app.id,
     baseApp: app.baseId || app.id,
     label: app.label,
     artifactAbi: app.artifactAbi,
+    packageVersion: existing?.packageVersion || (appVersion !== "unknown" ? appVersion : undefined) || app.requestedVersion || "unknown",
     packageName: existing?.packageName || app.packageName,
     success: false,
     error: existing?.error || error.message,
@@ -1470,11 +1471,16 @@ async function ensurePackageNameOptions(app, tools = null) {
     };
   }
 
-  const packageNameEntry = patchEntries[packageNamePatch];
-  if (!packageNameEntry) {
-    throw new Error(`Patches ${patchesList?.version || ""} from ${releaseAssets.patches.repo} did not include "${packageNamePatch}".`);
+  const renamePatchName = Object.keys(patchEntries).find((name) => {
+    const lower = name.toLowerCase();
+    return lower === "change package name" || lower === "clone app" || lower === "custom package name";
+  });
+
+  if (!renamePatchName) {
+    throw new Error(`Patches ${patchesList?.version || ""} from ${releaseAssets.patches.repo} did not include a package rename patch ("Change package name" or "Clone app").`);
   }
 
+  const packageNameEntry = patchEntries[renamePatchName];
   packageNameEntry.enabled = true;
   packageNameEntry.options = {
     ...packageNameEntry.options,
@@ -3264,11 +3270,11 @@ Environment:
   REDDIT_APKMIRROR_ARCH      Reddit APKMirror architecture. Defaults to universal.
   REDDIT_APKMIRROR_DPI       Reddit APKMirror DPI. Defaults to 120-640dpi.
   YOUTUBE_PATCHED_PACKAGE_NAME
-                              Defaults to com.mistu.android.youtube.
+                              Optional custom package name for YouTube.
   YOUTUBE_MUSIC_PATCHED_PACKAGE_NAME
-                              Defaults to com.mistu.android.youtube.music.
+                              Optional custom package name for YouTube Music.
   REDDIT_PATCHED_PACKAGE_NAME
-                              Optional; only works if the selected patch bundle supports it.
+                              Optional custom package name for Reddit.
   MORPHE_DISABLE_PACKAGE_RENAME_OPTIONS
                               Set to 1 to skip generated package rename options for patch bundles
                               that manage clone package names through other patches.
