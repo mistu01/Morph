@@ -1,207 +1,262 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-25T21:05:44.452Z",
-      "updated_at": "2026-08-16T22:32:51.578Z",
-      "source": "rushiranpise/morphe-patches 1.17.0"
+    {
+        "meta": {
+            "created_at": "2026-06-25T21:05:44.452Z",
+            "updated_at": "2026-08-16T22:32:51.578Z",
+            "source": "rushiranpise/morphe-patches 1.17.0"
+        },
+        "patches": {
+            "Change version code": {
+                "enabled": false,
+                "options": {
+                    "universalVersionCode": "2147483647"
+                }
+            },
+            "Disable Ads": {
+                "enabled": true
+            },
+            "Disable PairIP license check": {
+                "enabled": false
+            },
+            "Disable ad SDK calls": {
+                "enabled": false
+            },
+            "Disable clipboard access": {
+                "enabled": false
+            },
+            "Disable shake ads": {
+                "enabled": false
+            },
+            "Enable Android debugging": {
+                "enabled": false
+            },
+            "Enable ROM signature spoofing": {
+                "enabled": false,
+                "options": {
+                    "universalFakeSignature": ""
+                }
+            },
+            "Enable debug build target": {
+                "enabled": false
+            },
+            "Export all activities": {
+                "enabled": false
+            },
+            "Export internal data documents provider": {
+                "enabled": false
+            },
+            "Fix Firebase after re-signing": {
+                "enabled": false
+            },
+            "Force dark theme": {
+                "enabled": false
+            },
+            "GmsCore support (MicroG)": {
+                "enabled": false,
+                "options": {
+                    "gmsCoreVendor": "app.revanced.android.gms",
+                    "mainActivityName": null,
+                    "packageName": null
+                }
+            },
+            "Hide ADB status": {
+                "enabled": false
+            },
+            "Hide VPN and proxy": {
+                "enabled": false
+            },
+            "Hide app icon": {
+                "enabled": false
+            },
+            "Hide mock location": {
+                "enabled": false,
+                "options": {
+                    "hideMockLocationMode": "full",
+                    "hideMockLocationProvider": "gps",
+                    "hideMockLocationAccuracy": "5.0"
+                }
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Predictive back gesture": {
+                "enabled": false
+            },
+            "Provide Original app certificate": {
+                "enabled": false,
+                "options": {
+                    "originalApkPath": null,
+                    "manualCertSha1": null,
+                    "manualCertSha256": null,
+                    "manualCertBase64": null
+                }
+            },
+            "Remove ad manifest entries": {
+                "enabled": false
+            },
+            "Remove internet permission": {
+                "enabled": false
+            },
+            "Remove share targets": {
+                "enabled": false
+            },
+            "Set target SDK 34": {
+                "enabled": false
+            },
+            "Spoof Android ID": {
+                "enabled": false,
+                "options": {
+                    "universalAndroidId": "a1b2c3d4e5f67890"
+                }
+            },
+            "Spoof Bluetooth identifiers": {
+                "enabled": false,
+                "options": {
+                    "universalBluetoothName": "Pixel Buds",
+                    "universalBluetoothAddress": "02:11:22:33:44:55"
+                }
+            },
+            "Spoof Pixel device": {
+                "enabled": false,
+                "options": {
+                    "pixelSpoofMode": "build_props_features"
+                }
+            },
+            "Spoof Play age signals": {
+                "enabled": false,
+                "options": {
+                    "universalPlayAgeLower": "18",
+                    "universalPlayAgeUpper": "99"
+                }
+            },
+            "Spoof SIM provider": {
+                "enabled": false,
+                "options": {
+                    "universalSimCountryIso": "us",
+                    "universalSimOperator": "310260",
+                    "universalSimOperatorName": "T-Mobile"
+                }
+            },
+            "Spoof Wi-Fi connection": {
+                "enabled": false
+            },
+            "Spoof Wi-Fi identifiers": {
+                "enabled": false,
+                "options": {
+                    "universalWifiSsid": "Pixel_WiFi",
+                    "universalWifiBssid": "02:00:00:12:34:56",
+                    "universalWifiMac": "02:00:00:65:43:21"
+                }
+            },
+            "Spoof Widevine / DRM level": {
+                "enabled": false,
+                "options": {
+                    "securityLevel": "L1",
+                    "hdcpLevel": "HDCP_V2_2"
+                }
+            },
+            "Spoof app signature": {
+                "enabled": false,
+                "options": {
+                    "packageName": null
+                }
+            },
+            "Spoof build info": {
+                "enabled": false,
+                "options": {
+                    "universalBuildModel": "Pixel 10 Pro XL",
+                    "universalBuildManufacturer": "Google",
+                    "universalBuildBrand": "google",
+                    "universalBuildDevice": "mustang",
+                    "universalBuildProduct": "mustang",
+                    "universalBuildFingerprint": "google/mustang/mustang:17/CP2A.260605.012/15430684:user/release-keys",
+                    "universalBuildRelease": "17",
+                    "universalBuildSdk": "37"
+                }
+            },
+            "Spoof install source": {
+                "enabled": false,
+                "options": {
+                    "installerPackageName": "com.android.vending"
+                }
+            },
+            "Spoof keystore security level": {
+                "enabled": false
+            },
+            "Spoof root of trust": {
+                "enabled": false
+            },
+            "Spoof telephony IDs": {
+                "enabled": false,
+                "options": {
+                    "universalImei": "356938035643809",
+                    "universalMeid": "A000004E4F4F50",
+                    "universalSubscriberId": "310260000000000",
+                    "universalSimSerial": "89014103211118510720",
+                    "universalLineNumber": "+15551234567"
+                }
+            },
+            "Suppress Paywall": {
+                "enabled": true
+            },
+            "Unlock Premium": {
+                "enabled": true
+            }
+        }
     },
-    "patches": {
-      "Change version code": {
-        "enabled": false,
-        "options": {
-          "universalVersionCode": "2147483647"
+    {
+        "meta": {
+            "created_at": "2026-06-25T21:05:44.452Z",
+            "updated_at": "2026-09-03T00:35:51.047187500Z",
+            "source": "patches.mpp",
+            "sha256": "f47d000d2e75c598cf0a3acd54bc0f340a54852b21294037eb04561b6596a0ff"
+        },
+        "patches": {
+            "Disable PairIP license check": {
+                "enabled": false
+            },
+            "Provide Original app certificate": {
+                "enabled": false,
+                "options": {
+                    "originalApkPath": null,
+                    "manualCertSha1": null,
+                    "manualCertSha256": null,
+                    "manualCertBase64": null
+                }
+            },
+            "Spoof Widevine / DRM level": {
+                "enabled": false,
+                "options": {
+                    "securityLevel": "L1",
+                    "hdcpLevel": "HDCP_V2_2"
+                }
+            },
+            "Fix Firebase after re-signing": {
+                "enabled": false
+            },
+            "GmsCore support (MicroG)": {
+                "enabled": false,
+                "options": {
+                    "gmsCoreVendor": "app.revanced.android.gms",
+                    "mainActivityName": null,
+                    "packageName": null
+                }
+            },
+            "Spoof install source": {
+                "enabled": false,
+                "options": {
+                    "installerPackageName": "com.android.vending"
+                }
+            },
+            "Spoof app signature": {
+                "enabled": false,
+                "options": {
+                    "packageName": null
+                }
+            },
+            "Unlock Premium": {
+                "enabled": true
+            }
         }
-      },
-      "Disable Ads": {
-        "enabled": true
-      },
-      "Disable PairIP license check": {
-        "enabled": false
-      },
-      "Disable ad SDK calls": {
-        "enabled": false
-      },
-      "Disable clipboard access": {
-        "enabled": false
-      },
-      "Disable shake ads": {
-        "enabled": false
-      },
-      "Enable Android debugging": {
-        "enabled": false
-      },
-      "Enable ROM signature spoofing": {
-        "enabled": false,
-        "options": {
-          "universalFakeSignature": ""
-        }
-      },
-      "Enable debug build target": {
-        "enabled": false
-      },
-      "Export all activities": {
-        "enabled": false
-      },
-      "Export internal data documents provider": {
-        "enabled": false
-      },
-      "Fix Firebase after re-signing": {
-        "enabled": false
-      },
-      "Force dark theme": {
-        "enabled": false
-      },
-      "GmsCore support (MicroG)": {
-        "enabled": false,
-        "options": {
-          "gmsCoreVendor": "app.revanced.android.gms",
-          "mainActivityName": null,
-          "packageName": null
-        }
-      },
-      "Hide ADB status": {
-        "enabled": false
-      },
-      "Hide VPN and proxy": {
-        "enabled": false
-      },
-      "Hide app icon": {
-        "enabled": false
-      },
-      "Hide mock location": {
-        "enabled": false,
-        "options": {
-          "hideMockLocationMode": "full",
-          "hideMockLocationProvider": "gps",
-          "hideMockLocationAccuracy": "5.0"
-        }
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      },
-      "Predictive back gesture": {
-        "enabled": false
-      },
-      "Provide Original app certificate": {
-        "enabled": false,
-        "options": {
-          "originalApkPath": null,
-          "manualCertSha1": null,
-          "manualCertSha256": null,
-          "manualCertBase64": null
-        }
-      },
-      "Remove ad manifest entries": {
-        "enabled": false
-      },
-      "Remove internet permission": {
-        "enabled": false
-      },
-      "Remove share targets": {
-        "enabled": false
-      },
-      "Set target SDK 34": {
-        "enabled": false
-      },
-      "Spoof Android ID": {
-        "enabled": false,
-        "options": {
-          "universalAndroidId": "a1b2c3d4e5f67890"
-        }
-      },
-      "Spoof Bluetooth identifiers": {
-        "enabled": false,
-        "options": {
-          "universalBluetoothName": "Pixel Buds",
-          "universalBluetoothAddress": "02:11:22:33:44:55"
-        }
-      },
-      "Spoof Pixel device": {
-        "enabled": false,
-        "options": {
-          "pixelSpoofMode": "build_props_features"
-        }
-      },
-      "Spoof Play age signals": {
-        "enabled": false,
-        "options": {
-          "universalPlayAgeLower": "18",
-          "universalPlayAgeUpper": "99"
-        }
-      },
-      "Spoof SIM provider": {
-        "enabled": false,
-        "options": {
-          "universalSimCountryIso": "us",
-          "universalSimOperator": "310260",
-          "universalSimOperatorName": "T-Mobile"
-        }
-      },
-      "Spoof Wi-Fi connection": {
-        "enabled": false
-      },
-      "Spoof Wi-Fi identifiers": {
-        "enabled": false,
-        "options": {
-          "universalWifiSsid": "Pixel_WiFi",
-          "universalWifiBssid": "02:00:00:12:34:56",
-          "universalWifiMac": "02:00:00:65:43:21"
-        }
-      },
-      "Spoof Widevine / DRM level": {
-        "enabled": false,
-        "options": {
-          "securityLevel": "L1",
-          "hdcpLevel": "HDCP_V2_2"
-        }
-      },
-      "Spoof app signature": {
-        "enabled": false,
-        "options": {
-          "packageName": null
-        }
-      },
-      "Spoof build info": {
-        "enabled": false,
-        "options": {
-          "universalBuildModel": "Pixel 10 Pro XL",
-          "universalBuildManufacturer": "Google",
-          "universalBuildBrand": "google",
-          "universalBuildDevice": "mustang",
-          "universalBuildProduct": "mustang",
-          "universalBuildFingerprint": "google/mustang/mustang:17/CP2A.260605.012/15430684:user/release-keys",
-          "universalBuildRelease": "17",
-          "universalBuildSdk": "37"
-        }
-      },
-      "Spoof install source": {
-        "enabled": false,
-        "options": {
-          "installerPackageName": "com.android.vending"
-        }
-      },
-      "Spoof keystore security level": {
-        "enabled": false
-      },
-      "Spoof root of trust": {
-        "enabled": false
-      },
-      "Spoof telephony IDs": {
-        "enabled": false,
-        "options": {
-          "universalImei": "356938035643809",
-          "universalMeid": "A000004E4F4F50",
-          "universalSubscriberId": "310260000000000",
-          "universalSimSerial": "89014103211118510720",
-          "universalLineNumber": "+15551234567"
-        }
-      },
-      "Suppress Paywall": {
-        "enabled": true
-      },
-      "Unlock Premium": {
-        "enabled": true
-      }
     }
-  }
 ]

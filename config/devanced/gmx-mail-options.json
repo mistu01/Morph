@@ -1,31 +1,58 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-27T13:56:55.143770300Z",
-      "updated_at": "2026-08-16T22:34:34.679Z",
-      "source": "RookieEnough/De-Vanced 1.2.1"
-    },
-    "patches": {
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:56:55.143770300Z",
+            "updated_at": "2026-08-16T22:34:34.679Z",
+            "source": "RookieEnough/De-Vanced 1.2.1"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Force enable FreePhone": {
+                "enabled": true
+            },
+            "Hide Premium upgrade button": {
+                "enabled": true
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            }
         }
-      },
-      "Force enable FreePhone": {
-        "enabled": true
-      },
-      "Hide Premium upgrade button": {
-        "enabled": true
-      },
-      "Hide ads": {
-        "enabled": true
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      }
+    },
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:56:55.143770300Z",
+            "updated_at": "2026-09-03T00:27:09.557311300Z",
+            "source": "patches.mpp",
+            "sha256": "2f545c15b390c3dcf683ed6c57b589d9be72a15d145d05e8e17aeac57e910b54"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Force enable FreePhone": {
+                "enabled": true
+            },
+            "Hide Premium upgrade button": {
+                "enabled": true
+            }
+        }
     }
-  }
 ]

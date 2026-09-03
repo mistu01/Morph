@@ -20,6 +20,17 @@ const paths = {
   output: fromRoot("output"),
 };
 
+function javaCommand() {
+  const cachedJdk = join(paths.tools, "jdk-21", process.platform === "win32" ? "bin/java.exe" : "bin/java");
+  if (existsSync(cachedJdk)) {
+    return cachedJdk;
+  }
+  if (process.env.JAVA_HOME && existsSync(join(process.env.JAVA_HOME, process.platform === "win32" ? "bin/java.exe" : "bin/java"))) {
+    return join(process.env.JAVA_HOME, process.platform === "win32" ? "bin/java.exe" : "bin/java");
+  }
+  return "java";
+}
+
 // Ensure directories exist
 for (const dir of Object.values(paths)) {
   mkdirSync(dir, { recursive: true });
@@ -206,7 +217,7 @@ async function createOptions() {
       "--filter-package-name", app.packageName,
     ];
 
-    const proc = spawnSync("java", procArgs, { stdio: "inherit" });
+    const proc = spawnSync(javaCommand(), procArgs, { stdio: "inherit" });
     if (proc.status !== 0) {
       console.error(`Failed to create options for ${app.label}`);
     } else {
@@ -590,7 +601,7 @@ async function build() {
     patchArgs.push(actualInputPath);
 
     console.log(`\nRunning Morphe CLI patcher: java -Xmx1536M ${patchArgs.join(" ")}`);
-    const patchProc = spawnSync("java", ["-Xmx1536M", ...patchArgs], { stdio: "inherit" });
+    const patchProc = spawnSync(javaCommand(), ["-Xmx1536M", ...patchArgs], { stdio: "inherit" });
 
     // Always surface failed-patch details when a result file exists. With
     // --continue-on-error the process can still exit 0 even though some patches failed.

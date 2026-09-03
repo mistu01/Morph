@@ -1,239 +1,485 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-24T13:02:39.783544600Z",
-      "updated_at": "2026-08-16T22:35:59.961Z",
-      "source": "crimera/piko 3.8.0 / 12.5.0-release.0+ (Starting 12.5.0-release.0 X-Shim is not required)",
-      "sha256": "2e7ee1114dc860a2719cab0db5d26dd7c34b38df6becbc74cbe6355b43370641"
+    {
+        "meta": {
+            "created_at": "2026-06-24T13:02:39.783544600Z",
+            "updated_at": "2026-08-16T22:35:59.961Z",
+            "source": "crimera/piko 3.8.0 / 12.5.0-release.0+ (Starting 12.5.0-release.0 X-Shim is not required)",
+            "sha256": "2e7ee1114dc860a2719cab0db5d26dd7c34b38df6becbc74cbe6355b43370641"
+        },
+        "patches": {
+            "Remove Ads": {
+                "enabled": true
+            },
+            "Hide recommendation items": {
+                "enabled": true
+            },
+            "Disable chirp font": {
+                "enabled": true
+            },
+            "Hide bookmark icon in timeline": {
+                "enabled": true
+            },
+            "Hide FAB Menu Buttons": {
+                "enabled": true
+            },
+            "Hide immersive player": {
+                "enabled": true
+            },
+            "Remove view count": {
+                "enabled": true
+            },
+            "Hook feature flag": {
+                "enabled": true
+            },
+            "Custom download folder": {
+                "enabled": true
+            },
+            "Add ability to copy media link": {
+                "enabled": true
+            },
+            "Clear tracking params": {
+                "enabled": true
+            },
+            "Handle custom twitter links": {
+                "enabled": true,
+                "options": {
+                    "customLinkHosts": [
+                        "vxtwitter.com",
+                        "fixvx.com",
+                        "fxtwitter.com",
+                        "fixupx.com",
+                        "twittpr.com",
+                        "xcancel.com"
+                    ],
+                    "unofficialInstanceLinks": false
+                }
+            },
+            "Custom sharing domain": {
+                "enabled": true
+            },
+            "Legacy share links": {
+                "enabled": true
+            },
+            "No shortened URL": {
+                "enabled": true
+            },
+            "Log server response": {
+                "enabled": true
+            },
+            "Change app icon": {
+                "enabled": true
+            },
+            "Block redirecting to X Lite": {
+                "enabled": true
+            },
+            "Bring back twitter": {
+                "enabled": true
+            },
+            "Customize explore tabs": {
+                "enabled": true
+            },
+            "Custom emoji font": {
+                "enabled": true
+            },
+            "Custom font": {
+                "enabled": true
+            },
+            "Customize Inline action Bar items": {
+                "enabled": true
+            },
+            "Customize Navigation Bar items": {
+                "enabled": true
+            },
+            "Customize notification tabs": {
+                "enabled": true
+            },
+            "Customise post font size": {
+                "enabled": true
+            },
+            "Customize profile tabs": {
+                "enabled": true
+            },
+            "Customize default reply sorting": {
+                "enabled": true
+            },
+            "Customize search tab items": {
+                "enabled": true
+            },
+            "Customize side bar items": {
+                "enabled": true
+            },
+            "Customize timeline top bar": {
+                "enabled": true
+            },
+            "Customize search suggestions": {
+                "enabled": true
+            },
+            "Disunify xchat system": {
+                "enabled": false
+            },
+            "Dynamic color": {
+                "enabled": false
+            },
+            "Hide FAB": {
+                "enabled": true
+            },
+            "Import/Export login token": {
+                "enabled": true
+            },
+            "Hide Recommended Users": {
+                "enabled": true
+            },
+            "Round off numbers": {
+                "enabled": true
+            },
+            "Pause search suggestions": {
+                "enabled": true
+            },
+            "Remove search suggestions": {
+                "enabled": true
+            },
+            "Selectable Text": {
+                "enabled": true
+            },
+            "Enable debug menu for posts": {
+                "enabled": true
+            },
+            "Native downloader": {
+                "enabled": true
+            },
+            "Native reader mode": {
+                "enabled": true
+            },
+            "Share Tweet as Image": {
+                "enabled": true
+            },
+            "Native translator": {
+                "enabled": true
+            },
+            "Show changelogs": {
+                "enabled": true
+            },
+            "Enable PiP mode automatically": {
+                "enabled": true
+            },
+            "Enable Undo Posts": {
+                "enabled": true
+            },
+            "Download patch": {
+                "enabled": true
+            },
+            "Hide Banner": {
+                "enabled": true
+            },
+            "Delete from database": {
+                "enabled": true
+            },
+            "Disable auto timeline scroll on launch": {
+                "enabled": true
+            },
+            "Control video auto scroll": {
+                "enabled": true
+            },
+            "Enable force HD videos": {
+                "enabled": true
+            },
+            "Hide community badges": {
+                "enabled": true
+            },
+            "Hide hidden replies": {
+                "enabled": true
+            },
+            "Hide badges from navigation bar icons": {
+                "enabled": true
+            },
+            "Hide nudge button": {
+                "enabled": true
+            },
+            "Hide post metrics": {
+                "enabled": true
+            },
+            "Hide followed by context": {
+                "enabled": true
+            },
+            "Hide Live Threads": {
+                "enabled": true
+            },
+            "Remove premium upsell": {
+                "enabled": true
+            },
+            "Show sensitive media": {
+                "enabled": true
+            },
+            "Show post source label": {
+                "enabled": true
+            },
+            "Show poll results": {
+                "enabled": true
+            },
+            "Force enable translate": {
+                "enabled": true
+            },
+            "Hide Community Notes": {
+                "enabled": true
+            },
+            "Hide promote button": {
+                "enabled": true
+            },
+            "Export all activities": {
+                "enabled": false
+            },
+            "Change version code": {
+                "enabled": true,
+                "options": {
+                    "versionCode": 2147483647
+                }
+            }
+        }
     },
-    "patches": {
-      "Remove Ads": {
-        "enabled": true
-      },
-      "Hide recommendation items": {
-        "enabled": true
-      },
-      "Disable chirp font": {
-        "enabled": true
-      },
-      "Hide bookmark icon in timeline": {
-        "enabled": true
-      },
-      "Hide FAB Menu Buttons": {
-        "enabled": true
-      },
-      "Hide immersive player": {
-        "enabled": true
-      },
-      "Remove view count": {
-        "enabled": true
-      },
-      "Hook feature flag": {
-        "enabled": true
-      },
-      "Custom download folder": {
-        "enabled": true
-      },
-      "Add ability to copy media link": {
-        "enabled": true
-      },
-      "Clear tracking params": {
-        "enabled": true
-      },
-      "Handle custom twitter links": {
-        "enabled": true,
-        "options": {
-          "customLinkHosts": [
-            "vxtwitter.com",
-            "fixvx.com",
-            "fxtwitter.com",
-            "fixupx.com",
-            "twittpr.com",
-            "xcancel.com"
-          ],
-          "unofficialInstanceLinks": false
+    {
+        "meta": {
+            "created_at": "2026-06-24T13:02:39.783544600Z",
+            "updated_at": "2026-09-03T00:25:42.283080700Z",
+            "source": "piko-patches.mpp",
+            "sha256": "825834791264425dca13c9191674b2d6258f7310b87c7d2f911856810ef73933"
+        },
+        "patches": {
+            "Remove Ads": {
+                "enabled": true
+            },
+            "Hide recommendation items": {
+                "enabled": true
+            },
+            "Disable chirp font": {
+                "enabled": true
+            },
+            "Hide bookmark icon in timeline": {
+                "enabled": true
+            },
+            "Hide FAB Menu Buttons": {
+                "enabled": true
+            },
+            "Hide immersive player": {
+                "enabled": true
+            },
+            "Remove view count": {
+                "enabled": true
+            },
+            "Hook feature flag": {
+                "enabled": true
+            },
+            "Custom download folder": {
+                "enabled": true
+            },
+            "Add ability to copy media link": {
+                "enabled": true
+            },
+            "Clear tracking params": {
+                "enabled": true
+            },
+            "Handle custom twitter links": {
+                "enabled": true,
+                "options": {
+                    "customLinkHosts": [
+                        "vxtwitter.com",
+                        "fixvx.com",
+                        "fxtwitter.com",
+                        "fixupx.com",
+                        "twittpr.com",
+                        "xcancel.com"
+                    ],
+                    "unofficialInstanceLinks": false
+                }
+            },
+            "Custom sharing domain": {
+                "enabled": true
+            },
+            "Legacy share links": {
+                "enabled": true
+            },
+            "No shortened URL": {
+                "enabled": true
+            },
+            "Log server response": {
+                "enabled": true
+            },
+            "Change app icon": {
+                "enabled": true
+            },
+            "Block redirecting to X Lite": {
+                "enabled": true
+            },
+            "Block update screen": {
+                "enabled": true
+            },
+            "Bring back twitter": {
+                "enabled": true
+            },
+            "Customize explore tabs": {
+                "enabled": true
+            },
+            "Custom emoji font": {
+                "enabled": true
+            },
+            "Custom font": {
+                "enabled": true
+            },
+            "Customize Inline action Bar items": {
+                "enabled": true
+            },
+            "Customize Navigation Bar items": {
+                "enabled": true
+            },
+            "Customize notification tabs": {
+                "enabled": true
+            },
+            "Customise post font size": {
+                "enabled": true
+            },
+            "Customize profile tabs": {
+                "enabled": true
+            },
+            "Customize default reply sorting": {
+                "enabled": true
+            },
+            "Customize search tab items": {
+                "enabled": true
+            },
+            "Customize side bar items": {
+                "enabled": true
+            },
+            "Customize timeline top bar": {
+                "enabled": true
+            },
+            "Customize search suggestions": {
+                "enabled": true
+            },
+            "Dynamic color": {
+                "enabled": false
+            },
+            "Hide FAB": {
+                "enabled": true
+            },
+            "Import/Export login token": {
+                "enabled": true
+            },
+            "More information on profile": {
+                "enabled": true
+            },
+            "Hide Recommended Users": {
+                "enabled": true
+            },
+            "Round off numbers": {
+                "enabled": true
+            },
+            "Pause search suggestions": {
+                "enabled": true
+            },
+            "Remove search suggestions": {
+                "enabled": true
+            },
+            "Selectable Text": {
+                "enabled": true
+            },
+            "Enable debug menu for posts": {
+                "enabled": true
+            },
+            "Support external downloader": {
+                "enabled": true
+            },
+            "Native downloader": {
+                "enabled": true
+            },
+            "Native reader mode": {
+                "enabled": true
+            },
+            "Share Tweet as Image": {
+                "enabled": true
+            },
+            "Custom share menu": {
+                "enabled": true
+            },
+            "Native translator": {
+                "enabled": true
+            },
+            "Show changelogs": {
+                "enabled": true
+            },
+            "Enable PiP mode automatically": {
+                "enabled": true
+            },
+            "Enable Undo Posts": {
+                "enabled": true
+            },
+            "Download patch": {
+                "enabled": true
+            },
+            "Hide Banner": {
+                "enabled": true
+            },
+            "Delete from database": {
+                "enabled": true
+            },
+            "Disable auto timeline scroll on launch": {
+                "enabled": true
+            },
+            "Control video auto scroll": {
+                "enabled": true
+            },
+            "Enable force HD videos": {
+                "enabled": true
+            },
+            "Hide community badges": {
+                "enabled": true
+            },
+            "Hide hidden replies": {
+                "enabled": true
+            },
+            "Hide badges from navigation bar icons": {
+                "enabled": true
+            },
+            "Hide nudge button": {
+                "enabled": true
+            },
+            "Hide post metrics": {
+                "enabled": true
+            },
+            "Hide followed by context": {
+                "enabled": true
+            },
+            "Hide Live Threads": {
+                "enabled": true
+            },
+            "Remove premium upsell": {
+                "enabled": true
+            },
+            "Show sensitive media": {
+                "enabled": true
+            },
+            "Show post source label": {
+                "enabled": true
+            },
+            "Show poll results": {
+                "enabled": true
+            },
+            "Force enable translate": {
+                "enabled": true
+            },
+            "Hide Community Notes": {
+                "enabled": true
+            },
+            "Hide promote button": {
+                "enabled": true
+            },
+            "Export all activities": {
+                "enabled": false
+            },
+            "Change version code": {
+                "enabled": true,
+                "options": {
+                    "versionCode": 2147483647
+                }
+            }
         }
-      },
-      "Custom sharing domain": {
-        "enabled": true
-      },
-      "Legacy share links": {
-        "enabled": true
-      },
-      "No shortened URL": {
-        "enabled": true
-      },
-      "Log server response": {
-        "enabled": true
-      },
-      "Change app icon": {
-        "enabled": true
-      },
-      "Block redirecting to X Lite": {
-        "enabled": true
-      },
-      "Bring back twitter": {
-        "enabled": true
-      },
-      "Customize explore tabs": {
-        "enabled": true
-      },
-      "Custom emoji font": {
-        "enabled": true
-      },
-      "Custom font": {
-        "enabled": true
-      },
-      "Customize Inline action Bar items": {
-        "enabled": true
-      },
-      "Customize Navigation Bar items": {
-        "enabled": true
-      },
-      "Customize notification tabs": {
-        "enabled": true
-      },
-      "Customise post font size": {
-        "enabled": true
-      },
-      "Customize profile tabs": {
-        "enabled": true
-      },
-      "Customize default reply sorting": {
-        "enabled": true
-      },
-      "Customize search tab items": {
-        "enabled": true
-      },
-      "Customize side bar items": {
-        "enabled": true
-      },
-      "Customize timeline top bar": {
-        "enabled": true
-      },
-      "Customize search suggestions": {
-        "enabled": true
-      },
-      "Disunify xchat system": {
-        "enabled": false
-      },
-      "Dynamic color": {
-        "enabled": false
-      },
-      "Hide FAB": {
-        "enabled": true
-      },
-      "Import/Export login token": {
-        "enabled": true
-      },
-      "Hide Recommended Users": {
-        "enabled": true
-      },
-      "Round off numbers": {
-        "enabled": true
-      },
-      "Pause search suggestions": {
-        "enabled": true
-      },
-      "Remove search suggestions": {
-        "enabled": true
-      },
-      "Selectable Text": {
-        "enabled": true
-      },
-      "Enable debug menu for posts": {
-        "enabled": true
-      },
-      "Native downloader": {
-        "enabled": true
-      },
-      "Native reader mode": {
-        "enabled": true
-      },
-      "Share Tweet as Image": {
-        "enabled": true
-      },
-      "Native translator": {
-        "enabled": true
-      },
-      "Show changelogs": {
-        "enabled": true
-      },
-      "Enable PiP mode automatically": {
-        "enabled": true
-      },
-      "Enable Undo Posts": {
-        "enabled": true
-      },
-      "Download patch": {
-        "enabled": true
-      },
-      "Hide Banner": {
-        "enabled": true
-      },
-      "Delete from database": {
-        "enabled": true
-      },
-      "Disable auto timeline scroll on launch": {
-        "enabled": true
-      },
-      "Control video auto scroll": {
-        "enabled": true
-      },
-      "Enable force HD videos": {
-        "enabled": true
-      },
-      "Hide community badges": {
-        "enabled": true
-      },
-      "Hide hidden replies": {
-        "enabled": true
-      },
-      "Hide badges from navigation bar icons": {
-        "enabled": true
-      },
-      "Hide nudge button": {
-        "enabled": true
-      },
-      "Hide post metrics": {
-        "enabled": true
-      },
-      "Hide followed by context": {
-        "enabled": true
-      },
-      "Hide Live Threads": {
-        "enabled": true
-      },
-      "Remove premium upsell": {
-        "enabled": true
-      },
-      "Show sensitive media": {
-        "enabled": true
-      },
-      "Show post source label": {
-        "enabled": true
-      },
-      "Show poll results": {
-        "enabled": true
-      },
-      "Force enable translate": {
-        "enabled": true
-      },
-      "Hide Community Notes": {
-        "enabled": true
-      },
-      "Hide promote button": {
-        "enabled": true
-      },
-      "Export all activities": {
-        "enabled": false
-      },
-      "Change version code": {
-        "enabled": true,
-        "options": {
-          "versionCode": 2147483647
-        }
-      }
     }
-  }
 ]

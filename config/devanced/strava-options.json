@@ -1,60 +1,122 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-27T13:57:28.945710600Z",
-      "updated_at": "2026-08-16T22:34:34.752Z",
-      "source": "RookieEnough/De-Vanced 1.2.1"
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:57:28.945710600Z",
+            "updated_at": "2026-08-16T22:34:34.752Z",
+            "source": "RookieEnough/De-Vanced 1.2.1"
+        },
+        "patches": {
+            "Add 'Give Kudos' button to 'Group Activity'": {
+                "enabled": true
+            },
+            "Add media download": {
+                "enabled": true
+            },
+            "Block Snowplow tracking": {
+                "enabled": true
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable Quick Edit": {
+                "enabled": true
+            },
+            "Enable password login": {
+                "enabled": true
+            },
+            "Hide distractions": {
+                "enabled": true,
+                "options": {
+                    "upselling": true,
+                    "promo": true,
+                    "followSuggestions": true,
+                    "challengeSuggestions": true,
+                    "joinChallenge": false,
+                    "joinClub": false,
+                    "activityLookback": false
+                }
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Overwrite media upload parameters": {
+                "enabled": true,
+                "options": {
+                    "compressionQuality": null,
+                    "maxDuration": null,
+                    "maxSize": null
+                }
+            },
+            "Unlock subscription features": {
+                "enabled": true
+            }
+        }
     },
-    "patches": {
-      "Add 'Give Kudos' button to 'Group Activity'": {
-        "enabled": true
-      },
-      "Add media download": {
-        "enabled": true
-      },
-      "Block Snowplow tracking": {
-        "enabled": true
-      },
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:57:28.945710600Z",
+            "updated_at": "2026-09-03T00:27:59.026639400Z",
+            "source": "patches.mpp",
+            "sha256": "2f545c15b390c3dcf683ed6c57b589d9be72a15d145d05e8e17aeac57e910b54"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Add activity export": {
+                "enabled": true
+            },
+            "Hide distractions": {
+                "enabled": true,
+                "options": {
+                    "upselling": true,
+                    "promo": true,
+                    "followSuggestions": true,
+                    "challengeSuggestions": true,
+                    "joinChallenge": false,
+                    "joinClub": false,
+                    "activityLookback": false
+                }
+            },
+            "Add 'Give Kudos' button to 'Group Activity'": {
+                "enabled": true
+            },
+            "Add media download": {
+                "enabled": true
+            },
+            "Overwrite media upload parameters": {
+                "enabled": true,
+                "options": {
+                    "compressionQuality": null,
+                    "maxDuration": null,
+                    "maxSize": null
+                }
+            },
+            "Enable password login": {
+                "enabled": true
+            },
+            "Block Snowplow tracking": {
+                "enabled": true
+            },
+            "Disable Quick Edit": {
+                "enabled": true
+            },
+            "Add route export": {
+                "enabled": true
+            },
+            "Unlock subscription features": {
+                "enabled": true
+            }
         }
-      },
-      "Disable Quick Edit": {
-        "enabled": true
-      },
-      "Enable password login": {
-        "enabled": true
-      },
-      "Hide distractions": {
-        "enabled": true,
-        "options": {
-          "upselling": true,
-          "promo": true,
-          "followSuggestions": true,
-          "challengeSuggestions": true,
-          "joinChallenge": false,
-          "joinClub": false,
-          "activityLookback": false
-        }
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      },
-      "Overwrite media upload parameters": {
-        "enabled": true,
-        "options": {
-          "compressionQuality": null,
-          "maxDuration": null,
-          "maxSize": null
-        }
-      },
-      "Unlock subscription features": {
-        "enabled": true
-      }
     }
-  }
 ]

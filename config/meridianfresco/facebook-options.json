@@ -1,17 +1,33 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-08-09T00:00:00.000000000Z",
-      "updated_at": "2026-08-09T00:00:00.000000000Z",
-      "source": "meridianfresco/morphe-meta-patches 1.0.0"
+    {
+        "meta": {
+            "created_at": "2026-08-09T00:00:00.000000000Z",
+            "updated_at": "2026-08-09T00:00:00.000000000Z",
+            "source": "meridianfresco/morphe-meta-patches 1.0.0"
+        },
+        "patches": {
+            "Hide 'Sponsored Stories'": {
+                "enabled": true
+            },
+            "Hide story ads": {
+                "enabled": true
+            }
+        }
     },
-    "patches": {
-      "Hide 'Sponsored Stories'": {
-        "enabled": true
-      },
-      "Hide story ads": {
-        "enabled": true
-      }
+    {
+        "meta": {
+            "created_at": "2026-08-09T00:00:00.000000000Z",
+            "updated_at": "2026-09-03T00:24:43.462601700Z",
+            "source": "patches.mpp",
+            "sha256": "90232dc0c46980aa22f50d38f1058d10529a2982a07629a81fb685af75719656"
+        },
+        "patches": {
+            "Hide 'Sponsored Stories'": {
+                "enabled": true
+            },
+            "Hide story ads": {
+                "enabled": true
+            }
+        }
     }
-  }
 ]

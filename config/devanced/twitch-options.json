@@ -1,40 +1,76 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-27T13:57:32.930918800Z",
-      "updated_at": "2026-08-16T22:34:34.762Z",
-      "source": "RookieEnough/De-Vanced 1.2.1"
-    },
-    "patches": {
-      "Auto claim channel points": {
-        "enabled": true
-      },
-      "Block audio ads": {
-        "enabled": true
-      },
-      "Block embedded ads": {
-        "enabled": true
-      },
-      "Block video ads": {
-        "enabled": true
-      },
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:57:32.930918800Z",
+            "updated_at": "2026-08-16T22:34:34.762Z",
+            "source": "RookieEnough/De-Vanced 1.2.1"
+        },
+        "patches": {
+            "Auto claim channel points": {
+                "enabled": true
+            },
+            "Block audio ads": {
+                "enabled": true
+            },
+            "Block embedded ads": {
+                "enabled": true
+            },
+            "Block video ads": {
+                "enabled": true
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Debug mode": {
+                "enabled": false
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Show deleted messages": {
+                "enabled": true
+            }
         }
-      },
-      "Debug mode": {
-        "enabled": false
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      },
-      "Show deleted messages": {
-        "enabled": true
-      }
+    },
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:57:32.930918800Z",
+            "updated_at": "2026-09-03T00:28:04.385313200Z",
+            "source": "patches.mpp",
+            "sha256": "2f545c15b390c3dcf683ed6c57b589d9be72a15d145d05e8e17aeac57e910b54"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Block audio ads": {
+                "enabled": true
+            },
+            "Block embedded ads": {
+                "enabled": true
+            },
+            "Block video ads": {
+                "enabled": true
+            },
+            "Show deleted messages": {
+                "enabled": true
+            },
+            "Auto claim channel points": {
+                "enabled": true
+            },
+            "Debug mode": {
+                "enabled": false
+            }
+        }
     }
-  }
 ]

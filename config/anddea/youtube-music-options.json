@@ -1,208 +1,415 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-27T13:55:09.876575900Z",
-      "updated_at": "2026-08-16T22:32:51.312Z",
-      "source": "anddea/revanced-patches 4.2.0"
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:55:09.876575900Z",
+            "updated_at": "2026-08-16T22:32:51.312Z",
+            "source": "anddea/revanced-patches 4.2.0"
+        },
+        "patches": {
+            "Bitrate default value": {
+                "enabled": true
+            },
+            "Bypass image region restrictions": {
+                "enabled": true
+            },
+            "Certificate spoof": {
+                "enabled": true
+            },
+            "Change installer package name": {
+                "enabled": false
+            },
+            "Change share sheet": {
+                "enabled": true
+            },
+            "Change start page": {
+                "enabled": true
+            },
+            "Change version code": {
+                "enabled": false,
+                "options": {
+                    "versionCode": "2147483647"
+                }
+            },
+            "Custom branding icon for YouTube Music": {
+                "enabled": false,
+                "options": {
+                    "appIcon": "xisr_yellow",
+                    "changeSplashIcon": true,
+                    "restoreOldSplashIcon": false
+                }
+            },
+            "Custom branding name for YouTube Music": {
+                "enabled": false,
+                "options": {
+                    "appNameNotification": "RVX Music",
+                    "appNameLauncher": "RVX Music"
+                }
+            },
+            "Custom header for YouTube Music": {
+                "enabled": false,
+                "options": {
+                    "customHeader": "custom_branding_icon"
+                }
+            },
+            "Dark theme": {
+                "enabled": true,
+                "options": {
+                    "darkThemeBackgroundColor": "@android:color/black",
+                    "materialYou": false
+                }
+            },
+            "Disable Cairo splash animation": {
+                "enabled": true
+            },
+            "Disable QUIC protocol": {
+                "enabled": true
+            },
+            "Disable dislike redirection": {
+                "enabled": true
+            },
+            "Disable edge-to-edge display": {
+                "enabled": false
+            },
+            "Disable forced auto captions": {
+                "enabled": true
+            },
+            "Disable music video in album": {
+                "enabled": false
+            },
+            "Enable debug logging": {
+                "enabled": false
+            },
+            "Enable landscape mode": {
+                "enabled": true
+            },
+            "Flyout menu components": {
+                "enabled": true
+            },
+            "Force original audio": {
+                "enabled": true
+            },
+            "GmsCore support": {
+                "enabled": true,
+                "options": {
+                    "gmsCoreVendorGroupId": "app.revanced",
+                    "checkGmsCore": true,
+                    "disableCoreServices": false,
+                    "packageNameYouTube": "anddea.youtube",
+                    "packageNameYouTubeMusic": "anddea.youtube.music",
+                    "patchAllManifest": false
+                }
+            },
+            "Hide account components": {
+                "enabled": true
+            },
+            "Hide action bar components": {
+                "enabled": true
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Hide layout components": {
+                "enabled": true
+            },
+            "Hide overlay filter": {
+                "enabled": false
+            },
+            "Hide player overlay filter": {
+                "enabled": false
+            },
+            "Navigation bar components": {
+                "enabled": true
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Player components": {
+                "enabled": true,
+                "options": {
+                    "swipeToDismissMiniPlayer": true
+                }
+            },
+            "Remove background playback restrictions": {
+                "enabled": true
+            },
+            "Remove viewer discretion dialog": {
+                "enabled": true
+            },
+            "Restore old style library shelf": {
+                "enabled": true
+            },
+            "Return YouTube Dislike": {
+                "enabled": true
+            },
+            "Return YouTube Username": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Settings for YouTube Music": {
+                "enabled": true,
+                "options": {
+                    "insertPosition": "pref_key_parent_tools",
+                    "rvxSettingsLabel": "RVX"
+                }
+            },
+            "Settings menu filter": {
+                "enabled": true
+            },
+            "SponsorBlock": {
+                "enabled": true
+            },
+            "Spoof Wi-Fi connection": {
+                "enabled": false
+            },
+            "Spoof app version for lyrics": {
+                "enabled": true
+            },
+            "Spoof signature": {
+                "enabled": false,
+                "options": {
+                    "packageName": "",
+                    "certificateData": ""
+                }
+            },
+            "Spoof video streams": {
+                "enabled": true
+            },
+            "Third-party lyrics": {
+                "enabled": true
+            },
+            "Track crossfade": {
+                "enabled": true
+            },
+            "Translations for YouTube Music": {
+                "enabled": true,
+                "options": {
+                    "customTranslations": "",
+                    "selectedTranslations": "bg-rBG, bn, cs-rCZ, el-rGR, es-rES, fr-rFR, hu-rHU, id-rID, in, it-rIT, ja-rJP, ko-rKR, nl-rNL, pl-rPL, pt-rBR, ro-rRO, ru-rRU, ta-rIN, tr-rTR, uk-rUA, vi-rVN, zh-rCN, zh-rTW",
+                    "selectedStringResources": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
+                }
+            },
+            "Video playback": {
+                "enabled": true
+            },
+            "Visual preferences icons for YouTube Music": {
+                "enabled": true,
+                "options": {
+                    "settingsMenuIcon": "extension",
+                    "applyToAll": true
+                }
+            },
+            "Watch history": {
+                "enabled": true
+            }
+        }
     },
-    "patches": {
-      "Bitrate default value": {
-        "enabled": true
-      },
-      "Bypass image region restrictions": {
-        "enabled": true
-      },
-      "Certificate spoof": {
-        "enabled": true
-      },
-      "Change installer package name": {
-        "enabled": false
-      },
-      "Change share sheet": {
-        "enabled": true
-      },
-      "Change start page": {
-        "enabled": true
-      },
-      "Change version code": {
-        "enabled": false,
-        "options": {
-          "versionCode": "2147483647"
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:55:09.876575900Z",
+            "updated_at": "2026-09-03T00:22:51.617261700Z",
+            "source": "patches.mpp",
+            "sha256": "175d9564d1e34fc93fa2d78dc072c7b44467fb22cd6eb8b32619e4b2b5273bc4"
+        },
+        "patches": {
+            "Spoof Wi-Fi connection": {
+                "enabled": false
+            },
+            "Disable edge-to-edge display": {
+                "enabled": false
+            },
+            "Change installer package name": {
+                "enabled": false
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Spoof signature": {
+                "enabled": false,
+                "options": {
+                    "packageName": "",
+                    "certificateData": ""
+                }
+            },
+            "Change version code": {
+                "enabled": false,
+                "options": {
+                    "versionCode": "2147483647"
+                }
+            },
+            "Hide account components": {
+                "enabled": true
+            },
+            "Hide action bar components": {
+                "enabled": true
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Flyout menu components": {
+                "enabled": true
+            },
+            "Force original audio": {
+                "enabled": true
+            },
+            "Disable forced auto captions": {
+                "enabled": true
+            },
+            "Hide layout components": {
+                "enabled": true
+            },
+            "Remove viewer discretion dialog": {
+                "enabled": true
+            },
+            "Enable landscape mode": {
+                "enabled": true
+            },
+            "Restore old style library shelf": {
+                "enabled": true
+            },
+            "Disable dislike redirection": {
+                "enabled": true
+            },
+            "Disable Cairo splash animation": {
+                "enabled": true
+            },
+            "Spoof app version for lyrics": {
+                "enabled": true
+            },
+            "Change start page": {
+                "enabled": true
+            },
+            "Track crossfade": {
+                "enabled": true
+            },
+            "Custom branding icon for YouTube Music": {
+                "enabled": false,
+                "options": {
+                    "appIcon": "xisr_yellow",
+                    "changeSplashIcon": true,
+                    "restoreOldSplashIcon": false
+                }
+            },
+            "Custom branding name for YouTube Music": {
+                "enabled": false,
+                "options": {
+                    "appNameNotification": "RVX Music",
+                    "appNameLauncher": "RVX Music"
+                }
+            },
+            "Custom header for YouTube Music": {
+                "enabled": false,
+                "options": {
+                    "customHeader": "custom_branding_icon"
+                }
+            },
+            "Settings menu filter": {
+                "enabled": true
+            },
+            "Third-party lyrics": {
+                "enabled": true
+            },
+            "Hide overlay filter": {
+                "enabled": false
+            },
+            "Hide player overlay filter": {
+                "enabled": false
+            },
+            "Dark theme": {
+                "enabled": true,
+                "options": {
+                    "darkThemeBackgroundColor": "@android:color/black",
+                    "materialYou": false
+                }
+            },
+            "Translations for YouTube Music": {
+                "enabled": true,
+                "options": {
+                    "customTranslations": "",
+                    "selectedTranslations": "bg-rBG, bn, cs-rCZ, el-rGR, es-rES, fr-rFR, hu-rHU, id-rID, in, it-rIT, ja-rJP, ko-rKR, nl-rNL, pl-rPL, pt-rBR, ro-rRO, ru-rRU, ta-rIN, tr-rTR, uk-rUA, vi-rVN, zh-rCN, zh-rTW",
+                    "selectedStringResources": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
+                }
+            },
+            "Visual preferences icons for YouTube Music": {
+                "enabled": true,
+                "options": {
+                    "settingsMenuIcon": "extension",
+                    "applyToAll": true
+                }
+            },
+            "Disable music video in album": {
+                "enabled": false
+            },
+            "Remove background playback restrictions": {
+                "enabled": true
+            },
+            "Bitrate default value": {
+                "enabled": true
+            },
+            "Enable debug logging": {
+                "enabled": false
+            },
+            "Disable QUIC protocol": {
+                "enabled": true
+            },
+            "Change share sheet": {
+                "enabled": true
+            },
+            "Bypass image region restrictions": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Watch history": {
+                "enabled": true
+            },
+            "Navigation bar components": {
+                "enabled": true
+            },
+            "Player components": {
+                "enabled": true,
+                "options": {
+                    "swipeToDismissMiniPlayer": true
+                }
+            },
+            "Certificate spoof": {
+                "enabled": true
+            },
+            "Spoof video streams": {
+                "enabled": true
+            },
+            "GmsCore support": {
+                "enabled": true,
+                "options": {
+                    "gmsCoreVendorGroupId": "app.revanced",
+                    "checkGmsCore": true,
+                    "disableCoreServices": false,
+                    "packageNameYouTube": "anddea.youtube",
+                    "packageNameYouTubeMusic": "anddea.youtube.music",
+                    "patchAllManifest": false
+                }
+            },
+            "Return YouTube Dislike": {
+                "enabled": true
+            },
+            "Return YouTube Username": {
+                "enabled": true
+            },
+            "Settings for YouTube Music": {
+                "enabled": true,
+                "options": {
+                    "insertPosition": "pref_key_parent_tools",
+                    "rvxSettingsLabel": "RVX"
+                }
+            },
+            "SponsorBlock": {
+                "enabled": true
+            },
+            "Video playback": {
+                "enabled": true
+            }
         }
-      },
-      "Custom branding icon for YouTube Music": {
-        "enabled": false,
-        "options": {
-          "appIcon": "xisr_yellow",
-          "changeSplashIcon": true,
-          "restoreOldSplashIcon": false
-        }
-      },
-      "Custom branding name for YouTube Music": {
-        "enabled": false,
-        "options": {
-          "appNameNotification": "RVX Music",
-          "appNameLauncher": "RVX Music"
-        }
-      },
-      "Custom header for YouTube Music": {
-        "enabled": false,
-        "options": {
-          "customHeader": "custom_branding_icon"
-        }
-      },
-      "Dark theme": {
-        "enabled": true,
-        "options": {
-          "darkThemeBackgroundColor": "@android:color/black",
-          "materialYou": false
-        }
-      },
-      "Disable Cairo splash animation": {
-        "enabled": true
-      },
-      "Disable QUIC protocol": {
-        "enabled": true
-      },
-      "Disable dislike redirection": {
-        "enabled": true
-      },
-      "Disable edge-to-edge display": {
-        "enabled": false
-      },
-      "Disable forced auto captions": {
-        "enabled": true
-      },
-      "Disable music video in album": {
-        "enabled": false
-      },
-      "Enable debug logging": {
-        "enabled": false
-      },
-      "Enable landscape mode": {
-        "enabled": true
-      },
-      "Flyout menu components": {
-        "enabled": true
-      },
-      "Force original audio": {
-        "enabled": true
-      },
-      "GmsCore support": {
-        "enabled": true,
-        "options": {
-          "gmsCoreVendorGroupId": "app.revanced",
-          "checkGmsCore": true,
-          "disableCoreServices": false,
-          "packageNameYouTube": "anddea.youtube",
-          "packageNameYouTubeMusic": "anddea.youtube.music",
-          "patchAllManifest": false
-        }
-      },
-      "Hide account components": {
-        "enabled": true
-      },
-      "Hide action bar components": {
-        "enabled": true
-      },
-      "Hide ads": {
-        "enabled": true
-      },
-      "Hide layout components": {
-        "enabled": true
-      },
-      "Hide overlay filter": {
-        "enabled": false
-      },
-      "Hide player overlay filter": {
-        "enabled": false
-      },
-      "Navigation bar components": {
-        "enabled": true
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      },
-      "Player components": {
-        "enabled": true,
-        "options": {
-          "swipeToDismissMiniPlayer": true
-        }
-      },
-      "Remove background playback restrictions": {
-        "enabled": true
-      },
-      "Remove viewer discretion dialog": {
-        "enabled": true
-      },
-      "Restore old style library shelf": {
-        "enabled": true
-      },
-      "Return YouTube Dislike": {
-        "enabled": true
-      },
-      "Return YouTube Username": {
-        "enabled": true
-      },
-      "Sanitize sharing links": {
-        "enabled": true
-      },
-      "Settings for YouTube Music": {
-        "enabled": true,
-        "options": {
-          "insertPosition": "pref_key_parent_tools",
-          "rvxSettingsLabel": "RVX"
-        }
-      },
-      "Settings menu filter": {
-        "enabled": true
-      },
-      "SponsorBlock": {
-        "enabled": true
-      },
-      "Spoof Wi-Fi connection": {
-        "enabled": false
-      },
-      "Spoof app version for lyrics": {
-        "enabled": true
-      },
-      "Spoof signature": {
-        "enabled": false,
-        "options": {
-          "packageName": "",
-          "certificateData": ""
-        }
-      },
-      "Spoof video streams": {
-        "enabled": true
-      },
-      "Third-party lyrics": {
-        "enabled": true
-      },
-      "Track crossfade": {
-        "enabled": true
-      },
-      "Translations for YouTube Music": {
-        "enabled": true,
-        "options": {
-          "customTranslations": "",
-          "selectedTranslations": "bg-rBG, bn, cs-rCZ, el-rGR, es-rES, fr-rFR, hu-rHU, id-rID, in, it-rIT, ja-rJP, ko-rKR, nl-rNL, pl-rPL, pt-rBR, ro-rRO, ru-rRU, ta-rIN, tr-rTR, uk-rUA, vi-rVN, zh-rCN, zh-rTW",
-          "selectedStringResources": "af, am, ar, ar-rXB, as, az, b+es+419, b+sr+Latn, be, bg, bn, bs, ca, cs, da, de, el, en-rAU, en-rCA, en-rGB, en-rIN, en-rXA, en-rXC, es, es-rUS, et, eu, fa, fi, fil-rPH, fr, fr-rCA, gl, gu, hi, hr, hu, hy, id, in, is, it, iw, ja, ka, kk, km, kn, ko, ky, lo, lt, lv, mk, ml, mn, mr, ms, my, nb, ne, nl, no, or, pa, pl, pt, pt-rBR, pt-rPT, ro, ru, si, sk, sl, sq, sr, sv, sw, ta, te, th, tl, tr, uk, ur, uz, vi, zh, zh-rCN, zh-rHK, zh-rTW, zu"
-        }
-      },
-      "Video playback": {
-        "enabled": true
-      },
-      "Visual preferences icons for YouTube Music": {
-        "enabled": true,
-        "options": {
-          "settingsMenuIcon": "extension",
-          "applyToAll": true
-        }
-      },
-      "Watch history": {
-        "enabled": true
-      }
     }
-  }
 ]

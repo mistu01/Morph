@@ -1,49 +1,94 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-21T18:31:24.991414600Z",
-      "updated_at": "2026-08-16T22:32:51.344Z",
-      "source": "RookieEnough/De-Vanced 1.2.1"
+    {
+        "meta": {
+            "created_at": "2026-06-21T18:31:24.991414600Z",
+            "updated_at": "2026-08-16T22:32:51.344Z",
+            "source": "RookieEnough/De-Vanced 1.2.1"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable typing indicator": {
+                "enabled": true
+            },
+            "Hide Facebook buttons": {
+                "enabled": true
+            },
+            "Hide inbox ads": {
+                "enabled": true
+            },
+            "Hide inbox stories and notes tray": {
+                "enabled": true
+            },
+            "Hide inbox subtabs": {
+                "enabled": true
+            },
+            "Open links externally": {
+                "enabled": true
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Remove Meta AI": {
+                "enabled": true
+            },
+            "Spoof package version": {
+                "enabled": false,
+                "options": {
+                    "versionCode": "2147483647"
+                }
+            }
+        }
     },
-    "patches": {
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
+    {
+        "meta": {
+            "created_at": "2026-06-21T18:31:24.991414600Z",
+            "updated_at": "2026-09-03T00:26:25.363161600Z",
+            "source": "patches.mpp",
+            "sha256": "2f545c15b390c3dcf683ed6c57b589d9be72a15d145d05e8e17aeac57e910b54"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Hide inbox ads": {
+                "enabled": true
+            },
+            "Hide inbox stories and notes tray": {
+                "enabled": true
+            },
+            "Hide inbox subtabs": {
+                "enabled": true
+            },
+            "Disable typing indicator": {
+                "enabled": true
+            },
+            "Hide Facebook buttons": {
+                "enabled": true
+            },
+            "Open links externally": {
+                "enabled": true
+            },
+            "Remove Meta AI": {
+                "enabled": true
+            },
+            "Spoof package version": {
+                "enabled": false,
+                "options": {
+                    "versionCode": "2147483647"
+                }
+            }
         }
-      },
-      "Disable typing indicator": {
-        "enabled": true
-      },
-      "Hide Facebook buttons": {
-        "enabled": true
-      },
-      "Hide inbox ads": {
-        "enabled": true
-      },
-      "Hide inbox stories and notes tray": {
-        "enabled": true
-      },
-      "Hide inbox subtabs": {
-        "enabled": true
-      },
-      "Open links externally": {
-        "enabled": true
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      },
-      "Remove Meta AI": {
-        "enabled": true
-      },
-      "Spoof package version": {
-        "enabled": false,
-        "options": {
-          "versionCode": "2147483647"
-        }
-      }
     }
-  }
 ]

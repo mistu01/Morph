@@ -1,37 +1,73 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-27T13:58:59.535662300Z",
-      "updated_at": "2026-08-16T22:34:34.870Z",
-      "source": "hoo-dles/morphe-patches 1.40.0"
-    },
-    "patches": {
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:58:59.535662300Z",
+            "updated_at": "2026-08-16T22:34:34.870Z",
+            "source": "hoo-dles/morphe-patches 1.40.0"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable Pairip license check": {
+                "enabled": false
+            },
+            "Enable debug": {
+                "enabled": false
+            },
+            "Enable speed control": {
+                "enabled": true
+            },
+            "Hide app icon": {
+                "enabled": false
+            },
+            "Rename shared permissions": {
+                "enabled": true
+            },
+            "Skip ads": {
+                "enabled": true
+            }
         }
-      },
-      "Disable Pairip license check": {
-        "enabled": false
-      },
-      "Enable debug": {
-        "enabled": false
-      },
-      "Enable speed control": {
-        "enabled": true
-      },
-      "Hide app icon": {
-        "enabled": false
-      },
-      "Rename shared permissions": {
-        "enabled": true
-      },
-      "Skip ads": {
-        "enabled": true
-      }
+    },
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:58:59.535662300Z",
+            "updated_at": "2026-09-03T00:31:45.983068700Z",
+            "source": "patches.mpp",
+            "sha256": "1d81ecbaff24f83287db0f6f33aee1a0df4574cf6647cea8da73617bdcd83f32"
+        },
+        "patches": {
+            "Hide app icon": {
+                "enabled": false
+            },
+            "Enable debug": {
+                "enabled": false
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable Pairip license check": {
+                "enabled": false
+            },
+            "Skip ads": {
+                "enabled": true
+            },
+            "Rename shared permissions": {
+                "enabled": true
+            },
+            "Enable speed control": {
+                "enabled": true
+            }
+        }
     }
-  }
 ]

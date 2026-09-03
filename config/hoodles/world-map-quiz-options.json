@@ -1,31 +1,61 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-27T13:59:38.324468100Z",
-      "updated_at": "2026-08-16T22:34:34.944Z",
-      "source": "hoo-dles/morphe-patches 1.40.0"
-    },
-    "patches": {
-      "Change package name": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:59:38.324468100Z",
+            "updated_at": "2026-08-16T22:34:34.944Z",
+            "source": "hoo-dles/morphe-patches 1.40.0"
+        },
+        "patches": {
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable Pairip license check": {
+                "enabled": false
+            },
+            "Enable Premium": {
+                "enabled": true
+            },
+            "Enable debug": {
+                "enabled": false
+            },
+            "Hide app icon": {
+                "enabled": false
+            }
         }
-      },
-      "Disable Pairip license check": {
-        "enabled": false
-      },
-      "Enable Premium": {
-        "enabled": true
-      },
-      "Enable debug": {
-        "enabled": false
-      },
-      "Hide app icon": {
-        "enabled": false
-      }
+    },
+    {
+        "meta": {
+            "created_at": "2026-06-27T13:59:38.324468100Z",
+            "updated_at": "2026-09-03T00:32:32.060318Z",
+            "source": "patches.mpp",
+            "sha256": "1d81ecbaff24f83287db0f6f33aee1a0df4574cf6647cea8da73617bdcd83f32"
+        },
+        "patches": {
+            "Hide app icon": {
+                "enabled": false
+            },
+            "Enable debug": {
+                "enabled": false
+            },
+            "Change package name": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Disable Pairip license check": {
+                "enabled": false
+            },
+            "Enable Premium": {
+                "enabled": true
+            }
+        }
     }
-  }
 ]

@@ -489,7 +489,7 @@ async function buildApp(app, tools) {
   args.push(...patchArgs, app.input);
 
   console.log(`\n==> Building ${app.label}`);
-  run("java", args, { captureOutput: true });
+  run(javaCommand(), args, { captureOutput: true });
   if (rootBuild) {
     await assertRootPackageName(app);
     await renameVersionedBuildOutput(app, "root");
@@ -1508,7 +1508,7 @@ function createDefaultOptionsFile(app, tools, { force = false } = {}) {
 
   mkdirSync(dirname(app.options), { recursive: true });
   console.log(`\n==> Creating options for ${app.label}`);
-  run("java", [
+  run(javaCommand(), [
     "-jar",
     tools.cli,
     "options-create",
@@ -3003,8 +3003,20 @@ function appendSigningArgs(args) {
   if (truthy(env("UNSIGNED"))) args.push("--unsigned");
 }
 
+export function javaCommand() {
+  const cachedJdk = join(paths.tools, "jdk-21", process.platform === "win32" ? "bin/java.exe" : "bin/java");
+  if (existsSync(cachedJdk)) {
+    return cachedJdk;
+  }
+  if (process.env.JAVA_HOME && existsSync(join(process.env.JAVA_HOME, process.platform === "win32" ? "bin/java.exe" : "bin/java"))) {
+    return join(process.env.JAVA_HOME, process.platform === "win32" ? "bin/java.exe" : "bin/java");
+  }
+  return "java";
+}
+
 function checkJava() {
-  const result = spawnSync("java", ["-version"], { stdio: "ignore" });
+  const java = javaCommand();
+  const result = spawnSync(java, ["-version"], { stdio: "ignore" });
   if (result.error || result.status !== 0) {
     throw new Error("Java is required. Install Java 17+ or run this through GitHub Actions.");
   }

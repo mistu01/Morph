@@ -1,88 +1,175 @@
 [
-  {
-    "meta": {
-      "created_at": "2026-06-23T20:14:18.557516300Z",
-      "updated_at": "2026-08-16T22:32:51.277Z",
-      "source": "MorpheApp/morphe-patches 1.39.1"
+    {
+        "meta": {
+            "created_at": "2026-06-23T20:14:18.557516300Z",
+            "updated_at": "2026-08-16T22:32:51.277Z",
+            "source": "MorpheApp/morphe-patches 1.39.1"
+        },
+        "patches": {
+            "Change installer source": {
+                "enabled": false,
+                "options": {
+                    "packageInstallerName": "com.android.vending"
+                }
+            },
+            "Clone app": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Custom branding name for Reddit": {
+                "enabled": false,
+                "options": {
+                    "appName": "Reddit Morphe"
+                }
+            },
+            "Custom font": {
+                "enabled": true
+            },
+            "Disable Play Store updates": {
+                "enabled": false
+            },
+            "Disable modern home": {
+                "enabled": true
+            },
+            "Disable screenshot popup": {
+                "enabled": true
+            },
+            "Force system font": {
+                "enabled": true
+            },
+            "Hide Ask button": {
+                "enabled": true
+            },
+            "Hide Reddit search": {
+                "enabled": false
+            },
+            "Hide Trending shelves": {
+                "enabled": true
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Hide communities shelf": {
+                "enabled": true
+            },
+            "Hide navigation buttons": {
+                "enabled": true
+            },
+            "Hide sidebar components": {
+                "enabled": true
+            },
+            "Open links directly": {
+                "enabled": true
+            },
+            "Open links externally": {
+                "enabled": true
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Remove subreddit dialog": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Show view count": {
+                "enabled": true
+            },
+            "Spoof signature": {
+                "enabled": true
+            }
+        }
     },
-    "patches": {
-      "Change installer source": {
-        "enabled": false,
-        "options": {
-          "packageInstallerName": "com.android.vending"
+    {
+        "meta": {
+            "created_at": "2026-06-23T20:14:18.557516300Z",
+            "updated_at": "2026-09-03T00:21:54.434622600Z",
+            "source": "patches.mpp",
+            "sha256": "679a86aaaa50572e9c0852fd990e937edfd9b616ecf5d350048458598ec785df"
+        },
+        "patches": {
+            "Clone app": {
+                "enabled": false,
+                "options": {
+                    "packageName": "Default",
+                    "updatePermissions": false,
+                    "updateProviders": false
+                }
+            },
+            "Change installer source": {
+                "enabled": false,
+                "options": {
+                    "packageInstallerName": "com.android.vending"
+                }
+            },
+            "Override certificate pinning": {
+                "enabled": false
+            },
+            "Disable Play Store updates": {
+                "enabled": false
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Custom font": {
+                "enabled": true
+            },
+            "Force system font": {
+                "enabled": true
+            },
+            "Hide Ask button": {
+                "enabled": true
+            },
+            "Custom branding name for Reddit": {
+                "enabled": false,
+                "options": {
+                    "appName": "Reddit Morphe"
+                }
+            },
+            "Hide communities shelf": {
+                "enabled": true
+            },
+            "Disable modern home": {
+                "enabled": true
+            },
+            "Hide navigation buttons": {
+                "enabled": true
+            },
+            "Disable screenshot popup": {
+                "enabled": true
+            },
+            "Hide Reddit search": {
+                "enabled": false
+            },
+            "Hide sidebar components": {
+                "enabled": true
+            },
+            "Remove subreddit dialog": {
+                "enabled": true
+            },
+            "Hide Trending shelves": {
+                "enabled": true
+            },
+            "Show view count": {
+                "enabled": true
+            },
+            "Spoof signature": {
+                "enabled": true
+            },
+            "Open links directly": {
+                "enabled": true
+            },
+            "Open links externally": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            }
         }
-      },
-      "Clone app": {
-        "enabled": false,
-        "options": {
-          "packageName": "Default",
-          "updatePermissions": false,
-          "updateProviders": false
-        }
-      },
-      "Custom branding name for Reddit": {
-        "enabled": false,
-        "options": {
-          "appName": "Reddit Morphe"
-        }
-      },
-      "Custom font": {
-        "enabled": true
-      },
-      "Disable Play Store updates": {
-        "enabled": false
-      },
-      "Disable modern home": {
-        "enabled": true
-      },
-      "Disable screenshot popup": {
-        "enabled": true
-      },
-      "Force system font": {
-        "enabled": true
-      },
-      "Hide Ask button": {
-        "enabled": true
-      },
-      "Hide Reddit search": {
-        "enabled": false
-      },
-      "Hide Trending shelves": {
-        "enabled": true
-      },
-      "Hide ads": {
-        "enabled": true
-      },
-      "Hide communities shelf": {
-        "enabled": true
-      },
-      "Hide navigation buttons": {
-        "enabled": true
-      },
-      "Hide sidebar components": {
-        "enabled": true
-      },
-      "Open links directly": {
-        "enabled": true
-      },
-      "Open links externally": {
-        "enabled": true
-      },
-      "Override certificate pinning": {
-        "enabled": false
-      },
-      "Remove subreddit dialog": {
-        "enabled": true
-      },
-      "Sanitize sharing links": {
-        "enabled": true
-      },
-      "Show view count": {
-        "enabled": true
-      },
-      "Spoof signature": {
-        "enabled": true
-      }
     }
-  }
 ]
