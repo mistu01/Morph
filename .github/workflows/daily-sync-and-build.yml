@@ -1,0 +1,182 @@
+name: Daily Patch Sync & Builder
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs daily at 00:00 UTC
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Force run build even if no new patch version is detected"
+        type: boolean
+        default: false
+      release_tag:
+        description: "Release tag to create or update (defaults to 'auto-release' to continually update the first release)"
+        type: string
+        default: "auto-release"
+      run_morphe:
+        description: "Build Morphe APK & Root Module"
+        type: boolean
+        default: true
+      run_piko:
+        description: "Build Piko patched APKs (New Builder)"
+        type: boolean
+        default: true
+      run_anddea:
+        description: "Build Anddea APKs & Root Modules"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  check-and-update-configs:
+    name: Check Patches & Update Configs
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      release_tag: ${{ steps.check.outputs.release_tag }}
+      morphe_tag: ${{ steps.check.outputs.morphe_tag }}
+      piko_tag: ${{ steps.check.outputs.piko_tag }}
+      anddea_tag: ${{ steps.check.outputs.anddea_tag }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Check Upstream Releases
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE_RUN: ${{ inputs.force_run }}
+          TARGET_RELEASE_TAG: ${{ inputs.release_tag || 'auto-release' }}
+        run: |
+          # Query latest releases including betas / pre-releases
+          morphe_latest="$(gh api repos/MorpheApp/morphe-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+          piko_latest="$(gh api repos/crimera/piko/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+          anddea_latest="$(gh api repos/anddea/revanced-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+
+          echo "Upstream latest Morphe: $morphe_latest"
+          echo "Upstream latest Piko: $piko_latest"
+          echo "Upstream latest Anddea: $anddea_latest"
+
+          export MORPHE_LATEST="$morphe_latest"
+          export PIKO_LATEST="$piko_latest"
+          export ANDDEA_LATEST="$anddea_latest"
+
+          node -e '
+            const fs = require("node:fs");
+            let state = { morphe: "", piko: "", anddea: "" };
+            try {
+              state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
+            } catch {}
+
+            const morphe = process.env.MORPHE_LATEST || state.morphe;
+            const piko = process.env.PIKO_LATEST || state.piko;
+            const anddea = process.env.ANDDEA_LATEST || state.anddea;
+            const force = process.env.FORCE_RUN === "true";
+
+            const changed = force || (morphe && morphe !== state.morphe) || (piko && piko !== state.piko) || (anddea && anddea !== state.anddea);
+
+            console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}`);
+            console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}`);
+            console.log(`Build trigger condition: ${changed}`);
+
+            const newState = {
+              morphe,
+              piko,
+              anddea,
+              updated_at: new Date().toISOString()
+            };
+            fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
+
+            const outputFile = process.env.GITHUB_OUTPUT;
+            if (outputFile) {
+              fs.appendFileSync(outputFile, `should_build=${changed ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `release_tag=${process.env.TARGET_RELEASE_TAG || "auto-release"}\n`);
+              fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
+              fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
+              fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
+            }
+          '
+
+      - name: Update Patch Options in Config Folder
+        if: steps.check.outputs.should_build == 'true'
+        run: |
+          echo "Updating Morphe options..."
+          node scripts/morphe.mjs options --refresh-tools || true
+          echo "Updating Piko options..."
+          node scripts/piko-builder.mjs options || true
+          echo "Updating Anddea options..."
+          node scripts/anddea-builder.mjs options --refresh-tools || true
+
+      - name: Commit and Push Updated Config Files
+        if: steps.check.outputs.should_build == 'true'
+        run: |
+          if [ -n "$(git status --porcelain config/)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add config/
+            git commit -m "chore(config): auto-update patch lists and options"
+            git push origin main
+          else
+            echo "No config changes to commit."
+          fi
+
+  build-morphe:
+    name: Morphe APK & Root Module Builder
+    needs: check-and-update-configs
+    if: needs.check-and-update-configs.outputs.should_build == 'true' && (inputs.run_morphe != false)
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
+      patches_version: "dev"
+      targets: "youtube,youtube-music,reddit"
+      youtube_abis: "arm64-v8a"
+      build_apks: true
+      build_root_modules: false
+      create_release: true
+      upload_artifact: true
+
+  build-piko:
+    name: Build Piko patched APKs (New Builder)
+    needs: [check-and-update-configs, build-morphe]
+    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && (inputs.run_piko != false) && (needs.build-morphe.result == 'success' || needs.build-morphe.result == 'skipped')
+    uses: ./.github/workflows/build-piko-new.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
+      patches_version: "latest"
+      targets: "twitter,instagram"
+      create_release: true
+      upload_artifact: true
+
+  build-anddea:
+    name: Build Anddea APKs & Root Modules
+    needs: [check-and-update-configs, build-piko]
+    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && (inputs.run_anddea != false) && (needs.build-piko.result == 'success' || needs.build-piko.result == 'skipped')
+    uses: ./.github/workflows/build-anddea.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
+      patches_version: "dev"
+      targets: "youtube,youtube-music"
+      youtube_abis: "arm64-v8a"
+      build_apks: true
+      build_root_modules: false
+      create_release: true
+      upload_artifact: true
