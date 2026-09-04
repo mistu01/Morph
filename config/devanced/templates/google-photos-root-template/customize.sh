@@ -107,16 +107,16 @@ install_stock_session() {
   package_verifier="$(settings get global package_verifier_enable 2>/dev/null)"
   settings put global verifier_verify_adb_installs 0 >/dev/null 2>&1 || true
   settings put global package_verifier_enable 0 >/dev/null 2>&1 || true
-  out="$(pm install-create --user 0 -i com.android.vending -r -S "$total" 2>&1)" || { settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true; settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true; ui_print "$out"; return 1; }
+  out="$(pm install-create --user 0 -i com.android.vending -r -d -S "$total" 2>&1)" || { settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true; settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true; last_pm_error="$out"; ui_print "$out"; return 1; }
   session="${out#*[}"
   session="${session%]}"
   for apk in "$stock_dir"/*.apk; do
     [ -f "$apk" ] || continue
     size="$(wc -c < "$apk")"
     name="${apk##*/}"
-    out="$(pm install-write -S "$size" "$session" "$name" "$apk" 2>&1)" || { pm install-abandon "$session" >/dev/null 2>&1 || true; settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true; settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true; ui_print "$out"; return 1; }
+    out="$(pm install-write -S "$size" "$session" "$name" "$apk" 2>&1)" || { pm install-abandon "$session" >/dev/null 2>&1 || true; settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true; settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true; last_pm_error="$out"; ui_print "$out"; return 1; }
   done
-  out="$(pm install-commit "$session" 2>&1)" || { settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true; settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true; ui_print "$out"; return 1; }
+  out="$(pm install-commit "$session" 2>&1)" || { settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true; settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true; last_pm_error="$out"; ui_print "$out"; return 1; }
   settings put global verifier_verify_adb_installs "$verify_adb" >/dev/null 2>&1 || true
   settings put global package_verifier_enable "$package_verifier" >/dev/null 2>&1 || true
 }
@@ -130,7 +130,15 @@ install_stock_package() {
   if [ -n "$existing_base" ]; then
     ui_print "  Refreshing original package registration"
     if ! install_stock_session "$pkg" "$label" "$stock_dir"; then
-      ui_print "  Stock refresh failed; keeping existing package registration"
+      if printf '%s\n' "$last_pm_error" | grep -Eq 'INSTALL_FAILED_VERSION_DOWNGRADE|INSTALL_FAILED_UPDATE_INCOMPATIBLE'; then
+        ui_print "  Downgrade detected: removing conflicting newer app update"
+        pm uninstall -k "$pkg" >/dev/null 2>&1 || pm uninstall "$pkg" >/dev/null 2>&1 || true
+        if ! install_stock_session "$pkg" "$label" "$stock_dir"; then
+          ui_print "  Stock refresh failed after cleanup; keeping existing package registration"
+        fi
+      else
+        ui_print "  Stock refresh failed; keeping existing package registration"
+      fi
     fi
     enable_package "$pkg"
     return 0

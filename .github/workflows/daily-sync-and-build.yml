@@ -40,6 +40,9 @@ jobs:
       morphe_tag: ${{ steps.check.outputs.morphe_tag }}
       piko_tag: ${{ steps.check.outputs.piko_tag }}
       anddea_tag: ${{ steps.check.outputs.anddea_tag }}
+      run_morphe: ${{ steps.check.outputs.run_morphe }}
+      run_piko: ${{ steps.check.outputs.run_piko }}
+      run_anddea: ${{ steps.check.outputs.run_anddea }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -63,6 +66,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           FORCE_RUN: ${{ inputs.force_run }}
           TARGET_RELEASE_TAG: ${{ inputs.release_tag || 'auto-release' }}
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_RUN_MORPHE: ${{ inputs.run_morphe }}
+          INPUT_RUN_PIKO: ${{ inputs.run_piko }}
+          INPUT_RUN_ANDDEA: ${{ inputs.run_anddea }}
         run: |
           # Query latest releases including betas / pre-releases
           morphe_latest="$(gh api repos/MorpheApp/morphe-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
@@ -77,6 +84,13 @@ jobs:
           export PIKO_LATEST="$piko_latest"
           export ANDDEA_LATEST="$anddea_latest"
 
+          if gh release view "$TARGET_RELEASE_TAG" >/dev/null 2>&1; then
+            export RELEASE_EXISTS="true"
+          else
+            export RELEASE_EXISTS="false"
+          fi
+          echo "Release $TARGET_RELEASE_TAG exists: $RELEASE_EXISTS"
+
           node -e '
             const fs = require("node:fs");
             let state = { morphe: "", piko: "", anddea: "" };
@@ -88,12 +102,18 @@ jobs:
             const piko = process.env.PIKO_LATEST || state.piko;
             const anddea = process.env.ANDDEA_LATEST || state.anddea;
             const force = process.env.FORCE_RUN === "true";
+            const releaseExists = process.env.RELEASE_EXISTS === "true";
 
-            const changed = force || (morphe && morphe !== state.morphe) || (piko && piko !== state.piko) || (anddea && anddea !== state.anddea);
+            const changed = force || !releaseExists || (morphe && morphe !== state.morphe) || (piko && piko !== state.piko) || (anddea && anddea !== state.anddea);
+
+            const isSchedule = process.env.EVENT_NAME === "schedule";
+            const runMorphe = isSchedule || process.env.INPUT_RUN_MORPHE !== "false";
+            const runPiko = isSchedule || process.env.INPUT_RUN_PIKO !== "false";
+            const runAnddea = isSchedule || process.env.INPUT_RUN_ANDDEA !== "false";
 
             console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}`);
             console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}`);
-            console.log(`Build trigger condition: ${changed}`);
+            console.log(`Build trigger condition: changed=${changed}, runMorphe=${runMorphe}, runPiko=${runPiko}, runAnddea=${runAnddea}`);
 
             const newState = {
               morphe,
@@ -110,6 +130,9 @@ jobs:
               fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
               fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
               fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
+              fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
             }
           '
 
@@ -139,12 +162,12 @@ jobs:
   build-morphe:
     name: Morphe APK & Root Module Builder
     needs: check-and-update-configs
-    if: needs.check-and-update-configs.outputs.should_build == 'true' && (inputs.run_morphe != false)
+    if: needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_morphe == 'true'
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
       release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
-      patches_version: "dev"
+      patches_version: ${{ needs.check-and-update-configs.outputs.morphe_tag || 'dev' }}
       targets: "youtube,youtube-music,reddit"
       youtube_abis: "arm64-v8a"
       build_apks: true
@@ -155,12 +178,12 @@ jobs:
   build-piko:
     name: Build Piko patched APKs (New Builder)
     needs: [check-and-update-configs, build-morphe]
-    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && (inputs.run_piko != false) && (needs.build-morphe.result == 'success' || needs.build-morphe.result == 'skipped')
+    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_piko == 'true' && (needs.build-morphe.result == 'success' || needs.build-morphe.result == 'skipped')
     uses: ./.github/workflows/build-piko-new.yml
     secrets: inherit
     with:
       release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
-      patches_version: "latest"
+      patches_version: ${{ needs.check-and-update-configs.outputs.piko_tag || 'dev' }}
       targets: "twitter,instagram"
       create_release: true
       upload_artifact: true
@@ -168,12 +191,12 @@ jobs:
   build-anddea:
     name: Build Anddea APKs & Root Modules
     needs: [check-and-update-configs, build-piko]
-    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && (inputs.run_anddea != false) && (needs.build-piko.result == 'success' || needs.build-piko.result == 'skipped')
+    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_anddea == 'true' && (needs.build-piko.result == 'success' || needs.build-piko.result == 'skipped')
     uses: ./.github/workflows/build-anddea.yml
     secrets: inherit
     with:
       release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
-      patches_version: "dev"
+      patches_version: ${{ needs.check-and-update-configs.outputs.anddea_tag || 'dev' }}
       targets: "youtube,youtube-music"
       youtube_abis: "arm64-v8a"
       build_apks: true
