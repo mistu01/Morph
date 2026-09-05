@@ -562,7 +562,7 @@ jobs:
               }
               fs.writeFileSync("combined-release-notes.md", combined);
             '
-            gh release edit "$RELEASE_TAG" --notes-file combined-release-notes.md
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file combined-release-notes.md
             gh release upload "$RELEASE_TAG" "${files_to_upload[@]}" --clobber
           else
             echo "Creating new release $RELEASE_TAG..."

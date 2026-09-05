@@ -9,8 +9,15 @@ on:
         description: "Force run build even if no new patch version is detected"
         type: boolean
         default: false
+      release_mode:
+        description: "Release mode: 'separate' (dedicated release for each builder) or 'combined' (single shared release)"
+        type: choice
+        options:
+          - separate
+          - combined
+        default: separate
       release_tag:
-        description: "Release tag to create or update (defaults to 'auto-release' to continually update the first release)"
+        description: "Custom release tag (only used if release_mode is 'combined'; defaults to 'auto-release')"
         type: string
         default: "auto-release"
       run_morphe:
@@ -37,6 +44,9 @@ jobs:
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
       release_tag: ${{ steps.check.outputs.release_tag }}
+      morphe_release_tag: ${{ steps.check.outputs.morphe_release_tag }}
+      piko_release_tag: ${{ steps.check.outputs.piko_release_tag }}
+      anddea_release_tag: ${{ steps.check.outputs.anddea_release_tag }}
       morphe_tag: ${{ steps.check.outputs.morphe_tag }}
       piko_tag: ${{ steps.check.outputs.piko_tag }}
       anddea_tag: ${{ steps.check.outputs.anddea_tag }}
@@ -65,6 +75,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           FORCE_RUN: ${{ inputs.force_run }}
+          RELEASE_MODE: ${{ inputs.release_mode || 'separate' }}
           TARGET_RELEASE_TAG: ${{ inputs.release_tag || 'auto-release' }}
           EVENT_NAME: ${{ github.event_name }}
           INPUT_RUN_MORPHE: ${{ inputs.run_morphe }}
@@ -84,12 +95,18 @@ jobs:
           export PIKO_LATEST="$piko_latest"
           export ANDDEA_LATEST="$anddea_latest"
 
-          if gh release view "$TARGET_RELEASE_TAG" >/dev/null 2>&1; then
-            export RELEASE_EXISTS="true"
-          else
-            export RELEASE_EXISTS="false"
-          fi
-          echo "Release $TARGET_RELEASE_TAG exists: $RELEASE_EXISTS"
+          morphe_exists="false"
+          piko_exists="false"
+          anddea_exists="false"
+          if gh release view "morphe-release" >/dev/null 2>&1; then morphe_exists="true"; fi
+          if gh release view "piko-release" >/dev/null 2>&1; then piko_exists="true"; fi
+          if gh release view "anddea-release" >/dev/null 2>&1; then anddea_exists="true"; fi
+
+          export MORPHE_RELEASE_EXISTS="$morphe_exists"
+          export PIKO_RELEASE_EXISTS="$piko_exists"
+          export ANDDEA_RELEASE_EXISTS="$anddea_exists"
+
+          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists"
 
           node -e '
             const fs = require("node:fs");
@@ -102,9 +119,24 @@ jobs:
             const piko = process.env.PIKO_LATEST || state.piko;
             const anddea = process.env.ANDDEA_LATEST || state.anddea;
             const force = process.env.FORCE_RUN === "true";
-            const releaseExists = process.env.RELEASE_EXISTS === "true";
 
-            const changed = force || !releaseExists || (morphe && morphe !== state.morphe) || (piko && piko !== state.piko) || (anddea && anddea !== state.anddea);
+            const releaseMode = process.env.RELEASE_MODE || "separate";
+            const baseTag = process.env.TARGET_RELEASE_TAG || "auto-release";
+
+            const morpheReleaseTag = releaseMode === "separate" ? "morphe-release" : baseTag;
+            const pikoReleaseTag = releaseMode === "separate" ? "piko-release" : baseTag;
+            const anddeaReleaseTag = releaseMode === "separate" ? "anddea-release" : baseTag;
+
+            const morpheReleaseExists = process.env.MORPHE_RELEASE_EXISTS === "true";
+            const pikoReleaseExists = process.env.PIKO_RELEASE_EXISTS === "true";
+            const anddeaReleaseExists = process.env.ANDDEA_RELEASE_EXISTS === "true";
+
+            const anyReleaseMissing = releaseMode === "separate"
+              ? (!morpheReleaseExists || !pikoReleaseExists || !anddeaReleaseExists)
+              : (!morpheReleaseExists && !pikoReleaseExists && !anddeaReleaseExists);
+
+            const patchChanged = (morphe && morphe !== state.morphe) || (piko && piko !== state.piko) || (anddea && anddea !== state.anddea);
+            const changed = force || anyReleaseMissing || patchChanged;
 
             const isSchedule = process.env.EVENT_NAME === "schedule";
             const runMorphe = isSchedule || process.env.INPUT_RUN_MORPHE !== "false";
@@ -113,7 +145,8 @@ jobs:
 
             console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}`);
             console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}`);
-            console.log(`Build trigger condition: changed=${changed}, runMorphe=${runMorphe}, runPiko=${runPiko}, runAnddea=${runAnddea}`);
+            console.log(`Build trigger condition: changed=${changed} (force=${force}, anyReleaseMissing=${anyReleaseMissing}, patchChanged=${patchChanged})`);
+            console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag})`);
 
             const newState = {
               morphe,
@@ -126,7 +159,10 @@ jobs:
             const outputFile = process.env.GITHUB_OUTPUT;
             if (outputFile) {
               fs.appendFileSync(outputFile, `should_build=${changed ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `release_tag=${process.env.TARGET_RELEASE_TAG || "auto-release"}\n`);
+              fs.appendFileSync(outputFile, `release_tag=${baseTag}\n`);
+              fs.appendFileSync(outputFile, `morphe_release_tag=${morpheReleaseTag}\n`);
+              fs.appendFileSync(outputFile, `piko_release_tag=${pikoReleaseTag}\n`);
+              fs.appendFileSync(outputFile, `anddea_release_tag=${anddeaReleaseTag}\n`);
               fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
               fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
               fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
@@ -166,7 +202,7 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
+      release_tag: ${{ needs.check-and-update-configs.outputs.morphe_release_tag }}
       patches_version: ${{ needs.check-and-update-configs.outputs.morphe_tag || 'dev' }}
       targets: "youtube,youtube-music,reddit"
       youtube_abis: "arm64-v8a"
@@ -182,7 +218,7 @@ jobs:
     uses: ./.github/workflows/build-piko-new.yml
     secrets: inherit
     with:
-      release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
+      release_tag: ${{ needs.check-and-update-configs.outputs.piko_release_tag }}
       patches_version: ${{ needs.check-and-update-configs.outputs.piko_tag || 'dev' }}
       targets: "twitter,instagram"
       create_release: true
@@ -195,7 +231,7 @@ jobs:
     uses: ./.github/workflows/build-anddea.yml
     secrets: inherit
     with:
-      release_tag: ${{ needs.check-and-update-configs.outputs.release_tag }}
+      release_tag: ${{ needs.check-and-update-configs.outputs.anddea_release_tag }}
       patches_version: ${{ needs.check-and-update-configs.outputs.anddea_tag || 'dev' }}
       targets: "youtube,youtube-music"
       youtube_abis: "arm64-v8a"
