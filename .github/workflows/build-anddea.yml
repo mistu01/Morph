@@ -11,10 +11,10 @@ on:
         description: "YouTube/YouTube Music ABI artifacts to build"
         required: true
         type: choice
-        default: "arm64-v8a,arm-v7a"
+        default: "arm64-v8a"
         options:
-          - "arm64-v8a,arm-v7a"
           - "arm64-v8a"
+          - "arm64-v8a,arm-v7a"
       cli_version:
         description: "Morphe CLI tag, or latest"
         required: true
@@ -55,7 +55,7 @@ on:
         description: "Build root Magisk/KernelSU modules"
         required: true
         type: boolean
-        default: false
+        default: true
       create_release:
         description: "Create a GitHub Release and attach assets"
         required: true
@@ -106,7 +106,7 @@ on:
         default: true
       build_root_modules:
         type: boolean
-        default: false
+        default: true
       create_release:
         type: boolean
         default: true

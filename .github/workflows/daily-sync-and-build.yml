@@ -20,6 +20,21 @@ on:
         description: "Custom release tag (only used if release_mode is 'combined'; defaults to 'auto-release')"
         type: string
         default: "auto-release"
+      youtube_abis:
+        description: "YouTube/YouTube Music ABI artifacts to build"
+        type: choice
+        options:
+          - "arm64-v8a"
+          - "arm64-v8a,arm-v7a"
+        default: "arm64-v8a"
+      build_apks:
+        description: "Build non-root patched APKs"
+        type: boolean
+        default: true
+      build_root_modules:
+        description: "Build root Magisk/KernelSU modules"
+        type: boolean
+        default: true
       run_morphe:
         description: "Build Morphe APK & Root Module"
         type: boolean
@@ -53,6 +68,9 @@ jobs:
       run_morphe: ${{ steps.check.outputs.run_morphe }}
       run_piko: ${{ steps.check.outputs.run_piko }}
       run_anddea: ${{ steps.check.outputs.run_anddea }}
+      build_apks: ${{ steps.check.outputs.build_apks }}
+      build_root_modules: ${{ steps.check.outputs.build_root_modules }}
+      youtube_abis: ${{ steps.check.outputs.youtube_abis }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -81,6 +99,9 @@ jobs:
           INPUT_RUN_MORPHE: ${{ inputs.run_morphe }}
           INPUT_RUN_PIKO: ${{ inputs.run_piko }}
           INPUT_RUN_ANDDEA: ${{ inputs.run_anddea }}
+          INPUT_BUILD_APKS: ${{ inputs.build_apks }}
+          INPUT_BUILD_ROOT_MODULES: ${{ inputs.build_root_modules }}
+          INPUT_YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
         run: |
           # Query latest releases including betas / pre-releases
           morphe_latest="$(gh api repos/MorpheApp/morphe-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
@@ -142,11 +163,15 @@ jobs:
             const runMorphe = isSchedule || process.env.INPUT_RUN_MORPHE !== "false";
             const runPiko = isSchedule || process.env.INPUT_RUN_PIKO !== "false";
             const runAnddea = isSchedule || process.env.INPUT_RUN_ANDDEA !== "false";
+            const buildApks = isSchedule || process.env.INPUT_BUILD_APKS !== "false";
+            const buildRootModules = isSchedule || process.env.INPUT_BUILD_ROOT_MODULES !== "false";
+            const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
 
             console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}`);
             console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}`);
             console.log(`Build trigger condition: changed=${changed} (force=${force}, anyReleaseMissing=${anyReleaseMissing}, patchChanged=${patchChanged})`);
             console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag})`);
+            console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}`);
 
             const newState = {
               morphe,
@@ -169,6 +194,9 @@ jobs:
               fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `build_apks=${buildApks ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `build_root_modules=${buildRootModules ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `youtube_abis=${youtubeAbis}\n`);
             }
           '
 
@@ -205,9 +233,9 @@ jobs:
       release_tag: ${{ needs.check-and-update-configs.outputs.morphe_release_tag }}
       patches_version: ${{ needs.check-and-update-configs.outputs.morphe_tag || 'dev' }}
       targets: "youtube,youtube-music,reddit"
-      youtube_abis: "arm64-v8a"
-      build_apks: true
-      build_root_modules: false
+      youtube_abis: ${{ needs.check-and-update-configs.outputs.youtube_abis }}
+      build_apks: ${{ needs.check-and-update-configs.outputs.build_apks == 'true' }}
+      build_root_modules: ${{ needs.check-and-update-configs.outputs.build_root_modules == 'true' }}
       create_release: true
       upload_artifact: true
 
@@ -234,8 +262,8 @@ jobs:
       release_tag: ${{ needs.check-and-update-configs.outputs.anddea_release_tag }}
       patches_version: ${{ needs.check-and-update-configs.outputs.anddea_tag || 'dev' }}
       targets: "youtube,youtube-music"
-      youtube_abis: "arm64-v8a"
-      build_apks: true
-      build_root_modules: false
+      youtube_abis: ${{ needs.check-and-update-configs.outputs.youtube_abis }}
+      build_apks: ${{ needs.check-and-update-configs.outputs.build_apks == 'true' }}
+      build_root_modules: ${{ needs.check-and-update-configs.outputs.build_root_modules == 'true' }}
       create_release: true
       upload_artifact: true
