@@ -436,16 +436,21 @@ jobs:
               const fs = require("node:fs");
               const existing = process.env.EXISTING_NOTES || "";
               const incoming = fs.readFileSync("release-notes.md", "utf8");
-              const heading = "Anddea Patched Release";
-              const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-              const regex = new RegExp(`(^|\\n)##\\s*${escaped}[\\s\\S]*?(?=\\n##\\s*|$)`, "i");
+              const isStandalone = !existing.includes("Morphe Build Summary") && !existing.includes("Piko Build Summary");
               let combined = "";
-              if (regex.test(existing)) {
-                combined = existing.replace(regex, `\n\n${incoming.trim()}`).trim();
-              } else if (existing.trim()) {
-                combined = `${existing.trim()}\n\n---\n\n${incoming.trim()}`;
-              } else {
+              if (isStandalone) {
                 combined = incoming.trim();
+              } else {
+                const heading = "Anddea Patched Release";
+                const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const regex = new RegExp(`(^|\\n)##[ \\t]+${escaped}[\\s\\S]*?(?=\\n##[ \\t]+|$)`, "i");
+                if (regex.test(existing)) {
+                  combined = existing.replace(regex, `\n\n${incoming.trim()}`).trim();
+                } else if (existing.trim()) {
+                  combined = `${existing.trim()}\n\n---\n\n${incoming.trim()}`;
+                } else {
+                  combined = incoming.trim();
+                }
               }
               fs.writeFileSync("combined-release-notes.md", combined);
             '
