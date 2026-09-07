@@ -65,6 +65,9 @@ jobs:
       morphe_tag: ${{ steps.check.outputs.morphe_tag }}
       piko_tag: ${{ steps.check.outputs.piko_tag }}
       anddea_tag: ${{ steps.check.outputs.anddea_tag }}
+      morphe_changed: ${{ steps.check.outputs.morphe_changed }}
+      piko_changed: ${{ steps.check.outputs.piko_changed }}
+      anddea_changed: ${{ steps.check.outputs.anddea_changed }}
       run_morphe: ${{ steps.check.outputs.run_morphe }}
       run_piko: ${{ steps.check.outputs.run_piko }}
       run_anddea: ${{ steps.check.outputs.run_anddea }}
@@ -123,11 +126,16 @@ jobs:
           if gh release view "piko-release" >/dev/null 2>&1; then piko_exists="true"; fi
           if gh release view "anddea-release" >/dev/null 2>&1; then anddea_exists="true"; fi
 
+          target_release_tag="${TARGET_RELEASE_TAG:-auto-release}"
+          combined_exists="false"
+          if gh release view "$target_release_tag" >/dev/null 2>&1; then combined_exists="true"; fi
+
           export MORPHE_RELEASE_EXISTS="$morphe_exists"
           export PIKO_RELEASE_EXISTS="$piko_exists"
           export ANDDEA_RELEASE_EXISTS="$anddea_exists"
+          export COMBINED_RELEASE_EXISTS="$combined_exists"
 
-          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists"
+          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, combined($target_release_tag)=$combined_exists"
 
           node -e '
             const fs = require("node:fs");
@@ -136,9 +144,9 @@ jobs:
               state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
             } catch {}
 
-            const morphe = process.env.MORPHE_LATEST || state.morphe;
-            const piko = process.env.PIKO_LATEST || state.piko;
-            const anddea = process.env.ANDDEA_LATEST || state.anddea;
+            const morphe = (process.env.MORPHE_LATEST || state.morphe || "").trim();
+            const piko = (process.env.PIKO_LATEST || state.piko || "").trim();
+            const anddea = (process.env.ANDDEA_LATEST || state.anddea || "").trim();
             const force = process.env.FORCE_RUN === "true";
 
             const releaseMode = process.env.RELEASE_MODE || "separate";
@@ -151,39 +159,53 @@ jobs:
             const morpheReleaseExists = process.env.MORPHE_RELEASE_EXISTS === "true";
             const pikoReleaseExists = process.env.PIKO_RELEASE_EXISTS === "true";
             const anddeaReleaseExists = process.env.ANDDEA_RELEASE_EXISTS === "true";
+            const combinedReleaseExists = process.env.COMBINED_RELEASE_EXISTS === "true";
 
-            const anyReleaseMissing = releaseMode === "separate"
-              ? (!morpheReleaseExists || !pikoReleaseExists || !anddeaReleaseExists)
-              : (!morpheReleaseExists && !pikoReleaseExists && !anddeaReleaseExists);
+            const morpheMissing = releaseMode === "separate" ? !morpheReleaseExists : !combinedReleaseExists;
+            const pikoMissing = releaseMode === "separate" ? !pikoReleaseExists : !combinedReleaseExists;
+            const anddeaMissing = releaseMode === "separate" ? !anddeaReleaseExists : !combinedReleaseExists;
 
-            const patchChanged = (morphe && morphe !== state.morphe) || (piko && piko !== state.piko) || (anddea && anddea !== state.anddea);
-            const changed = force || anyReleaseMissing || patchChanged;
+            const morpheChanged = Boolean(morphe && (!state.morphe || morphe !== state.morphe));
+            const pikoChanged = Boolean(piko && (!state.piko || piko !== state.piko));
+            const anddeaChanged = Boolean(anddea && (!state.anddea || anddea !== state.anddea));
 
             const isSchedule = process.env.EVENT_NAME === "schedule";
-            const runMorphe = isSchedule || process.env.INPUT_RUN_MORPHE !== "false";
-            const runPiko = isSchedule || process.env.INPUT_RUN_PIKO !== "false";
-            const runAnddea = isSchedule || process.env.INPUT_RUN_ANDDEA !== "false";
-            const buildApks = isSchedule || process.env.INPUT_BUILD_APKS !== "false";
-            const buildRootModules = isSchedule || process.env.INPUT_BUILD_ROOT_MODULES !== "false";
+            const inputRunMorphe = isSchedule ? true : (process.env.INPUT_RUN_MORPHE !== "false");
+            const inputRunPiko = isSchedule ? true : (process.env.INPUT_RUN_PIKO !== "false");
+            const inputRunAnddea = isSchedule ? true : (process.env.INPUT_RUN_ANDDEA !== "false");
+
+            const runMorphe = inputRunMorphe && (force || morpheChanged || morpheMissing);
+            const runPiko = inputRunPiko && (force || pikoChanged || pikoMissing);
+            const runAnddea = inputRunAnddea && (force || anddeaChanged || anddeaMissing);
+
+            const shouldBuild = runMorphe || runPiko || runAnddea;
+
+            const buildApks = isSchedule ? true : (process.env.INPUT_BUILD_APKS !== "false");
+            const buildRootModules = isSchedule ? true : (process.env.INPUT_BUILD_ROOT_MODULES !== "false");
             const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
 
             console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}`);
             console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}`);
-            console.log(`Build trigger condition: changed=${changed} (force=${force}, anyReleaseMissing=${anyReleaseMissing}, patchChanged=${patchChanged})`);
+            console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}`);
+            console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}`);
+            console.log(`Build trigger decision: shouldBuild=${shouldBuild} (force=${force})`);
             console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag})`);
             console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}`);
 
-            const newState = {
-              morphe,
-              piko,
-              anddea,
-              updated_at: new Date().toISOString()
-            };
-            fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
+            if (shouldBuild) {
+              const anyChanged = morpheChanged || pikoChanged || anddeaChanged;
+              const newState = {
+                morphe: (runMorphe || morpheChanged) ? morphe : (state.morphe || morphe),
+                piko: (runPiko || pikoChanged) ? piko : (state.piko || piko),
+                anddea: (runAnddea || anddeaChanged) ? anddea : (state.anddea || anddea),
+                updated_at: anyChanged ? new Date().toISOString() : (state.updated_at || new Date().toISOString())
+              };
+              fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
+            }
 
             const outputFile = process.env.GITHUB_OUTPUT;
             if (outputFile) {
-              fs.appendFileSync(outputFile, `should_build=${changed ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `should_build=${shouldBuild ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `release_tag=${baseTag}\n`);
               fs.appendFileSync(outputFile, `morphe_release_tag=${morpheReleaseTag}\n`);
               fs.appendFileSync(outputFile, `piko_release_tag=${pikoReleaseTag}\n`);
@@ -191,6 +213,9 @@ jobs:
               fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
               fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
               fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
+              fs.appendFileSync(outputFile, `morphe_changed=${morpheChanged ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `piko_changed=${pikoChanged ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `anddea_changed=${anddeaChanged ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
@@ -203,12 +228,18 @@ jobs:
       - name: Update Patch Options in Config Folder
         if: steps.check.outputs.should_build == 'true'
         run: |
-          echo "Updating Morphe options..."
-          node scripts/morphe.mjs options --refresh-tools || true
-          echo "Updating Piko options..."
-          node scripts/piko-builder.mjs options || true
-          echo "Updating Anddea options..."
-          node scripts/anddea-builder.mjs options --refresh-tools || true
+          if [ "${{ steps.check.outputs.run_morphe }}" = "true" ] || [ "${{ steps.check.outputs.morphe_changed }}" = "true" ]; then
+            echo "Updating Morphe options..."
+            node scripts/morphe.mjs options --refresh-tools || true
+          fi
+          if [ "${{ steps.check.outputs.run_piko }}" = "true" ] || [ "${{ steps.check.outputs.piko_changed }}" = "true" ]; then
+            echo "Updating Piko options..."
+            node scripts/piko-builder.mjs options || true
+          fi
+          if [ "${{ steps.check.outputs.run_anddea }}" = "true" ] || [ "${{ steps.check.outputs.anddea_changed }}" = "true" ]; then
+            echo "Updating Anddea options..."
+            node scripts/anddea-builder.mjs options --refresh-tools || true
+          fi
 
       - name: Commit and Push Updated Config Files
         if: steps.check.outputs.should_build == 'true'
@@ -226,7 +257,7 @@ jobs:
   build-morphe:
     name: Morphe APK & Root Module Builder
     needs: check-and-update-configs
-    if: needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_morphe == 'true'
+    if: needs.check-and-update-configs.result == 'success' && needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_morphe == 'true'
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
@@ -242,7 +273,11 @@ jobs:
   build-piko:
     name: Build Piko patched APKs (New Builder)
     needs: [check-and-update-configs, build-morphe]
-    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_piko == 'true' && (needs.build-morphe.result == 'success' || needs.build-morphe.result == 'skipped')
+    if: |
+      always() && !cancelled() &&
+      needs.check-and-update-configs.result == 'success' &&
+      needs.check-and-update-configs.outputs.should_build == 'true' &&
+      needs.check-and-update-configs.outputs.run_piko == 'true'
     uses: ./.github/workflows/build-piko-new.yml
     secrets: inherit
     with:
@@ -255,7 +290,11 @@ jobs:
   build-anddea:
     name: Build Anddea APKs & Root Modules
     needs: [check-and-update-configs, build-piko]
-    if: always() && needs.check-and-update-configs.outputs.should_build == 'true' && needs.check-and-update-configs.outputs.run_anddea == 'true' && (needs.build-piko.result == 'success' || needs.build-piko.result == 'skipped')
+    if: |
+      always() && !cancelled() &&
+      needs.check-and-update-configs.result == 'success' &&
+      needs.check-and-update-configs.outputs.should_build == 'true' &&
+      needs.check-and-update-configs.outputs.run_anddea == 'true'
     uses: ./.github/workflows/build-anddea.yml
     secrets: inherit
     with:
