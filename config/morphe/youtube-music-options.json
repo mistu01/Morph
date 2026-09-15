@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-09-14T04:31:15.884811088Z",
+            "updated_at": "2026-09-15T04:31:06.279767739Z",
             "source": "patches.mpp",
-            "sha256": "e1b1ca9bed58861266c837ee14e23d9901999d1d772e66c7f1f7fa79a641d078"
+            "sha256": "849e8b490554ac6abf375efc07d69411a3e60b8966954b3faf07636d50248505"
         },
         "patches": {
             "Clone app": {
@@ -214,7 +214,8 @@
                 "enabled": true,
                 "options": {
                     "customName": null,
-                    "customIcon": null
+                    "customIcon": null,
+                    "appIcon": null
                 }
             },
             "Change header": {
