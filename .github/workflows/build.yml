@@ -545,6 +545,9 @@ jobs:
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release $RELEASE_TAG exists. Updating release..."
             export EXISTING_NOTES="$(gh release view "$RELEASE_TAG" --json body --jq .body 2>/dev/null || true)"
+            export EXISTING_ASSETS="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+            export BUILD_TARGETS="${{ inputs.targets }}"
+            export FILES_TO_UPLOAD="$(printf '%s\n' "${files_to_upload[@]}")"
             node -e '
               const fs = require("node:fs");
               const existing = process.env.EXISTING_NOTES || "";
@@ -566,8 +569,54 @@ jobs:
                 }
               }
               fs.writeFileSync("combined-release-notes.md", combined);
+
+              const existingAssets = (process.env.EXISTING_ASSETS || "")
+                .split(/\r?\n/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+
+              let toDelete = [];
+              if (isStandalone) {
+                toDelete = existingAssets;
+              } else {
+                const targets = (process.env.BUILD_TARGETS || "")
+                  .split(/[,;\s]+/)
+                  .map((t) => t.trim().toLowerCase())
+                  .filter(Boolean);
+
+                const uploadBasenames = (process.env.FILES_TO_UPLOAD || "")
+                  .split(/\r?\n/)
+                  .map((f) => f.trim().split(/[/\\]/).pop().toLowerCase())
+                  .filter(Boolean);
+
+                toDelete = existingAssets.filter((asset) => {
+                  const a = asset.toLowerCase();
+                  const matchesTarget = targets.some(
+                    (t) => a === t || a.startsWith(t + "-") || a.startsWith(t + "_") || a.startsWith(t + ".")
+                  );
+                  const matchesUploadPrefix = uploadBasenames.some((f) => {
+                    const prefix = f.split(/[-_.]\d/)[0];
+                    return prefix && (a.startsWith(prefix + "-") || a.startsWith(prefix + "_") || a.startsWith(prefix + "."));
+                  });
+                  return matchesTarget || matchesUploadPrefix;
+                });
+              }
+
+              fs.writeFileSync("assets-to-delete.txt", toDelete.join("\n"));
             '
             gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file combined-release-notes.md
+            if [ -s assets-to-delete.txt ]; then
+              echo "Wiping old release artifacts from $RELEASE_TAG..."
+              while IFS= read -r asset; do
+                asset="${asset//$'\r'/}"
+                if [ -n "$asset" ]; then
+                  echo "Deleting old asset: $asset"
+                  gh release delete-asset "$RELEASE_TAG" "$asset" --yes || true
+                fi
+              done < assets-to-delete.txt
+            else
+              echo "No old release artifacts to wipe."
+            fi
             gh release upload "$RELEASE_TAG" "${files_to_upload[@]}" --clobber
           else
             echo "Creating new release $RELEASE_TAG..."
