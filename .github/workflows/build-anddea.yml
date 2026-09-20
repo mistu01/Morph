@@ -439,7 +439,7 @@ jobs:
               const fs = require("node:fs");
               const existing = process.env.EXISTING_NOTES || "";
               const incoming = fs.readFileSync("release-notes.md", "utf8");
-              const isStandalone = !existing.includes("Morphe Build Summary") && !existing.includes("Piko Build Summary");
+              const isStandalone = !existing.includes("Morphe Build Summary") && !existing.includes("Piko Build Summary") && !existing.includes("De-Vanced Patched Release");
               let combined = "";
               if (isStandalone) {
                 combined = incoming.trim();

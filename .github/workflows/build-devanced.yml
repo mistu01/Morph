@@ -112,6 +112,53 @@ on:
         required: true
         type: boolean
         default: true
+      release_tag:
+        description: "Custom GitHub Release tag (optional; if empty, generates timestamp tag)"
+        required: false
+        type: string
+        default: ""
+
+  workflow_call:
+    inputs:
+      targets:
+        type: string
+        default: "google-photos"
+      cli_version:
+        type: string
+        default: "dev"
+      patches_version:
+        type: string
+        default: "stable"
+      apk_version_source:
+        type: string
+        default: "recommended"
+      apk_fallback_to_latest:
+        type: boolean
+        default: false
+      force_patch:
+        type: boolean
+        default: true
+      continue_on_error:
+        type: boolean
+        default: true
+      include_patches:
+        type: string
+        default: ""
+      build_apks:
+        type: boolean
+        default: true
+      build_root_modules:
+        type: boolean
+        default: false
+      create_release:
+        type: boolean
+        default: true
+      upload_artifact:
+        type: boolean
+        default: true
+      release_tag:
+        type: string
+        default: ""
 
 jobs:
   build:
@@ -267,6 +314,9 @@ jobs:
             tag="devanced-${release_stamp}-${GITHUB_RUN_NUMBER}"
             name_prefix="De-Vanced patched APKs"
           fi
+          if [ -n "${{ inputs.release_tag }}" ]; then
+            tag="${{ inputs.release_tag }}"
+          fi
 
           release_prerelease_flag=""
           resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.PATCHES_VERSION || "latest"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
@@ -326,11 +376,90 @@ jobs:
             exit 1
           fi
 
-          gh release create "$RELEASE_TAG" \
-            "${files_to_upload[@]}" \
-            "${release_args[@]}" \
-            --title "$RELEASE_NAME" \
-            --notes-file release-notes.md
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG exists. Updating release..."
+            export EXISTING_NOTES="$(gh release view "$RELEASE_TAG" --json body --jq .body 2>/dev/null || true)"
+            export EXISTING_ASSETS="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' 2>/dev/null || true)"
+            export BUILD_TARGETS="${{ inputs.targets }}"
+            export FILES_TO_UPLOAD="$(printf '%s\n' "${files_to_upload[@]}")"
+            node -e '
+              const fs = require("node:fs");
+              const existing = process.env.EXISTING_NOTES || "";
+              const incoming = fs.readFileSync("release-notes.md", "utf8");
+              const isStandalone = !existing.includes("Morphe Build Summary") && !existing.includes("Piko Build Summary") && !existing.includes("Anddea Patched Release");
+              let combined = "";
+              if (isStandalone) {
+                combined = incoming.trim();
+              } else {
+                const heading = "De-Vanced Patched Release";
+                const escaped = heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const regex = new RegExp(`(^|\\n)##[ \\t]+${escaped}[\\s\\S]*?(?=\\n##[ \\t]+|$)`, "i");
+                if (regex.test(existing)) {
+                  combined = existing.replace(regex, `\n\n${incoming.trim()}`).trim();
+                } else if (existing.trim()) {
+                  combined = `${existing.trim()}\n\n---\n\n${incoming.trim()}`;
+                } else {
+                  combined = incoming.trim();
+                }
+              }
+              fs.writeFileSync("combined-release-notes.md", combined);
+
+              const existingAssets = (process.env.EXISTING_ASSETS || "")
+                .split(/\r?\n/)
+                .map((s) => s.trim())
+                .filter(Boolean);
+
+              let toDelete = [];
+              if (isStandalone) {
+                toDelete = existingAssets;
+              } else {
+                const targets = (process.env.BUILD_TARGETS || "")
+                  .split(/[,;\s]+/)
+                  .map((t) => t.trim().toLowerCase())
+                  .filter(Boolean);
+
+                const uploadBasenames = (process.env.FILES_TO_UPLOAD || "")
+                  .split(/\r?\n/)
+                  .map((f) => f.trim().split(/[/\\]/).pop().toLowerCase())
+                  .filter(Boolean);
+
+                toDelete = existingAssets.filter((asset) => {
+                  const a = asset.toLowerCase();
+                  const matchesTarget = targets.some(
+                    (t) => a === t || a.startsWith(t + "-") || a.startsWith(t + "_") || a.startsWith(t + ".")
+                  );
+                  const matchesUploadPrefix = uploadBasenames.some((f) => {
+                    const prefix = f.split(/[-_.]\d/)[0];
+                    return prefix && (a.startsWith(prefix + "-") || a.startsWith(prefix + "_") || a.startsWith(prefix + "."));
+                  });
+                  return matchesTarget || matchesUploadPrefix;
+                });
+              }
+
+              fs.writeFileSync("assets-to-delete.txt", toDelete.join("\n"));
+            '
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file combined-release-notes.md
+            if [ -s assets-to-delete.txt ]; then
+              echo "Wiping old release artifacts from $RELEASE_TAG..."
+              while IFS= read -r asset; do
+                asset="${asset//$'\r'/}"
+                if [ -n "$asset" ]; then
+                  echo "Deleting old asset: $asset"
+                  gh release delete-asset "$RELEASE_TAG" "$asset" --yes || true
+                fi
+              done < assets-to-delete.txt
+            else
+              echo "No old release artifacts to wipe."
+            fi
+            gh release upload "$RELEASE_TAG" "${files_to_upload[@]}" --clobber
+          else
+            echo "Creating new release $RELEASE_TAG..."
+            gh release create "$RELEASE_TAG" \
+              "${files_to_upload[@]}" \
+              "${release_args[@]}" \
+              --title "$RELEASE_NAME" \
+              --notes-file release-notes.md
+          fi
 
       - name: Upload De-Vanced patched APKs
         if: ${{ inputs.upload_artifact && inputs.build_apks }}

@@ -6,7 +6,7 @@ command -v abort >/dev/null 2>&1 || abort() { ui_print "! $*"; exit 1; }
 ui_print ""
 ui_print "***********************************************"
 ui_print "  $MODNAME"
-ui_print "  by Mistu & MeowDump"
+ui_print "  by Mistu"
 ui_print "***********************************************"
 ui_print ""
 ui_print "- Root managers: Magisk, KernelSU, APatch"

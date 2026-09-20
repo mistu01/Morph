@@ -552,7 +552,7 @@ jobs:
               const fs = require("node:fs");
               const existing = process.env.EXISTING_NOTES || "";
               const incoming = fs.readFileSync("release-notes.md", "utf8");
-              const isStandalone = !existing.includes("Piko Build Summary") && !existing.includes("Anddea Patched Release");
+              const isStandalone = !existing.includes("Piko Build Summary") && !existing.includes("Anddea Patched Release") && !existing.includes("De-Vanced Patched Release");
               let combined = "";
               if (isStandalone) {
                 combined = incoming.trim();

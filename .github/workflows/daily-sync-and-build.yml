@@ -47,6 +47,10 @@ on:
         description: "Build Anddea APKs & Root Modules"
         type: boolean
         default: true
+      run_devanced:
+        description: "Build De-Vanced Google Photos APK & Root Module"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -62,15 +66,19 @@ jobs:
       morphe_release_tag: ${{ steps.check.outputs.morphe_release_tag }}
       piko_release_tag: ${{ steps.check.outputs.piko_release_tag }}
       anddea_release_tag: ${{ steps.check.outputs.anddea_release_tag }}
+      devanced_release_tag: ${{ steps.check.outputs.devanced_release_tag }}
       morphe_tag: ${{ steps.check.outputs.morphe_tag }}
       piko_tag: ${{ steps.check.outputs.piko_tag }}
       anddea_tag: ${{ steps.check.outputs.anddea_tag }}
+      devanced_tag: ${{ steps.check.outputs.devanced_tag }}
       morphe_changed: ${{ steps.check.outputs.morphe_changed }}
       piko_changed: ${{ steps.check.outputs.piko_changed }}
       anddea_changed: ${{ steps.check.outputs.anddea_changed }}
+      devanced_changed: ${{ steps.check.outputs.devanced_changed }}
       run_morphe: ${{ steps.check.outputs.run_morphe }}
       run_piko: ${{ steps.check.outputs.run_piko }}
       run_anddea: ${{ steps.check.outputs.run_anddea }}
+      run_devanced: ${{ steps.check.outputs.run_devanced }}
       build_apks: ${{ steps.check.outputs.build_apks }}
       build_root_modules: ${{ steps.check.outputs.build_root_modules }}
       youtube_abis: ${{ steps.check.outputs.youtube_abis }}
@@ -102,6 +110,7 @@ jobs:
           INPUT_RUN_MORPHE: ${{ inputs.run_morphe }}
           INPUT_RUN_PIKO: ${{ inputs.run_piko }}
           INPUT_RUN_ANDDEA: ${{ inputs.run_anddea }}
+          INPUT_RUN_DEVANCED: ${{ inputs.run_devanced }}
           INPUT_BUILD_APKS: ${{ inputs.build_apks }}
           INPUT_BUILD_ROOT_MODULES: ${{ inputs.build_root_modules }}
           INPUT_YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
@@ -110,21 +119,26 @@ jobs:
           morphe_latest="$(gh api repos/MorpheApp/morphe-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
           piko_latest="$(gh api repos/crimera/piko/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
           anddea_latest="$(gh api repos/anddea/revanced-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+          devanced_latest="$(gh api repos/RookieEnough/De-Vanced/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
 
           echo "Upstream latest Morphe: $morphe_latest"
           echo "Upstream latest Piko: $piko_latest"
           echo "Upstream latest Anddea: $anddea_latest"
+          echo "Upstream latest De-Vanced: $devanced_latest"
 
           export MORPHE_LATEST="$morphe_latest"
           export PIKO_LATEST="$piko_latest"
           export ANDDEA_LATEST="$anddea_latest"
+          export DEVANCED_LATEST="$devanced_latest"
 
           morphe_exists="false"
           piko_exists="false"
           anddea_exists="false"
+          devanced_exists="false"
           if gh release view "morphe-release" >/dev/null 2>&1; then morphe_exists="true"; fi
           if gh release view "piko-release" >/dev/null 2>&1; then piko_exists="true"; fi
           if gh release view "anddea-release" >/dev/null 2>&1; then anddea_exists="true"; fi
+          if gh release view "devanced-release" >/dev/null 2>&1; then devanced_exists="true"; fi
 
           target_release_tag="${TARGET_RELEASE_TAG:-auto-release}"
           combined_exists="false"
@@ -133,13 +147,14 @@ jobs:
           export MORPHE_RELEASE_EXISTS="$morphe_exists"
           export PIKO_RELEASE_EXISTS="$piko_exists"
           export ANDDEA_RELEASE_EXISTS="$anddea_exists"
+          export DEVANCED_RELEASE_EXISTS="$devanced_exists"
           export COMBINED_RELEASE_EXISTS="$combined_exists"
 
-          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, combined($target_release_tag)=$combined_exists"
+          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, devanced=$devanced_exists, combined($target_release_tag)=$combined_exists"
 
           node -e '
             const fs = require("node:fs");
-            let state = { morphe: "", piko: "", anddea: "" };
+            let state = { morphe: "", piko: "", anddea: "", devanced: "" };
             try {
               state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
             } catch {}
@@ -147,6 +162,7 @@ jobs:
             const morphe = (process.env.MORPHE_LATEST || state.morphe || "").trim();
             const piko = (process.env.PIKO_LATEST || state.piko || "").trim();
             const anddea = (process.env.ANDDEA_LATEST || state.anddea || "").trim();
+            const devanced = (process.env.DEVANCED_LATEST || state.devanced || "").trim();
             const force = process.env.FORCE_RUN === "true";
 
             const releaseMode = process.env.RELEASE_MODE || "separate";
@@ -155,49 +171,56 @@ jobs:
             const morpheReleaseTag = releaseMode === "separate" ? "morphe-release" : baseTag;
             const pikoReleaseTag = releaseMode === "separate" ? "piko-release" : baseTag;
             const anddeaReleaseTag = releaseMode === "separate" ? "anddea-release" : baseTag;
+            const devancedReleaseTag = releaseMode === "separate" ? "devanced-release" : baseTag;
 
             const morpheReleaseExists = process.env.MORPHE_RELEASE_EXISTS === "true";
             const pikoReleaseExists = process.env.PIKO_RELEASE_EXISTS === "true";
             const anddeaReleaseExists = process.env.ANDDEA_RELEASE_EXISTS === "true";
+            const devancedReleaseExists = process.env.DEVANCED_RELEASE_EXISTS === "true";
             const combinedReleaseExists = process.env.COMBINED_RELEASE_EXISTS === "true";
 
             const morpheMissing = releaseMode === "separate" ? !morpheReleaseExists : !combinedReleaseExists;
             const pikoMissing = releaseMode === "separate" ? !pikoReleaseExists : !combinedReleaseExists;
             const anddeaMissing = releaseMode === "separate" ? !anddeaReleaseExists : !combinedReleaseExists;
+            const devancedMissing = releaseMode === "separate" ? !devancedReleaseExists : !combinedReleaseExists;
 
             const morpheChanged = Boolean(morphe && (!state.morphe || morphe !== state.morphe));
             const pikoChanged = Boolean(piko && (!state.piko || piko !== state.piko));
             const anddeaChanged = Boolean(anddea && (!state.anddea || anddea !== state.anddea));
+            const devancedChanged = Boolean(devanced && (!state.devanced || devanced !== state.devanced));
 
             const isSchedule = process.env.EVENT_NAME === "schedule";
             const inputRunMorphe = isSchedule ? true : (process.env.INPUT_RUN_MORPHE !== "false");
             const inputRunPiko = isSchedule ? true : (process.env.INPUT_RUN_PIKO !== "false");
             const inputRunAnddea = isSchedule ? true : (process.env.INPUT_RUN_ANDDEA !== "false");
+            const inputRunDevanced = isSchedule ? true : (process.env.INPUT_RUN_DEVANCED !== "false");
 
             const runMorphe = inputRunMorphe && (force || morpheChanged || morpheMissing);
             const runPiko = inputRunPiko && (force || pikoChanged || pikoMissing);
             const runAnddea = inputRunAnddea && (force || anddeaChanged || anddeaMissing);
+            const runDevanced = inputRunDevanced && (force || devancedChanged || devancedMissing);
 
-            const shouldBuild = runMorphe || runPiko || runAnddea;
+            const shouldBuild = runMorphe || runPiko || runAnddea || runDevanced;
 
             const buildApks = isSchedule ? true : (process.env.INPUT_BUILD_APKS !== "false");
             const buildRootModules = isSchedule ? true : (process.env.INPUT_BUILD_ROOT_MODULES !== "false");
             const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
 
-            console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}`);
-            console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}`);
-            console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}`);
-            console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}`);
+            console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}`);
+            console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}`);
+            console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}`);
+            console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}, De-Vanced=${devancedMissing}`);
             console.log(`Build trigger decision: shouldBuild=${shouldBuild} (force=${force})`);
-            console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag})`);
+            console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag}), devanced=${runDevanced} (${devancedReleaseTag})`);
             console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}`);
 
             if (shouldBuild) {
-              const anyChanged = morpheChanged || pikoChanged || anddeaChanged;
+              const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged;
               const newState = {
                 morphe: (runMorphe || morpheChanged) ? morphe : (state.morphe || morphe),
                 piko: (runPiko || pikoChanged) ? piko : (state.piko || piko),
                 anddea: (runAnddea || anddeaChanged) ? anddea : (state.anddea || anddea),
+                devanced: (runDevanced || devancedChanged) ? devanced : (state.devanced || devanced),
                 updated_at: anyChanged ? new Date().toISOString() : (state.updated_at || new Date().toISOString())
               };
               fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
@@ -210,15 +233,19 @@ jobs:
               fs.appendFileSync(outputFile, `morphe_release_tag=${morpheReleaseTag}\n`);
               fs.appendFileSync(outputFile, `piko_release_tag=${pikoReleaseTag}\n`);
               fs.appendFileSync(outputFile, `anddea_release_tag=${anddeaReleaseTag}\n`);
+              fs.appendFileSync(outputFile, `devanced_release_tag=${devancedReleaseTag}\n`);
               fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
               fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
               fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
+              fs.appendFileSync(outputFile, `devanced_tag=${devanced}\n`);
               fs.appendFileSync(outputFile, `morphe_changed=${morpheChanged ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `piko_changed=${pikoChanged ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `anddea_changed=${anddeaChanged ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `devanced_changed=${devancedChanged ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
+              fs.appendFileSync(outputFile, `run_devanced=${runDevanced ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `build_apks=${buildApks ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `build_root_modules=${buildRootModules ? "true" : "false"}\n`);
               fs.appendFileSync(outputFile, `youtube_abis=${youtubeAbis}\n`);
@@ -239,6 +266,10 @@ jobs:
           if [ "${{ steps.check.outputs.run_anddea }}" = "true" ] || [ "${{ steps.check.outputs.anddea_changed }}" = "true" ]; then
             echo "Updating Anddea options..."
             node scripts/anddea-builder.mjs options --refresh-tools || true
+          fi
+          if [ "${{ steps.check.outputs.run_devanced }}" = "true" ] || [ "${{ steps.check.outputs.devanced_changed }}" = "true" ]; then
+            echo "Updating De-Vanced options..."
+            node scripts/devanced-builder.mjs options --refresh-tools || true
           fi
 
       - name: Commit and Push Updated Config Files
@@ -302,6 +333,25 @@ jobs:
       patches_version: ${{ needs.check-and-update-configs.outputs.anddea_tag || 'dev' }}
       targets: "youtube,youtube-music"
       youtube_abis: ${{ needs.check-and-update-configs.outputs.youtube_abis }}
+      build_apks: ${{ needs.check-and-update-configs.outputs.build_apks == 'true' }}
+      build_root_modules: ${{ needs.check-and-update-configs.outputs.build_root_modules == 'true' }}
+      create_release: true
+      upload_artifact: true
+
+  build-devanced:
+    name: Build De-Vanced Google Photos APK & Root Module
+    needs: [check-and-update-configs, build-anddea]
+    if: |
+      always() && !cancelled() &&
+      needs.check-and-update-configs.result == 'success' &&
+      needs.check-and-update-configs.outputs.should_build == 'true' &&
+      needs.check-and-update-configs.outputs.run_devanced == 'true'
+    uses: ./.github/workflows/build-devanced.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ needs.check-and-update-configs.outputs.devanced_release_tag }}
+      patches_version: ${{ needs.check-and-update-configs.outputs.devanced_tag || 'stable' }}
+      targets: "google-photos"
       build_apks: ${{ needs.check-and-update-configs.outputs.build_apks == 'true' }}
       build_root_modules: ${{ needs.check-and-update-configs.outputs.build_root_modules == 'true' }}
       create_release: true
