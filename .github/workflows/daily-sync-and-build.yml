@@ -51,6 +51,10 @@ on:
         description: "Build De-Vanced Google Photos APK & Root Module"
         type: boolean
         default: true
+      check_apk_releases:
+        description: "Check for new APK releases (e.g. Google Photos) in addition to patch versions"
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -71,10 +75,13 @@ jobs:
       piko_tag: ${{ steps.check.outputs.piko_tag }}
       anddea_tag: ${{ steps.check.outputs.anddea_tag }}
       devanced_tag: ${{ steps.check.outputs.devanced_tag }}
+      devanced_google_photos_apk: ${{ steps.check.outputs.devanced_google_photos_apk }}
       morphe_changed: ${{ steps.check.outputs.morphe_changed }}
       piko_changed: ${{ steps.check.outputs.piko_changed }}
       anddea_changed: ${{ steps.check.outputs.anddea_changed }}
       devanced_changed: ${{ steps.check.outputs.devanced_changed }}
+      devanced_apk_changed: ${{ steps.check.outputs.devanced_apk_changed }}
+      devanced_apk_source: ${{ steps.check.outputs.devanced_apk_source }}
       run_morphe: ${{ steps.check.outputs.run_morphe }}
       run_piko: ${{ steps.check.outputs.run_piko }}
       run_anddea: ${{ steps.check.outputs.run_anddea }}
@@ -111,6 +118,7 @@ jobs:
           INPUT_RUN_PIKO: ${{ inputs.run_piko }}
           INPUT_RUN_ANDDEA: ${{ inputs.run_anddea }}
           INPUT_RUN_DEVANCED: ${{ inputs.run_devanced }}
+          INPUT_CHECK_APK_RELEASES: ${{ inputs.check_apk_releases }}
           INPUT_BUILD_APKS: ${{ inputs.build_apks }}
           INPUT_BUILD_ROOT_MODULES: ${{ inputs.build_root_modules }}
           INPUT_YOUTUBE_ABIS: ${{ inputs.youtube_abis }}
@@ -150,106 +158,182 @@ jobs:
           export DEVANCED_RELEASE_EXISTS="$devanced_exists"
           export COMBINED_RELEASE_EXISTS="$combined_exists"
 
-          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, devanced=$devanced_exists, combined($target_release_tag)=$combined_exists"
+          devanced_asset_apk=""
+          if [ "$devanced_exists" = "true" ]; then
+            devanced_asset_apk="$(gh release view "devanced-release" --json assets --jq '.assets[].name' 2>/dev/null | grep -oE 'google-photos-[0-9.]+(-patched\.apk|-root-module\.zip)' | head -n1 | sed -E 's/google-photos-([0-9.]+)-(patched\.apk|root-module\.zip)/\1/' || true)"
+          fi
+          if [ -z "$devanced_asset_apk" ]; then
+            devanced_asset_apk="$(gh release list --limit 10 --json tagName --jq '.[].tagName' 2>/dev/null | grep -E '^devanced' | head -n1 | xargs -I{} gh release view "{}" --json assets --jq '.assets[].name' 2>/dev/null | grep -oE 'google-photos-[0-9.]+(-patched\.apk|-root-module\.zip)' | head -n1 | sed -E 's/google-photos-([0-9.]+)-(patched\.apk|root-module\.zip)/\1/' || true)"
+          fi
+          export DEVANCED_ASSET_APK="$devanced_asset_apk"
+
+          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, devanced=$devanced_exists (asset_apk=${devanced_asset_apk:-none}), combined($target_release_tag)=$combined_exists"
 
           node -e '
-            const fs = require("node:fs");
-            let state = { morphe: "", piko: "", anddea: "", devanced: "" };
-            try {
-              state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
-            } catch {}
+            (async () => {
+              const fs = require("node:fs");
 
-            const morphe = (process.env.MORPHE_LATEST || state.morphe || "").trim();
-            const piko = (process.env.PIKO_LATEST || state.piko || "").trim();
-            const anddea = (process.env.ANDDEA_LATEST || state.anddea || "").trim();
-            const devanced = (process.env.DEVANCED_LATEST || state.devanced || "").trim();
-            const force = process.env.FORCE_RUN === "true";
+              async function getLatestGooglePhotosVersion() {
+                try {
+                  const res = await fetch("https://d.apkpure.net/b/APK/com.google.android.apps.photos?version=latest", {
+                    method: "HEAD",
+                    redirect: "follow",
+                    headers: {
+                      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                      "Accept": "application/vnd.android.package-archive,*/*"
+                    }
+                  });
+                  if (res.ok) {
+                    const cd = res.headers.get("content-disposition") || "";
+                    const finalUrl = res.url || "";
+                    const m = (cd + " " + finalUrl).match(/_(\d+(?:\.\d+)+)_APKPure/i) || (cd + " " + finalUrl).match(/(\d+\.\d+\.\d+\.\d+)/);
+                    if (m && m[1]) return m[1];
+                  }
+                } catch (e) {
+                  console.warn("APKPure Google Photos check failed:", e.message);
+                }
 
-            const releaseMode = process.env.RELEASE_MODE || "separate";
-            const baseTag = process.env.TARGET_RELEASE_TAG || "auto-release";
+                try {
+                  const res = await fetch("https://google-photos.en.uptodown.com/android/versions", {
+                    headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" }
+                  });
+                  if (res.ok) {
+                    const html = await res.text();
+                    const m = html.match(/data-version="([^"]+)"/) || html.match(/(\d+\.\d+\.\d+\.\d+)/);
+                    if (m && m[1]) return m[1];
+                  }
+                } catch (e) {
+                  console.warn("Uptodown Google Photos check failed:", e.message);
+                }
 
-            const morpheReleaseTag = releaseMode === "separate" ? "morphe-release" : baseTag;
-            const pikoReleaseTag = releaseMode === "separate" ? "piko-release" : baseTag;
-            const anddeaReleaseTag = releaseMode === "separate" ? "anddea-release" : baseTag;
-            const devancedReleaseTag = releaseMode === "separate" ? "devanced-release" : baseTag;
+                return "";
+              }
 
-            const morpheReleaseExists = process.env.MORPHE_RELEASE_EXISTS === "true";
-            const pikoReleaseExists = process.env.PIKO_RELEASE_EXISTS === "true";
-            const anddeaReleaseExists = process.env.ANDDEA_RELEASE_EXISTS === "true";
-            const devancedReleaseExists = process.env.DEVANCED_RELEASE_EXISTS === "true";
-            const combinedReleaseExists = process.env.COMBINED_RELEASE_EXISTS === "true";
+              let state = { morphe: "", piko: "", anddea: "", devanced: "", devanced_google_photos_apk: "" };
+              try {
+                state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
+              } catch {}
 
-            const morpheMissing = releaseMode === "separate" ? !morpheReleaseExists : !combinedReleaseExists;
-            const pikoMissing = releaseMode === "separate" ? !pikoReleaseExists : !combinedReleaseExists;
-            const anddeaMissing = releaseMode === "separate" ? !anddeaReleaseExists : !combinedReleaseExists;
-            const devancedMissing = releaseMode === "separate" ? !devancedReleaseExists : !combinedReleaseExists;
+              const morphe = (process.env.MORPHE_LATEST || state.morphe || "").trim();
+              const piko = (process.env.PIKO_LATEST || state.piko || "").trim();
+              const anddea = (process.env.ANDDEA_LATEST || state.anddea || "").trim();
+              const devanced = (process.env.DEVANCED_LATEST || state.devanced || "").trim();
+              const force = process.env.FORCE_RUN === "true";
 
-            const morpheChanged = Boolean(morphe && (!state.morphe || morphe !== state.morphe));
-            const pikoChanged = Boolean(piko && (!state.piko || piko !== state.piko));
-            const anddeaChanged = Boolean(anddea && (!state.anddea || anddea !== state.anddea));
-            const devancedChanged = Boolean(devanced && (!state.devanced || devanced !== state.devanced));
+              const checkApkReleases = process.env.EVENT_NAME === "schedule" ? true : (process.env.INPUT_CHECK_APK_RELEASES !== "false");
+              let latestGooglePhotosApk = "";
+              if (checkApkReleases) {
+                latestGooglePhotosApk = (await getLatestGooglePhotosVersion()) || "";
+              }
+              const recordedGooglePhotosApk = (state.devanced_google_photos_apk || process.env.DEVANCED_ASSET_APK || "").trim();
 
-            const isSchedule = process.env.EVENT_NAME === "schedule";
-            const inputRunMorphe = isSchedule ? true : (process.env.INPUT_RUN_MORPHE !== "false");
-            const inputRunPiko = isSchedule ? true : (process.env.INPUT_RUN_PIKO !== "false");
-            const inputRunAnddea = isSchedule ? true : (process.env.INPUT_RUN_ANDDEA !== "false");
-            const inputRunDevanced = isSchedule ? true : (process.env.INPUT_RUN_DEVANCED !== "false");
+              const releaseMode = process.env.RELEASE_MODE || "separate";
+              const baseTag = process.env.TARGET_RELEASE_TAG || "auto-release";
 
-            const runMorphe = inputRunMorphe && (force || morpheChanged || morpheMissing);
-            const runPiko = inputRunPiko && (force || pikoChanged || pikoMissing);
-            const runAnddea = inputRunAnddea && (force || anddeaChanged || anddeaMissing);
-            const runDevanced = inputRunDevanced && (force || devancedChanged || devancedMissing);
+              const morpheReleaseTag = releaseMode === "separate" ? "morphe-release" : baseTag;
+              const pikoReleaseTag = releaseMode === "separate" ? "piko-release" : baseTag;
+              const anddeaReleaseTag = releaseMode === "separate" ? "anddea-release" : baseTag;
+              const devancedReleaseTag = releaseMode === "separate" ? "devanced-release" : baseTag;
 
-            const shouldBuild = runMorphe || runPiko || runAnddea || runDevanced;
+              const morpheReleaseExists = process.env.MORPHE_RELEASE_EXISTS === "true";
+              const pikoReleaseExists = process.env.PIKO_RELEASE_EXISTS === "true";
+              const anddeaReleaseExists = process.env.ANDDEA_RELEASE_EXISTS === "true";
+              const devancedReleaseExists = process.env.DEVANCED_RELEASE_EXISTS === "true";
+              const combinedReleaseExists = process.env.COMBINED_RELEASE_EXISTS === "true";
 
-            const buildApks = isSchedule ? true : (process.env.INPUT_BUILD_APKS !== "false");
-            const buildRootModules = isSchedule ? true : (process.env.INPUT_BUILD_ROOT_MODULES !== "false");
-            const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
+              const morpheMissing = releaseMode === "separate" ? !morpheReleaseExists : !combinedReleaseExists;
+              const pikoMissing = releaseMode === "separate" ? !pikoReleaseExists : !combinedReleaseExists;
+              const anddeaMissing = releaseMode === "separate" ? !anddeaReleaseExists : !combinedReleaseExists;
+              const devancedMissing = releaseMode === "separate" ? !devancedReleaseExists : !combinedReleaseExists;
 
-            console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}`);
-            console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}`);
-            console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}`);
-            console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}, De-Vanced=${devancedMissing}`);
-            console.log(`Build trigger decision: shouldBuild=${shouldBuild} (force=${force})`);
-            console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag}), devanced=${runDevanced} (${devancedReleaseTag})`);
-            console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}`);
+              const morpheChanged = Boolean(morphe && (!state.morphe || morphe !== state.morphe));
+              const pikoChanged = Boolean(piko && (!state.piko || piko !== state.piko));
+              const anddeaChanged = Boolean(anddea && (!state.anddea || anddea !== state.anddea));
+              const devancedChanged = Boolean(devanced && (!state.devanced || devanced !== state.devanced));
 
-            if (shouldBuild) {
-              const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged;
-              const newState = {
-                morphe: (runMorphe || morpheChanged) ? morphe : (state.morphe || morphe),
-                piko: (runPiko || pikoChanged) ? piko : (state.piko || piko),
-                anddea: (runAnddea || anddeaChanged) ? anddea : (state.anddea || anddea),
-                devanced: (runDevanced || devancedChanged) ? devanced : (state.devanced || devanced),
-                updated_at: anyChanged ? new Date().toISOString() : (state.updated_at || new Date().toISOString())
-              };
-              fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
-            }
+              const devancedApkChanged = Boolean(
+                checkApkReleases &&
+                latestGooglePhotosApk &&
+                recordedGooglePhotosApk &&
+                latestGooglePhotosApk !== recordedGooglePhotosApk
+              );
+              const devancedApkMissing = Boolean(
+                checkApkReleases &&
+                latestGooglePhotosApk &&
+                !recordedGooglePhotosApk
+              );
 
-            const outputFile = process.env.GITHUB_OUTPUT;
-            if (outputFile) {
-              fs.appendFileSync(outputFile, `should_build=${shouldBuild ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `release_tag=${baseTag}\n`);
-              fs.appendFileSync(outputFile, `morphe_release_tag=${morpheReleaseTag}\n`);
-              fs.appendFileSync(outputFile, `piko_release_tag=${pikoReleaseTag}\n`);
-              fs.appendFileSync(outputFile, `anddea_release_tag=${anddeaReleaseTag}\n`);
-              fs.appendFileSync(outputFile, `devanced_release_tag=${devancedReleaseTag}\n`);
-              fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
-              fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
-              fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
-              fs.appendFileSync(outputFile, `devanced_tag=${devanced}\n`);
-              fs.appendFileSync(outputFile, `morphe_changed=${morpheChanged ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `piko_changed=${pikoChanged ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `anddea_changed=${anddeaChanged ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `devanced_changed=${devancedChanged ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `run_devanced=${runDevanced ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `build_apks=${buildApks ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `build_root_modules=${buildRootModules ? "true" : "false"}\n`);
-              fs.appendFileSync(outputFile, `youtube_abis=${youtubeAbis}\n`);
-            }
+              const isSchedule = process.env.EVENT_NAME === "schedule";
+              const inputRunMorphe = isSchedule ? true : (process.env.INPUT_RUN_MORPHE !== "false");
+              const inputRunPiko = isSchedule ? true : (process.env.INPUT_RUN_PIKO !== "false");
+              const inputRunAnddea = isSchedule ? true : (process.env.INPUT_RUN_ANDDEA !== "false");
+              const inputRunDevanced = isSchedule ? true : (process.env.INPUT_RUN_DEVANCED !== "false");
+
+              const runMorphe = inputRunMorphe && (force || morpheChanged || morpheMissing);
+              const runPiko = inputRunPiko && (force || pikoChanged || pikoMissing);
+              const runAnddea = inputRunAnddea && (force || anddeaChanged || anddeaMissing);
+              const runDevanced = inputRunDevanced && (force || devancedChanged || devancedMissing || devancedApkChanged || devancedApkMissing);
+
+              const devancedApkSource = devancedApkChanged ? (latestGooglePhotosApk || "latest") : "recommended";
+
+              const shouldBuild = runMorphe || runPiko || runAnddea || runDevanced;
+
+              const buildApks = isSchedule ? true : (process.env.INPUT_BUILD_APKS !== "false");
+              const buildRootModules = isSchedule ? true : (process.env.INPUT_BUILD_ROOT_MODULES !== "false");
+              const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
+
+              console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}, GooglePhotosAPK=${recordedGooglePhotosApk || "none"}`);
+              console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}, GooglePhotosAPK=${latestGooglePhotosApk || "none"}`);
+              console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}, GooglePhotosAPK=${devancedApkChanged} (missing=${devancedApkMissing})`);
+              console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}, De-Vanced=${devancedMissing}`);
+              console.log(`Build trigger decision: shouldBuild=${shouldBuild} (force=${force})`);
+              console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag}), devanced=${runDevanced} (${devancedReleaseTag})`);
+              console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}, devancedApkSource=${devancedApkSource}`);
+
+              if (shouldBuild) {
+                const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged || devancedApkChanged;
+                const newState = {
+                  morphe: (runMorphe || morpheChanged) ? morphe : (state.morphe || morphe),
+                  piko: (runPiko || pikoChanged) ? piko : (state.piko || piko),
+                  anddea: (runAnddea || anddeaChanged) ? anddea : (state.anddea || anddea),
+                  devanced: (runDevanced || devancedChanged) ? devanced : (state.devanced || devanced),
+                  devanced_google_photos_apk: latestGooglePhotosApk || recordedGooglePhotosApk || state.devanced_google_photos_apk || "",
+                  updated_at: anyChanged ? new Date().toISOString() : (state.updated_at || new Date().toISOString())
+                };
+                fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
+              }
+
+              const outputFile = process.env.GITHUB_OUTPUT;
+              if (outputFile) {
+                fs.appendFileSync(outputFile, `should_build=${shouldBuild ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `release_tag=${baseTag}\n`);
+                fs.appendFileSync(outputFile, `morphe_release_tag=${morpheReleaseTag}\n`);
+                fs.appendFileSync(outputFile, `piko_release_tag=${pikoReleaseTag}\n`);
+                fs.appendFileSync(outputFile, `anddea_release_tag=${anddeaReleaseTag}\n`);
+                fs.appendFileSync(outputFile, `devanced_release_tag=${devancedReleaseTag}\n`);
+                fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
+                fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
+                fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
+                fs.appendFileSync(outputFile, `devanced_tag=${devanced}\n`);
+                fs.appendFileSync(outputFile, `devanced_google_photos_apk=${latestGooglePhotosApk || recordedGooglePhotosApk}\n`);
+                fs.appendFileSync(outputFile, `devanced_apk_changed=${devancedApkChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `devanced_apk_source=${devancedApkSource}\n`);
+                fs.appendFileSync(outputFile, `morphe_changed=${morpheChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `piko_changed=${pikoChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `anddea_changed=${anddeaChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `devanced_changed=${devancedChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `run_devanced=${runDevanced ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `build_apks=${buildApks ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `build_root_modules=${buildRootModules ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `youtube_abis=${youtubeAbis}\n`);
+              }
+            })().catch((err) => {
+              console.error(err);
+              process.exit(1);
+            });
           '
 
       - name: Update Patch Options in Config Folder
@@ -352,6 +436,8 @@ jobs:
       release_tag: ${{ needs.check-and-update-configs.outputs.devanced_release_tag }}
       patches_version: ${{ needs.check-and-update-configs.outputs.devanced_tag || 'stable' }}
       targets: "google-photos"
+      apk_version_source: ${{ needs.check-and-update-configs.outputs.devanced_apk_source || 'recommended' }}
+      apk_fallback_to_latest: true
       build_apks: ${{ needs.check-and-update-configs.outputs.build_apks == 'true' }}
       build_root_modules: ${{ needs.check-and-update-configs.outputs.build_root_modules == 'true' }}
       create_release: true
