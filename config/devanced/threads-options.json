@@ -22,12 +22,12 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:56:36.264380100Z",
-            "updated_at": "2026-09-03T00:26:31.209815300Z",
+            "updated_at": "2026-09-22T04:27:12.680980863Z",
             "source": "patches.mpp",
-            "sha256": "2f545c15b390c3dcf683ed6c57b589d9be72a15d145d05e8e17aeac57e910b54"
+            "sha256": "9a08db5c845b5b7d90cb7d5ef4ad62e4fc7fe942af6a4e69838cada3e75bf7c7"
         },
         "patches": {
-            "Change package name": {
+            "Clone app": {
                 "enabled": false,
                 "options": {
                     "packageName": "Default",
