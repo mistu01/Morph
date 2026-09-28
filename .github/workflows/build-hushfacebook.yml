@@ -191,7 +191,7 @@ jobs:
           SIGNER_NAME: Mistu
           MORPHE_EXTRA_ARGS_JSON: '[]'
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/hushfacebook-builder.mjs build
+        run: bash .github/scripts/build-hushmessenger.sh
 
       - name: Validate release outputs
         if: ${{ inputs.create_release || inputs.upload_artifact }}
