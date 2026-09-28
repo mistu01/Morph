@@ -1,4 +1,4 @@
-name: Build HushFacebook patched APK
+name: Build HushFacebook & HushMessenger patched APKs
 
 on:
   workflow_dispatch:
@@ -11,8 +11,16 @@ on:
         description: "HushFacebook patch release: stable, dev, latest, or an explicit tag"
         required: true
         default: "stable"
+      messenger_patches_version:
+        description: "HushMessenger patch release: stable, dev, latest, or an explicit tag"
+        required: true
+        default: "stable"
       facebook_version:
         description: "Facebook APK version (blank uses the version recommended by HushFacebook)"
+        required: false
+        default: ""
+      messenger_version:
+        description: "Messenger APK version (blank uses the version recommended by HushMessenger)"
         required: false
         default: ""
       continue_on_error:
@@ -47,7 +55,13 @@ on:
       patches_version:
         type: string
         default: "stable"
+      messenger_patches_version:
+        type: string
+        default: "stable"
       facebook_version:
+        type: string
+        default: ""
+      messenger_version:
         type: string
         default: ""
       continue_on_error:
@@ -77,7 +91,7 @@ env:
 
 jobs:
   build:
-    name: Build HushFacebook for Facebook arm64-v8a
+    name: Build Facebook and Messenger with their Hush patch sources
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -154,16 +168,41 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/hushfacebook-builder.mjs build
 
+      - name: Download HushMessenger tools
+        env:
+          BUILD_TARGETS: messenger
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/hushfacebook-builder.mjs tools
+
+      - name: Build patched Messenger APK
+        env:
+          BUILD_TARGETS: messenger
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
+          MESSENGER_APK_VERSION: ${{ inputs.messenger_version }}
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          SIGNER_NAME: Mistu
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/hushfacebook-builder.mjs build
+
       - name: Validate release outputs
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
-          BUILD_TARGETS: facebook
+          BUILD_TARGETS: facebook,messenger
         run: node scripts/hushfacebook-builder.mjs release-check
 
       - name: Prepare release metadata
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
           HUSHFACEBOOK_PATCHES_VERSION: ${{ inputs.patches_version }}
+          HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
           INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
@@ -176,7 +215,8 @@ jobs:
 
           release_tag="${INPUT_RELEASE_TAG:-hushfacebook-${release_stamp}-${GITHUB_RUN_NUMBER}}"
           echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=HushFacebook patched Facebook ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          messenger_patches_tag="${HUSHMESSENGER_PATCHES_VERSION:-stable}"
+          echo "RELEASE_NAME=Hush Facebook and Messenger patched APKs ${resolved_patches_tag} + ${messenger_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
           node scripts/hushfacebook-builder.mjs release-notes > release-notes.md
 
@@ -195,11 +235,11 @@ jobs:
               --title "$RELEASE_NAME" --notes-file release-notes.md
           fi
 
-      - name: Upload patched Facebook APK
+      - name: Upload patched Facebook and Messenger APKs
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@v4
         with:
-          name: hushfacebook-patched-apk
+          name: hush-social-patched-apks
           path: |
             output/*.apk
             output/*-result.json
