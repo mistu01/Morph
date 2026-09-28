@@ -38,15 +38,35 @@ if [ -z "$compatible_version" ] || [ -z "$version_codes" ]; then
 fi
 
 for version_code in $version_codes; do
-  echo "Downloading Messenger $compatible_version from APKPure with supported version code $version_code"
-  if ! download_result="$(python scripts/apkpure_download.py \
+  echo "Downloading Messenger $compatible_version from APKMirror with required version code $version_code"
+  download_result=""
+  if ! download_result="$(python scripts/apkmirror_download.py \
     --app-name Messenger \
     --package-name com.facebook.orca \
-    --source-page https://apkpure.com/messenger/com.facebook.orca \
-    --out-dir ".cache/hushmessenger-apkpure-$version_code" \
+    --org facebook-2 \
+    --repo messenger \
+    --slug messenger \
+    --out-dir ".cache/hushmessenger-apkmirror-$version_code" \
     --version "$compatible_version" \
-    --version-code "$version_code")"; then
-    echo "APKPure could not download Messenger version code $version_code; trying the next supported variant."
+    --version-code "$version_code" \
+    --arch arm64-v8a \
+    --dpi any \
+    --type apk)"; then
+    echo "APKMirror could not download Messenger version code $version_code; trying APKPure's exact-code URL."
+    if ! download_result="$(python scripts/apkpure_download.py \
+      --app-name Messenger \
+      --package-name com.facebook.orca \
+      --source-page https://apkpure.com/messenger/com.facebook.orca \
+      --out-dir ".cache/hushmessenger-apkpure-$version_code" \
+      --version "$compatible_version" \
+      --version-code "$version_code")"; then
+      echo "No source could download Messenger version code $version_code; trying the next supported variant."
+      continue
+    fi
+  fi
+  downloaded_code="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).versionCode || ""))' "$download_result")"
+  if [ "$downloaded_code" != "$version_code" ]; then
+    echo "Downloaded Messenger metadata says version code ${downloaded_code:-unknown}; expected $version_code. Skipping this file."
     continue
   fi
   apk_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$download_result")"
@@ -63,17 +83,5 @@ for version_code in $version_codes; do
   fi
 done
 
-echo "Direct APKPure downloads failed; retrying the exact compatible version through Morphe's APKPure/apkeep fallback."
-rm -f input/messenger.apk input/messenger.apkm input/messenger.xapk input/messenger.apks
-rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
-set +e
-MESSENGER_APK_VERSION="$compatible_version" APK_SOURCE=apkpure node scripts/hushfacebook-builder.mjs build 2>&1 | tee ".cache/hushmessenger-apkeep-$compatible_version.log"
-apkeep_status=${PIPESTATUS[0]}
-set -e
-
-if [ "$apkeep_status" -eq 0 ]; then
-  exit 0
-fi
-
-echo "Messenger build failed for every HushMessenger-compatible APK variant and the APKPure/apkeep fallback."
+echo "Messenger build failed for every exact version code HushMessenger reported. No name-only fallback APK will be patched or published."
 exit 1

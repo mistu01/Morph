@@ -21,6 +21,13 @@ try:
 except ImportError:  # optional hardening; requirements.txt pins it
     cloudscraper = None
 
+try:
+    from curl_cffi import requests as curl_requests
+except ImportError:  # optional locally; requirements.txt pins it in CI
+    curl_requests = None
+
+CURL_SESSION = curl_requests.Session(impersonate="chrome") if curl_requests else None
+
 
 BASE_URL = "https://www.apkmirror.com"
 HEADERS = {
@@ -43,6 +50,7 @@ def main() -> int:
     parser.add_argument("--slug", default="")
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--version", default="latest")
+    parser.add_argument("--version-code", default="", help="Select an exact APKMirror variant version code")
     parser.add_argument("--arch", default="universal")
     parser.add_argument("--fallback-arch", default="")
     parser.add_argument("--dpi", default="nodpi")
@@ -96,6 +104,31 @@ def main() -> int:
 
 def download_binary(app_name: str, download_url: str, referer: str, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    if CURL_SESSION is not None:
+        response = CURL_SESSION.get(
+            download_url,
+            headers=_curl_headers({**HEADERS, "Referer": referer, "Accept": "application/vnd.android.package-archive,*/*"}),
+            timeout=120,
+            stream=True,
+        )
+        if response.status_code != 200:
+            raise RuntimeError(f"{app_name}: APKMirror file request returned HTTP {response.status_code} for {download_url}")
+        if "text/html" in response.headers.get("Content-Type", "").lower():
+            raise RuntimeError(f"{app_name}: APKMirror returned HTML instead of an APK for {download_url}")
+        try:
+            with path.open("wb") as output:
+                for chunk in response.iter_content(chunk_size=1024 * 1024):
+                    if chunk:
+                        output.write(chunk)
+        except Exception:
+            path.unlink(missing_ok=True)
+            raise
+        finally:
+            response.close()
+        if path.stat().st_size == 0:
+            raise RuntimeError(f"{app_name}: APKMirror returned an empty file for {download_url}")
+        return
+
     with open_url(download_url, referer=referer, accept="application/vnd.android.package-archive,*/*") as response:
         content_type = response.headers.get("Content-Type", "")
         if "text/html" in content_type.lower():
@@ -339,12 +372,22 @@ def select_variants(version_page: dict[str, str], args: argparse.Namespace) -> l
     soup = soup_from_url(version_page["url"])
     variants = parse_variants(soup)
     if variants:
-        selected = selected_variants_for_arches(variants, args)
+        candidates = variants
+        if args.version_code:
+            candidates = [item for item in variants if item.get("versionCode") == args.version_code]
+            if not candidates:
+                available_codes = ", ".join(sorted({item.get("versionCode", "") for item in variants if item.get("versionCode")}))
+                raise RuntimeError(
+                    f"No APKMirror variant has version code {args.version_code}. "
+                    f"Codes listed for {version_page['name']}: {available_codes or 'none'}"
+                )
+
+        selected = selected_variants_for_arches(candidates, args)
         if selected:
             return selected
 
     direct = direct_download_button(soup)
-    if direct:
+    if direct and not args.version_code:
         return [{
             "version": version_page["name"],
             "type": args.type,
@@ -354,10 +397,13 @@ def select_variants(version_page: dict[str, str], args: argparse.Namespace) -> l
         }]
 
     if variants:
-        summary = ", ".join(f"{item['version']} {item['type']} {item['arch']} {item['dpi']}" for item in variants[:12])
+        summary = ", ".join(
+            f"{item['version']} code={item.get('versionCode', 'unknown')} {item['type']} {item['arch']} {item['dpi']}"
+            for item in variants[:24]
+        )
         raise RuntimeError(
             f"Could not find APKMirror {args.type.upper()} variant for "
-            f"arch={args.arch}, dpi={args.dpi}. Available: {summary or 'none'}"
+            f"versionCode={args.version_code or 'any'}, arch={args.arch}, dpi={args.dpi}. Available: {summary or 'none'}"
         )
 
     raise RuntimeError(f"Could not find APKMirror variants at {version_page['url']}")
@@ -569,6 +615,17 @@ def open_url(url: str, referer: str = "", accept: str | None = None):
     if accept:
         headers["Accept"] = accept
 
+    if CURL_SESSION is not None:
+        try:
+            response = CURL_SESSION.get(url, headers=_curl_headers(headers), timeout=90, allow_redirects=True)
+            if response.status_code == 200:
+                text_head = response.text[:2000]
+                if "Enable JavaScript and cookies to continue" not in text_head and "Just a moment..." not in text_head:
+                    return _ResponseAdapter(response, response.content)
+            print(f"curl_cffi fallback got HTTP {response.status_code} for {url}", file=sys.stderr)
+        except Exception as exc:
+            print(f"curl_cffi fallback failed for {url}: {exc}", file=sys.stderr)
+
     try:
         return urlopen(Request(url, headers=headers), timeout=60)
     except HTTPError as exc:
@@ -583,6 +640,11 @@ def open_url(url: str, referer: str = "", accept: str | None = None):
         if fallback is not None:
             return fallback
         raise RuntimeError(f"Network error for {url}: {exc.reason}") from exc
+
+
+def _curl_headers(headers: dict[str, str]) -> dict[str, str]:
+    # Let curl_cffi send the User-Agent matching its Chrome TLS fingerprint.
+    return {key: value for key, value in headers.items() if key.lower() != "user-agent"}
 
 
 class _ResponseAdapter:

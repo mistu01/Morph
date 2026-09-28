@@ -2301,6 +2301,7 @@ async function downloadApkApp(app, { force = false, patchesList = null } = {}) {
           });
         } catch (error) {
           exactErrors.push(`${apkSourceLabel(source)} ${selectedVersion}: ${error.message}`);
+          console.warn(`${app.label}: ${apkSourceLabel(source)} ${selectedVersion} download failed: ${error.message}`);
         }
       }
     }
