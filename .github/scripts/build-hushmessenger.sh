@@ -16,10 +16,11 @@ fi
 supported_version_codes="$(node -e '
   const fs = require("node:fs");
   const output = fs.readFileSync(process.argv[1], "utf8");
-  const match = output.match(/Use an unmodified arm64 Messenger\b[\s\S]{0,180}?version code\s+([\d\sor]+)/i);
-  if (match) {
-    const codes = [...match[1].matchAll(/\d{7,}/g)].map(([code]) => code);
-    const version = output.match(/Use an unmodified arm64 Messenger\s+([\d.]+)\s+APK/i)?.[1] || "";
+  const guidance = output.match(/Use an unmodified arm64 Messenger\b([^\r\n]*)/i)?.[1] || "";
+  const codeClause = guidance.match(/version codes?\s+([^)]*)/i)?.[1] || "";
+  if (guidance && codeClause) {
+    const codes = [...codeClause.matchAll(/\d{7,}/g)].map(([code]) => code);
+    const version = guidance.match(/^\s*([\d]+(?:\.[\d]+)+)\s+APK/i)?.[1] || "";
     process.stdout.write(JSON.stringify({ codes: [...new Set(codes)], version }));
   }
 ' "$build_log")"
