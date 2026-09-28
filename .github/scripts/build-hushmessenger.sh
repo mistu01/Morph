@@ -63,5 +63,17 @@ for version_code in $version_codes; do
   fi
 done
 
-echo "Messenger build failed for every APK version code HushMessenger reported."
+echo "Direct APKPure downloads failed; retrying the exact compatible version through Morphe's APKPure/apkeep fallback."
+rm -f input/messenger.apk input/messenger.apkm input/messenger.xapk input/messenger.apks
+rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
+set +e
+MESSENGER_APK_VERSION="$compatible_version" APK_SOURCE=apkpure node scripts/hushfacebook-builder.mjs build 2>&1 | tee ".cache/hushmessenger-apkeep-$compatible_version.log"
+apkeep_status=${PIPESTATUS[0]}
+set -e
+
+if [ "$apkeep_status" -eq 0 ]; then
+  exit 0
+fi
+
+echo "Messenger build failed for every HushMessenger-compatible APK variant and the APKPure/apkeep fallback."
 exit 1
