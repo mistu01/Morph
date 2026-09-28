@@ -34,6 +34,7 @@ export const appConfigs = externalPatchAppConfigs([
     apkmirrorArch: "arm64-v8a",
     apkmirrorFallbackArch: "",
     apkmirrorDpi: "any",
+    apkpureMinAndroidApi: 30,
   }],
 ]);
 

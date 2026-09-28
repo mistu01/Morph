@@ -111,6 +111,7 @@ def main() -> int:
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--version", default="")
     parser.add_argument("--arch", default="")
+    parser.add_argument("--min-android-api", type=int, default=0)
     args = parser.parse_args()
 
     api = ApkPure()
@@ -143,23 +144,62 @@ def main() -> int:
                                 candidates.append((codes[0], el.parent.text.strip().replace('\n', ' ')))
                 
                 if candidates:
-                    found_code = None
-                    for code, label in candidates:
-                        label_lower = label.lower()
-                        if "nodpi" in label_lower or "no-dpi" in label_lower or "no dpi" in label_lower or "universal" in label_lower:
-                            found_code = code
-                            print(f"Found matching nodpi/universal arch variant: {label}", file=sys.stderr)
-                            break
-                    if not found_code:
-                        found_code = candidates[0][0]
-                        print(f"Found matching arch variant: {candidates[0][1]}", file=sys.stderr)
+                    if args.min_android_api:
+                        compatible = [
+                            (code, label, android_api_level(label))
+                            for code, label in candidates
+                        ]
+                        compatible = [
+                            candidate for candidate in compatible
+                            if candidate[2] is not None and candidate[2] >= args.min_android_api
+                        ]
+                        if not compatible:
+                            available = "; ".join(
+                                f"{label} (API {api if api is not None else 'unknown'})"
+                                for _, label, api in [
+                                    (code, label, android_api_level(label))
+                                    for code, label in candidates
+                                ]
+                            )
+                            raise RuntimeError(
+                                f"No {args.arch} variant for {selected['version']} meets Android API "
+                                f"{args.min_android_api}. Available variants: {available}"
+                            )
+                        found_code, found_label, found_api = max(compatible, key=lambda item: item[2])
+                        print(
+                            f"Found matching arch variant for Android API {found_api}+: {found_label}",
+                            file=sys.stderr,
+                        )
+                    else:
+                        found_code = None
+                        for code, label in candidates:
+                            label_lower = label.lower()
+                            if "nodpi" in label_lower or "no-dpi" in label_lower or "no dpi" in label_lower or "universal" in label_lower:
+                                found_code = code
+                                print(f"Found matching nodpi/universal arch variant: {label}", file=sys.stderr)
+                                break
+                        if not found_code:
+                            found_code = candidates[0][0]
+                            print(f"Found matching arch variant: {candidates[0][1]}", file=sys.stderr)
                     
                     selected["version_code"] = found_code
                     print(f"Using variant version code: {found_code}", file=sys.stderr)
                 else:
+                    if args.min_android_api:
+                        raise RuntimeError(
+                            f"No {args.arch} variant found for {selected['version']} "
+                            f"that can be checked against Android API {args.min_android_api}"
+                        )
                     print(f"No variant found matching arch '{args.arch}'. Using default version code.", file=sys.stderr)
         except Exception as e:
+            if args.min_android_api:
+                raise RuntimeError(f"Could not resolve a compatible APKPure variant: {e}") from e
             print(f"Error resolving variant: {e}", file=sys.stderr)
+    elif args.arch and args.min_android_api:
+        raise RuntimeError(
+            f"APKPure did not provide a variant page to verify {args.arch} Android API "
+            f"{args.min_android_api}+ for {selected['version']}"
+        )
 
     out_dir = Path(args.out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -194,6 +234,31 @@ def main() -> int:
         "availableVersions": [item["version"] for item in versions],
     }))
     return 0
+
+
+def android_api_level(label: str) -> int | None:
+    import re
+
+    api_match = re.search(r"\bAPI\s*(\d+)\b", label, re.IGNORECASE)
+    if api_match:
+        return int(api_match.group(1))
+
+    version_match = re.search(r"Android\s+(\d+)(?:\.\d+)?", label, re.IGNORECASE)
+    if not version_match:
+        return None
+
+    android_version = int(version_match.group(1))
+    return {
+        8: 26,
+        9: 28,
+        10: 29,
+        11: 30,
+        12: 31,
+        13: 33,
+        14: 34,
+        15: 35,
+        16: 36,
+    }.get(android_version)
 
 
 def get_versions(api: ApkPure, source_page: str) -> list[dict[str, str]]:

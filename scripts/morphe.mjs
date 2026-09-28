@@ -218,6 +218,7 @@ export function externalPatchAppConfigs(entries) {
       apkmirrorArch: env(`${envPrefix}_APKMIRROR_ARCH`) || env("APKMIRROR_ARCH") || overrides.apkmirrorArch || "arm64-v8a",
       apkmirrorFallbackArch: env(`${envPrefix}_APKMIRROR_FALLBACK_ARCH`) || env("APKMIRROR_FALLBACK_ARCH") || overrides.apkmirrorFallbackArch || "",
       apkmirrorDpi: env(`${envPrefix}_APKMIRROR_DPI`) || env("APKMIRROR_DPI") || overrides.apkmirrorDpi || "nodpi",
+      apkpureMinAndroidApi: overrides.apkpureMinAndroidApi || 0,
       requestedVersion: env(`${envPrefix}_APK_VERSION`),
       input: envPath(`${envPrefix}_APK`, `input/${id}.apk`),
       url: env(`${envPrefix}_APK_URL`) || overrides.url || "",
@@ -2663,10 +2664,11 @@ async function downloadWithPythonApkpure(
       "--out-dir",
       outputDir,
       ...(app.apkmirrorArch ? ["--arch", app.apkmirrorArch] : []),
+      ...(app.apkpureMinAndroidApi ? ["--min-android-api", String(app.apkpureMinAndroidApi)] : []),
       ...(selectedVersion ? ["--version", selectedVersion] : []),
     ]);
   } catch (error) {
-    if (!selectedVersion) throw error;
+    if (!selectedVersion || app.apkpureMinAndroidApi) throw error;
 
     console.warn(`${app.label}: Python APKPure download failed: ${error.message}`);
     console.warn(`${app.label}: retrying APKPure exact version with apkeep.`);
