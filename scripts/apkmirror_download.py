@@ -47,6 +47,7 @@ def main() -> int:
     parser.add_argument("--fallback-arch", default="")
     parser.add_argument("--dpi", default="nodpi")
     parser.add_argument("--type", default="apk", choices=["apk", "bundle"])
+    parser.add_argument("--version-codes", default="", help="Comma-separated allowed package version codes")
     parser.add_argument("--out-file", default="")
     args = parser.parse_args()
 
@@ -364,6 +365,14 @@ def select_variants(version_page: dict[str, str], args: argparse.Namespace) -> l
 
 
 def selected_variants_for_arches(variants: list[dict[str, str]], args: argparse.Namespace) -> list[dict[str, str]]:
+    allowed_version_codes = split_values(args.version_codes)
+    if allowed_version_codes:
+        variants = [item for item in variants if item.get("versionCode", "") in allowed_version_codes]
+        if not variants:
+            raise RuntimeError(
+                f"No APKMirror variants match required version code(s): {', '.join(allowed_version_codes)}."
+            )
+
     arches = split_values(args.arch) or ["universal"]
     fallback_arches = split_values(args.fallback_arch)
     selected: list[dict[str, str]] = []

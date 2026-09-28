@@ -179,16 +179,17 @@ jobs:
       - name: Build patched Messenger APK
         env:
           BUILD_TARGETS: messenger
+          APK_SOURCE: apkmirror
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
           MESSENGER_APK_VERSION: ${{ inputs.messenger_version }}
-          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          CONTINUE_ON_ERROR: "false"
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
-          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
+          MORPHE_EXTRA_ARGS_JSON: '[]'
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/hushfacebook-builder.mjs build
 
