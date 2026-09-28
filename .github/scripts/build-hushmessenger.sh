@@ -83,6 +83,35 @@ for version_code in $version_codes; do
   fi
 done
 
+apkcombo_dir=".cache/hushmessenger-apkcombo"
+rm -rf "$apkcombo_dir"
+mkdir -p "$apkcombo_dir"
+echo "Trying APKCombo for exact Messenger version $compatible_version and arm64-v8a."
+if npm install --no-save --ignore-scripts @nirewen/apkcombo-downloader@1.0.3; then
+  if apkcombo_result="$(node scripts/apkcombo_download.mjs "$compatible_version" "$apkcombo_dir")"; then
+    apkcombo_apk="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$apkcombo_result")"
+    if [ -f "$apkcombo_apk" ]; then
+      rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
+      retry_log=".cache/hushmessenger-build-apkcombo.log"
+      set +e
+      MESSENGER_APK="$apkcombo_apk" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
+      retry_status=${PIPESTATUS[0]}
+      set -e
+
+      if [ "$retry_status" -eq 0 ]; then
+        exit 0
+      fi
+      echo "APKCombo arm64 variant was rejected by HushMessenger or failed to patch; it will not be published."
+    else
+      echo "APKCombo reported a Messenger APK path that does not exist: $apkcombo_apk"
+    fi
+  else
+    echo "APKCombo could not download Messenger $compatible_version for arm64-v8a."
+  fi
+else
+  echo "Could not install the pinned APKCombo downloader; continuing to the APKPure/apkeep fallback."
+fi
+
 apkeep_bin=".cache/tools/apkeep"
 if [ -x "$apkeep_bin" ]; then
   apkeep_dir=".cache/hushmessenger-apkeep-arm64"
