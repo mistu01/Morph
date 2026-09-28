@@ -83,5 +83,35 @@ for version_code in $version_codes; do
   fi
 done
 
+apkeep_bin=".cache/tools/apkeep"
+if [ -x "$apkeep_bin" ]; then
+  apkeep_dir=".cache/hushmessenger-apkeep-arm64"
+  rm -rf "$apkeep_dir"
+  mkdir -p "$apkeep_dir"
+  echo "Trying APKPure through apkeep with an arm64-v8a-only variant filter for Messenger $compatible_version."
+  if "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure -o 'arch=arm64-v8a' "$apkeep_dir"; then
+    apkeep_apk="$(find "$apkeep_dir" -maxdepth 2 -type f -iname '*.apk' -print -quit)"
+    if [ -n "$apkeep_apk" ]; then
+      rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
+      retry_log=".cache/hushmessenger-build-apkeep-arm64.log"
+      set +e
+      MESSENGER_APK="$apkeep_apk" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
+      retry_status=${PIPESTATUS[0]}
+      set -e
+
+      if [ "$retry_status" -eq 0 ]; then
+        exit 0
+      fi
+      echo "APKPure/apkeep arm64 variant was rejected by HushMessenger or failed to patch; it will not be published."
+    else
+      echo "APKPure/apkeep returned successfully but did not produce an APK file."
+    fi
+  else
+    echo "APKPure/apkeep could not download an arm64-v8a Messenger APK."
+  fi
+else
+  echo "APKPure/apkeep arm64 fallback is unavailable: $apkeep_bin was not created by the initial Morphe attempt."
+fi
+
 echo "Messenger build failed for every exact version code HushMessenger reported. No name-only fallback APK will be patched or published."
 exit 1
