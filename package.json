@@ -12,6 +12,7 @@
     "paresh": "node scripts/paresh-builder.mjs build",
     "rushiranpise": "node scripts/rushiranpise-builder.mjs build",
     "meridianfresco": "node scripts/meridianfresco-builder.mjs build",
+    "hushfacebook": "node scripts/hushfacebook-builder.mjs build",
     "download": "node scripts/morphe.mjs download",
     "options": "node scripts/morphe.mjs options",
     "root-modules": "node scripts/morphe.mjs root-modules",
