@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Rebuild Messenger when the first HushMessenger patch attempt rejects the
+# downloaded APK's version code. HushMessenger only accepts specific unmodified
+# arm64 version codes for each release; this script parses the supported codes
+# from the failure log, downloads an APK with exactly that code, and retries.
+
 build_log=".cache/hushmessenger-build.log"
 mkdir -p .cache
 
@@ -37,6 +42,21 @@ if [ -z "$compatible_version" ] || [ -z "$version_codes" ]; then
   exit "$build_status"
 fi
 
+clear_messenger_outputs() {
+  rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
+}
+
+try_patch_downloaded_apk() {
+  local apk_path="$1" log_name="$2"
+  clear_messenger_outputs
+  local retry_status
+  set +e
+  MESSENGER_APK="$apk_path" node scripts/hushfacebook-builder.mjs build 2>&1 | tee ".cache/hushmessenger-build-$log_name.log"
+  retry_status=${PIPESTATUS[0]}
+  set -e
+  return "$retry_status"
+}
+
 for version_code in $version_codes; do
   echo "Downloading Messenger $compatible_version from APKMirror with required version code $version_code"
   download_result=""
@@ -60,25 +80,40 @@ for version_code in $version_codes; do
       --out-dir ".cache/hushmessenger-apkpure-$version_code" \
       --version "$compatible_version" \
       --version-code "$version_code")"; then
-      echo "No source could download Messenger version code $version_code; trying the next supported variant."
-      continue
+      # Exact-code endpoints are often blocked (HTTP 403). apkeep talks to
+      # APKPure's app endpoints and resolved this exact version successfully in
+      # past runs, so try it before skipping this version code. The download is
+      # kept even if its version code differs slightly (bundle metadata); the
+      # patcher re-validates the code anyway.
+      echo "Exact-code downloads failed; trying apkeep for Messenger $compatible_version."
+      apkeep_dir=".cache/hushmessenger-apkeep-exact-$version_code"
+      rm -rf "$apkeep_dir"
+      mkdir -p "$apkeep_dir"
+      apkeep_bin=".cache/tools/apkeep"
+      apkeep_apk=""
+      if [ -x "$apkeep_bin" ] && "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure "$apkeep_dir"; then
+        apkeep_apk="$(find "$apkeep_dir" -maxdepth 2 -type f \( -iname '*.apk' -o -iname '*.xapk' \) -print -quit)"
+      fi
+      if [ -n "$apkeep_apk" ]; then
+        download_result="$(node -e 'process.stdout.write(JSON.stringify({ path: process.argv[1], versionCode: "" }))' "$apkeep_apk")"
+      else
+        echo "No source could download Messenger version code $version_code; trying the next supported variant."
+        continue
+      fi
     fi
   fi
   downloaded_code="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).versionCode || ""))' "$download_result")"
-  if [ "$downloaded_code" != "$version_code" ]; then
-    echo "Downloaded Messenger metadata says version code ${downloaded_code:-unknown}; expected $version_code. Skipping this file."
+  apk_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$download_result")"
+  if [ -n "$downloaded_code" ] && [ "$downloaded_code" != "$version_code" ]; then
+    echo "Downloaded Messenger metadata says version code $downloaded_code; expected $version_code. Skipping this file."
     continue
   fi
-  apk_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$download_result")"
+  if [ ! -f "$apk_path" ]; then
+    echo "Downloaded Messenger file is missing: $apk_path. Skipping this version code."
+    continue
+  fi
 
-  rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
-  retry_log=".cache/hushmessenger-build-$version_code.log"
-  set +e
-  MESSENGER_APK="$apk_path" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
-  retry_status=${PIPESTATUS[0]}
-  set -e
-
-  if [ "$retry_status" -eq 0 ]; then
+  if try_patch_downloaded_apk "$apk_path" "$version_code"; then
     exit 0
   fi
 done
@@ -91,14 +126,7 @@ if npm install --no-save --ignore-scripts @nirewen/apkcombo-downloader@1.0.3; th
   if apkcombo_result="$(node scripts/apkcombo_download.mjs "$compatible_version" "$apkcombo_dir")"; then
     apkcombo_apk="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$apkcombo_result")"
     if [ -f "$apkcombo_apk" ]; then
-      rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
-      retry_log=".cache/hushmessenger-build-apkcombo.log"
-      set +e
-      MESSENGER_APK="$apkcombo_apk" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
-      retry_status=${PIPESTATUS[0]}
-      set -e
-
-      if [ "$retry_status" -eq 0 ]; then
+      if try_patch_downloaded_apk "$apkcombo_apk" "apkcombo"; then
         exit 0
       fi
       echo "APKCombo arm64 variant was rejected by HushMessenger or failed to patch; it will not be published."
@@ -121,14 +149,7 @@ if [ -x "$apkeep_bin" ]; then
   if "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure -o 'arch=arm64-v8a' "$apkeep_dir"; then
     apkeep_apk="$(find "$apkeep_dir" -maxdepth 2 -type f -iname '*.apk' -print -quit)"
     if [ -n "$apkeep_apk" ]; then
-      rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
-      retry_log=".cache/hushmessenger-build-apkeep-arm64.log"
-      set +e
-      MESSENGER_APK="$apkeep_apk" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
-      retry_status=${PIPESTATUS[0]}
-      set -e
-
-      if [ "$retry_status" -eq 0 ]; then
+      if try_patch_downloaded_apk "$apkeep_apk" "apkeep-arm64"; then
         exit 0
       fi
       echo "APKPure/apkeep arm64 variant was rejected by HushMessenger or failed to patch; it will not be published."

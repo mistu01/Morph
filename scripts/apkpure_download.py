@@ -30,14 +30,14 @@ def robust_downloader(api, url, out_dir):
         
     d = response.headers.get("content-disposition")
     if d:
-        matches = re.findall(r'filename=(.+)', d)
+        matches = re.findall(r'filename\*?=(?:UTF-8\'\')?"?([^";]+)', d)
         if matches:
-            fname = matches[0].strip('"')
+            fname = urlparse.unquote(matches[0].strip().strip('"'))
         else:
             fname = "downloaded_file.apk"
     else:
         fname = "downloaded_file.apk"
-        
+
     dest_path = os.path.realpath(os.path.join(out_dir, "apks", fname))
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
     
@@ -118,6 +118,9 @@ def main() -> int:
     api = ApkPure()
     versions = []
     if args.version_code:
+        # Exact code requested (e.g. a HushMessenger-supported variant). APKPure's
+        # d.apkpure.com endpoint serves the file directly; skip page scraping that
+        # can fail or steer us to a different variant.
         selected = {
             "version": args.version or "unknown",
             "version_code": args.version_code,
@@ -215,11 +218,27 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     download_url = f"https://d.apkpure.com/b/{selected['file_type']}/{args.package_name}?versionCode={selected['version_code']}"
 
+    downloaded = None
     try:
         downloaded = robust_downloader(api, download_url, out_dir)
     except Exception as e:
         print(f"Error downloading: {e}", file=sys.stderr)
-        downloaded = None
+
+    path = Path(downloaded).resolve() if downloaded else None
+    if path and not path.exists():
+        path = None
+
+    if path is None:
+        # APKPure sometimes rejects the exact versionCode endpoint (403) while still
+        # serving the app's default download URL. Fall back to it; the file is the
+        # same variant that the page currently serves for this version.
+        fallback_url = f"https://d.apkpure.com/b/{selected['file_type']}/{args.package_name}"
+        print(f"Exact versionCode download failed; trying default APKPure download URL: {fallback_url}", file=sys.stderr)
+        try:
+            downloaded = robust_downloader(api, fallback_url, out_dir)
+        except Exception as e:
+            print(f"Error downloading: {e}", file=sys.stderr)
+            downloaded = None
 
     if not downloaded:
         print(f"{args.app_name}: apkpure returned no downloaded file for {selected['version']}", file=sys.stderr)
@@ -230,6 +249,20 @@ def main() -> int:
         print(f"{args.app_name}: downloaded file is missing: {path}", file=sys.stderr)
         return 4
 
+    # The Content-Disposition filename is the authoritative record of which
+    # variant APKPure actually served, so report that code rather than the
+    # requested one. The caller compares this to the expected code.
+    served_code = selected["version_code"]
+    code_match = re.search(r"(\d{6,})", path.name)
+    if code_match:
+        served_code = code_match.group(1)
+    if served_code != selected["version_code"]:
+        print(
+            f"{args.app_name}: APKPure served variant version code {served_code} "
+            f"instead of requested {selected['version_code']}",
+            file=sys.stderr,
+        )
+
     print(json.dumps({
         "appName": args.app_name,
         "packageName": args.package_name,
@@ -238,8 +271,9 @@ def main() -> int:
         "downloadUrl": download_url,
         "path": str(path),
         "filename": path.name,
+        "requestedVersionCode": selected["version_code"],
         "version": selected["version"],
-        "versionCode": selected["version_code"],
+        "versionCode": served_code,
         "fileType": selected["file_type"],
         "availableVersions": [item["version"] for item in versions],
     }))

@@ -220,7 +220,7 @@ export function externalPatchAppConfigs(entries) {
       apkmirrorDpi: env(`${envPrefix}_APKMIRROR_DPI`) || env("APKMIRROR_DPI") || overrides.apkmirrorDpi || "nodpi",
       apkpureMinAndroidApi: overrides.apkpureMinAndroidApi || 0,
       requestedVersion: env(`${envPrefix}_APK_VERSION`),
-      input: envPath(`${envPrefix}_APK`, `input/${id}.apk`),
+      input: envPathValue(env(`${envPrefix}_APK`) || `input/${id}.apk`),
       url: env(`${envPrefix}_APK_URL`) || overrides.url || "",
       output: envPath(`${envPrefix}_OUT`, `output/${id}-patched.apk`),
       options: envPath(`${envPrefix}_OPTIONS`, `config/${env("MORPHE_BUILDER") || "morphe"}/${id}-options.json`),
