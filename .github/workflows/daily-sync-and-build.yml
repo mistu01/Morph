@@ -51,6 +51,10 @@ on:
         description: "Build De-Vanced Google Photos APK & Root Module"
         type: boolean
         default: true
+      run_hushfacebook:
+        description: "Build HushFacebook patched Facebook APK"
+        type: boolean
+        default: true
       check_apk_releases:
         description: "Check for new APK releases (e.g. Google Photos) in addition to patch versions"
         type: boolean
@@ -71,21 +75,25 @@ jobs:
       piko_release_tag: ${{ steps.check.outputs.piko_release_tag }}
       anddea_release_tag: ${{ steps.check.outputs.anddea_release_tag }}
       devanced_release_tag: ${{ steps.check.outputs.devanced_release_tag }}
+      hushfacebook_release_tag: ${{ steps.check.outputs.hushfacebook_release_tag }}
       morphe_tag: ${{ steps.check.outputs.morphe_tag }}
       piko_tag: ${{ steps.check.outputs.piko_tag }}
       anddea_tag: ${{ steps.check.outputs.anddea_tag }}
       devanced_tag: ${{ steps.check.outputs.devanced_tag }}
+      hushfacebook_tag: ${{ steps.check.outputs.hushfacebook_tag }}
       devanced_google_photos_apk: ${{ steps.check.outputs.devanced_google_photos_apk }}
       morphe_changed: ${{ steps.check.outputs.morphe_changed }}
       piko_changed: ${{ steps.check.outputs.piko_changed }}
       anddea_changed: ${{ steps.check.outputs.anddea_changed }}
       devanced_changed: ${{ steps.check.outputs.devanced_changed }}
+      hushfacebook_changed: ${{ steps.check.outputs.hushfacebook_changed }}
       devanced_apk_changed: ${{ steps.check.outputs.devanced_apk_changed }}
       devanced_apk_source: ${{ steps.check.outputs.devanced_apk_source }}
       run_morphe: ${{ steps.check.outputs.run_morphe }}
       run_piko: ${{ steps.check.outputs.run_piko }}
       run_anddea: ${{ steps.check.outputs.run_anddea }}
       run_devanced: ${{ steps.check.outputs.run_devanced }}
+      run_hushfacebook: ${{ steps.check.outputs.run_hushfacebook }}
       build_apks: ${{ steps.check.outputs.build_apks }}
       build_root_modules: ${{ steps.check.outputs.build_root_modules }}
       youtube_abis: ${{ steps.check.outputs.youtube_abis }}
@@ -118,6 +126,7 @@ jobs:
           INPUT_RUN_PIKO: ${{ inputs.run_piko }}
           INPUT_RUN_ANDDEA: ${{ inputs.run_anddea }}
           INPUT_RUN_DEVANCED: ${{ inputs.run_devanced }}
+          INPUT_RUN_HUSHFACEBOOK: ${{ inputs.run_hushfacebook }}
           INPUT_CHECK_APK_RELEASES: ${{ inputs.check_apk_releases }}
           INPUT_BUILD_APKS: ${{ inputs.build_apks }}
           INPUT_BUILD_ROOT_MODULES: ${{ inputs.build_root_modules }}
@@ -128,25 +137,30 @@ jobs:
           piko_latest="$(gh api repos/crimera/piko/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
           anddea_latest="$(gh api repos/anddea/revanced-patches/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
           devanced_latest="$(gh api repos/RookieEnough/De-Vanced/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+          hushfacebook_latest="$(gh api repos/SysAdminDoc/HushFacebook/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
 
           echo "Upstream latest Morphe: $morphe_latest"
           echo "Upstream latest Piko: $piko_latest"
           echo "Upstream latest Anddea: $anddea_latest"
           echo "Upstream latest De-Vanced: $devanced_latest"
+          echo "Upstream latest HushFacebook: $hushfacebook_latest"
 
           export MORPHE_LATEST="$morphe_latest"
           export PIKO_LATEST="$piko_latest"
           export ANDDEA_LATEST="$anddea_latest"
           export DEVANCED_LATEST="$devanced_latest"
+          export HUSHFACEBOOK_LATEST="$hushfacebook_latest"
 
           morphe_exists="false"
           piko_exists="false"
           anddea_exists="false"
           devanced_exists="false"
+          hushfacebook_exists="false"
           if gh release view "morphe-release" >/dev/null 2>&1; then morphe_exists="true"; fi
           if gh release view "piko-release" >/dev/null 2>&1; then piko_exists="true"; fi
           if gh release view "anddea-release" >/dev/null 2>&1; then anddea_exists="true"; fi
           if gh release view "devanced-release" >/dev/null 2>&1; then devanced_exists="true"; fi
+          if gh release view "hushfacebook-release" >/dev/null 2>&1; then hushfacebook_exists="true"; fi
 
           target_release_tag="${TARGET_RELEASE_TAG:-auto-release}"
           combined_exists="false"
@@ -156,6 +170,7 @@ jobs:
           export PIKO_RELEASE_EXISTS="$piko_exists"
           export ANDDEA_RELEASE_EXISTS="$anddea_exists"
           export DEVANCED_RELEASE_EXISTS="$devanced_exists"
+          export HUSHFACEBOOK_RELEASE_EXISTS="$hushfacebook_exists"
           export COMBINED_RELEASE_EXISTS="$combined_exists"
 
           devanced_asset_apk=""
@@ -209,7 +224,7 @@ jobs:
                 return "";
               }
 
-              let state = { morphe: "", piko: "", anddea: "", devanced: "", devanced_google_photos_apk: "" };
+              let state = { morphe: "", piko: "", anddea: "", devanced: "", hushfacebook: "", devanced_google_photos_apk: "" };
               try {
                 state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
               } catch {}
@@ -218,6 +233,7 @@ jobs:
               const piko = (process.env.PIKO_LATEST || state.piko || "").trim();
               const anddea = (process.env.ANDDEA_LATEST || state.anddea || "").trim();
               const devanced = (process.env.DEVANCED_LATEST || state.devanced || "").trim();
+              const hushfacebook = (process.env.HUSHFACEBOOK_LATEST || state.hushfacebook || "").trim();
               const force = process.env.FORCE_RUN === "true";
 
               const checkApkReleases = process.env.EVENT_NAME === "schedule" ? true : (process.env.INPUT_CHECK_APK_RELEASES !== "false");
@@ -234,22 +250,26 @@ jobs:
               const pikoReleaseTag = releaseMode === "separate" ? "piko-release" : baseTag;
               const anddeaReleaseTag = releaseMode === "separate" ? "anddea-release" : baseTag;
               const devancedReleaseTag = releaseMode === "separate" ? "devanced-release" : baseTag;
+              const hushfacebookReleaseTag = releaseMode === "separate" ? "hushfacebook-release" : baseTag;
 
               const morpheReleaseExists = process.env.MORPHE_RELEASE_EXISTS === "true";
               const pikoReleaseExists = process.env.PIKO_RELEASE_EXISTS === "true";
               const anddeaReleaseExists = process.env.ANDDEA_RELEASE_EXISTS === "true";
               const devancedReleaseExists = process.env.DEVANCED_RELEASE_EXISTS === "true";
+              const hushfacebookReleaseExists = process.env.HUSHFACEBOOK_RELEASE_EXISTS === "true";
               const combinedReleaseExists = process.env.COMBINED_RELEASE_EXISTS === "true";
 
               const morpheMissing = releaseMode === "separate" ? !morpheReleaseExists : !combinedReleaseExists;
               const pikoMissing = releaseMode === "separate" ? !pikoReleaseExists : !combinedReleaseExists;
               const anddeaMissing = releaseMode === "separate" ? !anddeaReleaseExists : !combinedReleaseExists;
               const devancedMissing = releaseMode === "separate" ? !devancedReleaseExists : !combinedReleaseExists;
+              const hushfacebookMissing = releaseMode === "separate" ? !hushfacebookReleaseExists : !combinedReleaseExists;
 
               const morpheChanged = Boolean(morphe && (!state.morphe || morphe !== state.morphe));
               const pikoChanged = Boolean(piko && (!state.piko || piko !== state.piko));
               const anddeaChanged = Boolean(anddea && (!state.anddea || anddea !== state.anddea));
               const devancedChanged = Boolean(devanced && (!state.devanced || devanced !== state.devanced));
+              const hushfacebookChanged = Boolean(hushfacebook && (!state.hushfacebook || hushfacebook !== state.hushfacebook));
 
               const devancedApkChanged = Boolean(
                 checkApkReleases &&
@@ -268,35 +288,38 @@ jobs:
               const inputRunPiko = isSchedule ? true : (process.env.INPUT_RUN_PIKO !== "false");
               const inputRunAnddea = isSchedule ? true : (process.env.INPUT_RUN_ANDDEA !== "false");
               const inputRunDevanced = isSchedule ? true : (process.env.INPUT_RUN_DEVANCED !== "false");
+              const inputRunHushfacebook = isSchedule ? true : (process.env.INPUT_RUN_HUSHFACEBOOK !== "false");
 
               const runMorphe = inputRunMorphe && (force || morpheChanged || morpheMissing);
               const runPiko = inputRunPiko && (force || pikoChanged || pikoMissing);
               const runAnddea = inputRunAnddea && (force || anddeaChanged || anddeaMissing);
               const runDevanced = inputRunDevanced && (force || devancedChanged || devancedMissing || devancedApkChanged || devancedApkMissing);
+              const runHushfacebook = inputRunHushfacebook && (force || hushfacebookChanged || hushfacebookMissing);
 
               const devancedApkSource = devancedApkChanged ? (latestGooglePhotosApk || "latest") : "recommended";
 
-              const shouldBuild = runMorphe || runPiko || runAnddea || runDevanced;
+              const shouldBuild = runMorphe || runPiko || runAnddea || runDevanced || runHushfacebook;
 
               const buildApks = isSchedule ? true : (process.env.INPUT_BUILD_APKS !== "false");
               const buildRootModules = isSchedule ? true : (process.env.INPUT_BUILD_ROOT_MODULES !== "false");
               const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
 
-              console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}, GooglePhotosAPK=${recordedGooglePhotosApk || "none"}`);
-              console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}, GooglePhotosAPK=${latestGooglePhotosApk || "none"}`);
-              console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}, GooglePhotosAPK=${devancedApkChanged} (missing=${devancedApkMissing})`);
-              console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}, De-Vanced=${devancedMissing}`);
+              console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}, HushFacebook=${state.hushfacebook}, GooglePhotosAPK=${recordedGooglePhotosApk || "none"}`);
+              console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}, HushFacebook=${hushfacebook}, GooglePhotosAPK=${latestGooglePhotosApk || "none"}`);
+              console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}, HushFacebook=${hushfacebookChanged}, GooglePhotosAPK=${devancedApkChanged} (missing=${devancedApkMissing})`);
+              console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}, De-Vanced=${devancedMissing}, HushFacebook=${hushfacebookMissing}`);
               console.log(`Build trigger decision: shouldBuild=${shouldBuild} (force=${force})`);
-              console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag}), devanced=${runDevanced} (${devancedReleaseTag})`);
+              console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag}), devanced=${runDevanced} (${devancedReleaseTag}), hushfacebook=${runHushfacebook} (${hushfacebookReleaseTag})`);
               console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}, devancedApkSource=${devancedApkSource}`);
 
               if (shouldBuild) {
-                const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged || devancedApkChanged;
+                const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged || hushfacebookChanged || devancedApkChanged;
                 const newState = {
                   morphe: (runMorphe || morpheChanged) ? morphe : (state.morphe || morphe),
                   piko: (runPiko || pikoChanged) ? piko : (state.piko || piko),
                   anddea: (runAnddea || anddeaChanged) ? anddea : (state.anddea || anddea),
                   devanced: (runDevanced || devancedChanged) ? devanced : (state.devanced || devanced),
+                  hushfacebook: (runHushfacebook || hushfacebookChanged) ? hushfacebook : (state.hushfacebook || hushfacebook),
                   devanced_google_photos_apk: latestGooglePhotosApk || recordedGooglePhotosApk || state.devanced_google_photos_apk || "",
                   updated_at: anyChanged ? new Date().toISOString() : (state.updated_at || new Date().toISOString())
                 };
@@ -311,10 +334,12 @@ jobs:
                 fs.appendFileSync(outputFile, `piko_release_tag=${pikoReleaseTag}\n`);
                 fs.appendFileSync(outputFile, `anddea_release_tag=${anddeaReleaseTag}\n`);
                 fs.appendFileSync(outputFile, `devanced_release_tag=${devancedReleaseTag}\n`);
+                fs.appendFileSync(outputFile, `hushfacebook_release_tag=${hushfacebookReleaseTag}\n`);
                 fs.appendFileSync(outputFile, `morphe_tag=${morphe}\n`);
                 fs.appendFileSync(outputFile, `piko_tag=${piko}\n`);
                 fs.appendFileSync(outputFile, `anddea_tag=${anddea}\n`);
                 fs.appendFileSync(outputFile, `devanced_tag=${devanced}\n`);
+                fs.appendFileSync(outputFile, `hushfacebook_tag=${hushfacebook}\n`);
                 fs.appendFileSync(outputFile, `devanced_google_photos_apk=${latestGooglePhotosApk || recordedGooglePhotosApk}\n`);
                 fs.appendFileSync(outputFile, `devanced_apk_changed=${devancedApkChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `devanced_apk_source=${devancedApkSource}\n`);
@@ -322,10 +347,12 @@ jobs:
                 fs.appendFileSync(outputFile, `piko_changed=${pikoChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `anddea_changed=${anddeaChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `devanced_changed=${devancedChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `hushfacebook_changed=${hushfacebookChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_devanced=${runDevanced ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `run_hushfacebook=${runHushfacebook ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `build_apks=${buildApks ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `build_root_modules=${buildRootModules ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `youtube_abis=${youtubeAbis}\n`);
@@ -338,6 +365,8 @@ jobs:
 
       - name: Update Patch Options in Config Folder
         if: steps.check.outputs.should_build == 'true'
+        env:
+          HUSHFACEBOOK_PATCHES_VERSION: ${{ steps.check.outputs.hushfacebook_tag }}
         run: |
           if [ "${{ steps.check.outputs.run_morphe }}" = "true" ] || [ "${{ steps.check.outputs.morphe_changed }}" = "true" ]; then
             echo "Updating Morphe options..."
@@ -354,6 +383,10 @@ jobs:
           if [ "${{ steps.check.outputs.run_devanced }}" = "true" ] || [ "${{ steps.check.outputs.devanced_changed }}" = "true" ]; then
             echo "Updating De-Vanced options..."
             node scripts/devanced-builder.mjs options --refresh-tools || true
+          fi
+          if [ "${{ steps.check.outputs.run_hushfacebook }}" = "true" ] || [ "${{ steps.check.outputs.hushfacebook_changed }}" = "true" ]; then
+            echo "Updating HushFacebook options..."
+            node scripts/hushfacebook-builder.mjs options --refresh-tools || true
           fi
 
       - name: Commit and Push Updated Config Files
@@ -440,5 +473,21 @@ jobs:
       apk_fallback_to_latest: true
       build_apks: ${{ needs.check-and-update-configs.outputs.build_apks == 'true' }}
       build_root_modules: ${{ needs.check-and-update-configs.outputs.build_root_modules == 'true' }}
+      create_release: true
+      upload_artifact: true
+
+  build-hushfacebook:
+    name: Build HushFacebook patched Facebook APK
+    needs: [check-and-update-configs, build-devanced]
+    if: |
+      always() && !cancelled() &&
+      needs.check-and-update-configs.result == 'success' &&
+      needs.check-and-update-configs.outputs.should_build == 'true' &&
+      needs.check-and-update-configs.outputs.run_hushfacebook == 'true'
+    uses: ./.github/workflows/build-hushfacebook.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ needs.check-and-update-configs.outputs.hushfacebook_release_tag }}
+      patches_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_tag || 'stable' }}
       create_release: true
       upload_artifact: true

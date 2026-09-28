@@ -34,6 +34,37 @@ on:
         required: true
         type: boolean
         default: true
+      release_tag:
+        description: "Optional release tag override"
+        required: false
+        default: ""
+
+  workflow_call:
+    inputs:
+      cli_version:
+        type: string
+        default: "dev"
+      patches_version:
+        type: string
+        default: "stable"
+      facebook_version:
+        type: string
+        default: ""
+      continue_on_error:
+        type: boolean
+        default: true
+      include_patches:
+        type: string
+        default: ""
+      create_release:
+        type: boolean
+        default: true
+      upload_artifact:
+        type: boolean
+        default: true
+      release_tag:
+        type: string
+        default: ""
 
 env:
   APK_SOURCE: apkmirror,apkpure
@@ -133,6 +164,7 @@ jobs:
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
           HUSHFACEBOOK_PATCHES_VERSION: ${{ inputs.patches_version }}
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
@@ -142,7 +174,8 @@ jobs:
             release_prerelease_flag="--prerelease"
           fi
 
-          echo "RELEASE_TAG=hushfacebook-${release_stamp}-${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          release_tag="${INPUT_RELEASE_TAG:-hushfacebook-${release_stamp}-${GITHUB_RUN_NUMBER}}"
+          echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
           echo "RELEASE_NAME=HushFacebook patched Facebook ${resolved_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
           node scripts/hushfacebook-builder.mjs release-notes > release-notes.md
@@ -154,8 +187,13 @@ jobs:
         run: |
           release_args=()
           if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then release_args+=("$RELEASE_PRERELEASE_FLAG"); fi
-          gh release create "$RELEASE_TAG" output/*.apk "${release_args[@]}" \
-            --title "$RELEASE_NAME" --notes-file release-notes.md
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" output/*.apk --clobber
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file release-notes.md
+          else
+            gh release create "$RELEASE_TAG" output/*.apk "${release_args[@]}" \
+              --title "$RELEASE_NAME" --notes-file release-notes.md
+          fi
 
       - name: Upload patched Facebook APK
         if: ${{ inputs.upload_artifact }}
