@@ -110,13 +110,23 @@ def main() -> int:
     parser.add_argument("--source-page", required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--version", default="")
+    parser.add_argument("--version-code", default="", help="Download an exact APKPure variant version code directly")
     parser.add_argument("--arch", default="")
     parser.add_argument("--min-android-api", type=int, default=0)
     args = parser.parse_args()
 
     api = ApkPure()
-    versions = get_versions(api, args.source_page)
-    selected = select_version(versions, args.version)
+    versions = []
+    if args.version_code:
+        selected = {
+            "version": args.version or "unknown",
+            "version_code": args.version_code,
+            "file_type": "APK",
+            "download_link": "",
+        }
+    else:
+        versions = get_versions(api, args.source_page)
+        selected = select_version(versions, args.version)
     if not selected:
         available = ", ".join(item["version"] for item in versions[:20])
         requested = args.version or "latest"

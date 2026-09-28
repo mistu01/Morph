@@ -179,7 +179,6 @@ jobs:
       - name: Build patched Messenger APK
         env:
           BUILD_TARGETS: messenger
-          APK_SOURCE: apkmirror
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
           MESSENGER_APK_VERSION: ${{ inputs.messenger_version }}
@@ -197,6 +196,7 @@ jobs:
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
           BUILD_TARGETS: facebook,messenger
+          MORPHE_EXTRA_ARGS_JSON: '[]'
         run: node scripts/hushfacebook-builder.mjs release-check
 
       - name: Prepare release metadata
