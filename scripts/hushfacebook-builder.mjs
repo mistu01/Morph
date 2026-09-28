@@ -45,7 +45,7 @@ if (isMain) {
     ...process.env,
     MORPHE_BUILDER: "hushfacebook",
     BUILD_TARGETS: parsedTargets.join(","),
-    APK_SOURCE: env("APK_SOURCE") || "apkmirror",
+    APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
     APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
     APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
     APKMIRROR_ARCH: "arm64-v8a",
