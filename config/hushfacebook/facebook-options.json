@@ -1,0 +1,140 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-09-29T05:22:41.143322671Z",
+            "source": "patches.mpp",
+            "sha256": "e8d05ccfc9c09092190fbd9fdb715eb47d60f5b24ad05cd3f50cc51cda73b76f"
+        },
+        "patches": {
+            "Disable Audience Network": {
+                "enabled": true
+            },
+            "Block background ad prefetch": {
+                "enabled": true
+            },
+            "Hide sponsored Marketplace listings": {
+                "enabled": true
+            },
+            "Hide sponsored posts": {
+                "enabled": true
+            },
+            "Hide sponsored profile posts": {
+                "enabled": true
+            },
+            "Hide sponsored reels": {
+                "enabled": true
+            },
+            "Hide sponsored search results": {
+                "enabled": true
+            },
+            "Hide sponsored stories": {
+                "enabled": true
+            },
+            "Block ad telemetry": {
+                "enabled": true
+            },
+            "Hide the Get Messenger card": {
+                "enabled": true
+            },
+            "Install beside Meta's apps": {
+                "enabled": true
+            },
+            "Default comment order": {
+                "enabled": false
+            },
+            "Tag suggestions only after @": {
+                "enabled": false
+            },
+            "Download any reel": {
+                "enabled": true
+            },
+            "Download any story": {
+                "enabled": true
+            },
+            "Download any video": {
+                "enabled": false
+            },
+            "Use the phone's emoji": {
+                "enabled": false
+            },
+            "Hide AI-detected posts": {
+                "enabled": true
+            },
+            "Hide Reels in the feed": {
+                "enabled": false
+            },
+            "Block background-return feed refresh": {
+                "enabled": false
+            },
+            "Hide Stories tray": {
+                "enabled": false
+            },
+            "Hide suggested and promoted posts": {
+                "enabled": true
+            },
+            "Hide posts by words": {
+                "enabled": true
+            },
+            "Use the system font": {
+                "enabled": false
+            },
+            "AMOLED black theme": {
+                "enabled": false
+            },
+            "Material You theme": {
+                "enabled": false
+            },
+            "Resume long videos": {
+                "enabled": true
+            },
+            "Tap to play": {
+                "enabled": false
+            },
+            "Hide Menu promotions": {
+                "enabled": true
+            },
+            "Hushfacebook in the Menu": {
+                "enabled": true
+            },
+            "Open links in external browser": {
+                "enabled": true
+            },
+            "Restore screens on re-signed builds": {
+                "enabled": true
+            },
+            "Hushfacebook settings": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Marketplace only": {
+                "enabled": true
+            },
+            "Open on a chosen tab": {
+                "enabled": false
+            },
+            "Block promotional notifications": {
+                "enabled": true
+            },
+            "Clean up Reels": {
+                "enabled": false
+            },
+            "Don't send reel watch history": {
+                "enabled": false
+            },
+            "Hide Meta AI in search": {
+                "enabled": true
+            },
+            "Stop Story auto-advance": {
+                "enabled": false
+            },
+            "Hide suggested stories": {
+                "enabled": true
+            },
+            "Stop update prompts": {
+                "enabled": true
+            }
+        }
+    }
+]
