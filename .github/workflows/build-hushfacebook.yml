@@ -23,15 +23,19 @@ on:
         description: "Messenger APK version (blank uses the version recommended by HushMessenger)"
         required: false
         default: ""
+      messenger_apk_url:
+        description: "Direct URL to a stock arm64 Messenger APK with an accepted version code (bypasses mirror lookups)"
+        required: false
+        default: ""
       continue_on_error:
         description: "Continue when an individual compatible patch fails"
         required: true
         type: boolean
         default: true
       include_patches:
-        description: "Comma-separated disabled patches to enable for this run"
+        description: "Comma-separated disabled patches to enable for this run (defaults enable the extra Facebook patches)"
         required: false
-        default: ""
+        default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @"
       create_release:
         description: "Create a GitHub Release and attach the patched APK"
         required: true
@@ -64,12 +68,15 @@ on:
       messenger_version:
         type: string
         default: ""
+      messenger_apk_url:
+        type: string
+        default: ""
       continue_on_error:
         type: boolean
         default: true
       include_patches:
         type: string
-        default: ""
+        default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @"
       create_release:
         type: boolean
         default: true
@@ -182,6 +189,7 @@ jobs:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
           MESSENGER_APK_VERSION: ${{ inputs.messenger_version }}
+          MESSENGER_APK_URL: ${{ inputs.messenger_apk_url }}
           CONTINUE_ON_ERROR: "false"
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}

@@ -5,6 +5,16 @@ set -euo pipefail
 # downloaded APK's version code. HushMessenger only accepts specific unmodified
 # arm64 version codes for each release; this script parses the supported codes
 # from the failure log, downloads an APK with exactly that code, and retries.
+#
+# Variant availability (verified 2026-09-30): for Messenger 580.0.0.49.91,
+# APKPure's mobile catalog API (api.pureapk.com) lists variants 346013445,
+# 346013442, 346013438, 346013434 and 346013421. apkeep only downloads the
+# first variant (346013445, not accepted by HushMessenger), so the exact-code
+# loop uses scripts/apkpure_api_download.py to pick an accepted variant code
+# straight from the same catalog. apkpure.com website mirrors stay
+# Cloudflare/IP-blocked from GitHub runners; if APKPure drops the accepted
+# variants or the patcher rejects the download, set MESSENGER_APK_URL to a
+# manually obtained stock arm64 APK with an accepted version code.
 
 build_log=".cache/hushmessenger-build.log"
 mkdir -p .cache
@@ -85,31 +95,52 @@ for version_code in $version_codes; do
       # past runs, so try it before skipping this version code. The download is
       # kept even if its version code differs slightly (bundle metadata); the
       # patcher re-validates the code anyway.
-      echo "Exact-code downloads failed; trying apkeep for Messenger $compatible_version."
-      apkeep_dir=".cache/hushmessenger-apkeep-exact-$version_code"
-      rm -rf "$apkeep_dir"
-      mkdir -p "$apkeep_dir"
-      apkeep_bin=".cache/tools/apkeep"
-      apkeep_apk=""
-      if [ -x "$apkeep_bin" ] && "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure "$apkeep_dir"; then
-        apkeep_apk="$(find "$apkeep_dir" -maxdepth 2 -type f \( -iname '*.apk' -o -iname '*.xapk' \) -print -quit)"
-      fi
-      if [ -n "$apkeep_apk" ]; then
-        download_result="$(node -e 'process.stdout.write(JSON.stringify({ path: process.argv[1], versionCode: "" }))' "$apkeep_apk")"
+      echo "Exact-code page downloads failed; trying APKPure's mobile catalog API for version code $version_code."
+      api_dir=".cache/hushmessenger-apkpure-api-$version_code"
+      rm -rf "$api_dir"
+      mkdir -p "$api_dir"
+      api_result=""
+      if api_result="$(python scripts/apkpure_api_download.py \
+        --app-name Messenger \
+        --package-name com.facebook.orca \
+        --out-dir "$api_dir" \
+        --version "$compatible_version" \
+        --version-code "$version_code" \
+        --expect-arch arm64-v8a)"; then
+        : # api_result holds the JSON payload
       else
-        echo "No source could download Messenger version code $version_code; trying the next supported variant."
-        continue
+        echo "APKPure's mobile catalog API could not provide version code $version_code; trying apkeep."
+        apkeep_dir=".cache/hushmessenger-apkeep-exact-$version_code"
+        rm -rf "$apkeep_dir"
+        mkdir -p "$apkeep_dir"
+        apkeep_bin=".cache/tools/apkeep"
+        apkeep_apk=""
+        if [ -x "$apkeep_bin" ] && "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure "$apkeep_dir"; then
+          apkeep_apk="$(find "$apkeep_dir" -maxdepth 2 -type f \( -iname '*.apk' -o -iname '*.xapk' \) -print -quit)"
+        fi
+        if [ -n "$apkeep_apk" ]; then
+          # apkeep downloads the first variant of the version (usually not an
+          # accepted code); report an empty versionCode so the caller does not
+          # discard it before the patcher re-validates the file.
+          download_result="$(node -e 'process.stdout.write(JSON.stringify({ path: process.argv[1], versionCode: "" }))' "$apkeep_apk")"
+        else
+          echo "No source could download Messenger version code $version_code; trying the next supported variant."
+          continue
+        fi
+      fi
+      if [ -z "${download_result:-}" ]; then
+        download_result="$api_result"
       fi
     fi
   fi
   downloaded_code="$(node -e 'process.stdout.write(String(JSON.parse(process.argv[1]).versionCode || ""))' "$download_result")"
   apk_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$download_result")"
-  if [ -n "$downloaded_code" ] && [ "$downloaded_code" != "$version_code" ]; then
-    echo "Downloaded Messenger metadata says version code $downloaded_code; expected $version_code. Skipping this file."
-    continue
-  fi
   if [ ! -f "$apk_path" ]; then
     echo "Downloaded Messenger file is missing: $apk_path. Skipping this version code."
+    continue
+  fi
+  if [ -n "$downloaded_code" ] && [ "$downloaded_code" != "$version_code" ]; then
+    echo "Downloaded Messenger metadata says version code $downloaded_code; expected $version_code. Skipping this file."
     continue
   fi
 
@@ -164,4 +195,7 @@ else
 fi
 
 echo "Messenger build failed for every exact version code HushMessenger reported. No name-only fallback APK will be patched or published."
+echo "HushMessenger $compatible_version accepts arm64 version codes: $version_codes."
+echo "APKPure's mobile catalog and APKMirror/APKCombo website mirrors carried no acceptable variant for this version; MESSENGER_APK_URL is the remaining workaround."
+echo "Workaround: download a stock arm64 Messenger $compatible_version build with one of the accepted version codes manually, upload it to a private URL, and set the messenger_apk_url workflow input to it."
 exit 1
