@@ -321,9 +321,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:55:03.395319Z",
-            "updated_at": "2026-09-26T04:36:20.760648586Z",
+            "updated_at": "2026-09-29T05:22:30.707232399Z",
             "source": "patches.mpp",
-            "sha256": "175d9564d1e34fc93fa2d78dc072c7b44467fb22cd6eb8b32619e4b2b5273bc4"
+            "sha256": "deb9dbe2fe1d70300d3fe4b6c99c0042a6f3095dfb932e5d79ca40eaeb59f454"
         },
         "patches": {
             "Spoof Wi-Fi connection": {
@@ -390,9 +390,6 @@
             "Enable gradient loading screen": {
                 "enabled": true
             },
-            "Hook YouTube Music actions": {
-                "enabled": true
-            },
             "Navigation bar components": {
                 "enabled": true
             },
@@ -408,9 +405,6 @@
                     "lightThemeBackgroundColor": "@color/yt_white3",
                     "strokeColor": ""
                 }
-            },
-            "Disable splash animation": {
-                "enabled": true
             },
             "Spoof app version": {
                 "enabled": true
@@ -430,24 +424,21 @@
             "Reload video": {
                 "enabled": true
             },
+            "Save to Watch later": {
+                "enabled": true
+            },
             "Custom Shorts action buttons": {
                 "enabled": true,
                 "options": {
                     "iconType": "cairo"
                 }
             },
-            "Custom branding icon for YouTube": {
-                "enabled": false,
+            "Custom branding for YouTube": {
+                "enabled": true,
                 "options": {
-                    "appIcon": "xisr_winter",
-                    "changeSplashIcon": true,
-                    "restoreOldSplashAnimation": false
-                }
-            },
-            "Custom branding name for YouTube": {
-                "enabled": false,
-                "options": {
-                    "appName": "RVX"
+                    "customName": null,
+                    "appIcon": "original",
+                    "customIcon": null
                 }
             },
             "Hide Shorts dimming": {
@@ -459,23 +450,23 @@
                     "doubleTapLengthArrays": "3, 5, 10, 15, 20, 30, 60, 120, 180"
                 }
             },
-            "Custom header for YouTube": {
-                "enabled": false,
-                "options": {
-                    "customHeader": "custom_branding_icon"
-                }
-            },
             "Settings menu filter": {
+                "enabled": true
+            },
+            "Open channel of live avatar": {
+                "enabled": true
+            },
+            "Override YouTube Music buttons": {
                 "enabled": true
             },
             "Playback in feeds": {
                 "enabled": true
             },
-            "Force player buttons background": {
-                "enabled": true,
-                "options": {
-                    "BackgroundColor": "?ytOverlayBackgroundMediumLight"
-                }
+            "Disable playlist autoplay": {
+                "enabled": true
+            },
+            "Disable scrolling speed limit": {
+                "enabled": true
             },
             "Hide shortcuts": {
                 "enabled": false,
@@ -486,14 +477,12 @@
                     "shorts": true
                 }
             },
-            "MaterialYou": {
-                "enabled": false
-            },
             "Theme": {
                 "enabled": false,
                 "options": {
-                    "darkThemeBackgroundColor": "@android:color/black",
-                    "lightThemeBackgroundColor": "@android:color/white"
+                    "darkThemeColor": "#FF000000",
+                    "lightThemeColor": "#FFFFFFFF",
+                    "precompileLegacyThemes": false
                 }
             },
             "Translations for YouTube": {
@@ -529,7 +518,13 @@
             "Open links externally": {
                 "enabled": true
             },
+            "PoToken provider": {
+                "enabled": true
+            },
             "Disable QUIC protocol": {
+                "enabled": true
+            },
+            "App refresh rate": {
                 "enabled": true
             },
             "Change share sheet": {
@@ -566,6 +561,9 @@
                 "enabled": true
             },
             "Fullscreen components": {
+                "enabled": true
+            },
+            "Fullscreen video scale": {
                 "enabled": true
             },
             "Disable haptic feedback": {
@@ -629,6 +627,12 @@
                 "options": {
                     "NewSegmentAlignment": "right"
                 }
+            },
+            "Gemini": {
+                "enabled": true
+            },
+            "Remember livestream playback position": {
+                "enabled": true
             },
             "Video playback": {
                 "enabled": true

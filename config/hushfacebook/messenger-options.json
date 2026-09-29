@@ -1,0 +1,92 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-09-29T05:22:42.984448941Z",
+            "source": "patches.mpp",
+            "sha256": "8ce9bfacfe293973aff7586dd85e3cfe0a11101d0caef1dca2878b58618893f4"
+        },
+        "patches": {
+            "Install beside Meta apps": {
+                "enabled": true
+            },
+            "Restore screens on re-signed builds": {
+                "enabled": true
+            },
+            "Hide inbox ads": {
+                "enabled": true
+            },
+            "Hide People You May Know": {
+                "enabled": true
+            },
+            "Hide friend request cards": {
+                "enabled": true
+            },
+            "Hide growth prompts": {
+                "enabled": true
+            },
+            "Hide inbox promotions": {
+                "enabled": true
+            },
+            "Hide stories and notes": {
+                "enabled": true
+            },
+            "Hide inbox tabs": {
+                "enabled": true
+            },
+            "Hide Facebook shortcuts": {
+                "enabled": true
+            },
+            "Hide Meta AI": {
+                "enabled": true
+            },
+            "Hide Chat Moments": {
+                "enabled": true
+            },
+            "Hide Reels badge": {
+                "enabled": true
+            },
+            "Hide AI sticker tools": {
+                "enabled": true
+            },
+            "Hide avatar stickers": {
+                "enabled": true
+            },
+            "Hide chat promotions": {
+                "enabled": true
+            },
+            "Hide business reply suggestions": {
+                "enabled": true
+            },
+            "Hide business typing suggestions": {
+                "enabled": true
+            },
+            "Hide event prompts": {
+                "enabled": true
+            },
+            "Hide typing indicator": {
+                "enabled": true
+            },
+            "Open web links externally": {
+                "enabled": true
+            },
+            "Allow chat bubbles": {
+                "enabled": true
+            },
+            "Use system emoji": {
+                "enabled": true
+            },
+            "Allow screenshots": {
+                "enabled": true
+            },
+            "Hide read receipts": {
+                "enabled": true
+            },
+            "Keep unsent messages": {
+                "enabled": true
+            },
+            "Open settings from menu": {
+                "enabled": true
+            }
+        }
+    }
+]
