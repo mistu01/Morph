@@ -2,8 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
+            "updated_at": "2026-09-30T05:10:35.829196243Z",
             "source": "patches.mpp",
-            "sha256": "e8d05ccfc9c09092190fbd9fdb715eb47d60f5b24ad05cd3f50cc51cda73b76f"
+            "sha256": "3709a838228b4ecdb73e3d83533bb450a0f0e4f98324cbf67116f3d3e133710a"
         },
         "patches": {
             "Disable Audience Network": {
@@ -34,6 +35,9 @@
                 "enabled": true
             },
             "Hide the Get Messenger card": {
+                "enabled": true
+            },
+            "Open Messenger from the top bar": {
                 "enabled": true
             },
             "Install beside Meta's apps": {
@@ -84,6 +88,12 @@
             "Material You theme": {
                 "enabled": false
             },
+            "Default playback quality": {
+                "enabled": false
+            },
+            "Keep the reel speed": {
+                "enabled": true
+            },
             "Resume long videos": {
                 "enabled": true
             },
@@ -111,6 +121,12 @@
             "Marketplace only": {
                 "enabled": true
             },
+            "Hide the Reels tab": {
+                "enabled": false
+            },
+            "Hide the Reels tab dot": {
+                "enabled": true
+            },
             "Open on a chosen tab": {
                 "enabled": false
             },
@@ -120,6 +136,12 @@
             "Clean up Reels": {
                 "enabled": false
             },
+            "Turn off double tap to like": {
+                "enabled": false
+            },
+            "Hold a reel for 2x": {
+                "enabled": false
+            },
             "Don't send reel watch history": {
                 "enabled": false
             },
@@ -127,6 +149,9 @@
                 "enabled": true
             },
             "Stop Story auto-advance": {
+                "enabled": false
+            },
+            "View stories anonymously": {
                 "enabled": false
             },
             "Hide suggested stories": {
