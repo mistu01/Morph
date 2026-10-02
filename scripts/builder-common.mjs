@@ -91,62 +91,6 @@ export function runMorphe({ root, command, args, childEnv, builderName }) {
 }
 
 export function generateReleaseNotes({ root, heading, patchesRepo, patchesSources }) {
-  const patchLines = [];
-  let patchVersionsConfig = {};
-  try {
-    patchVersionsConfig = JSON.parse(fs.readFileSync(join(root, "config/patch-versions.json"), "utf8"));
-  } catch {}
-
-  if (Array.isArray(patchesSources) && patchesSources.length) {
-    for (const source of patchesSources) {
-      let tag = source.tag || (source.envVar && process.env[source.envVar]) || (source.configKey && patchVersionsConfig[source.configKey]) || "latest";
-      let url = source.url || `https://github.com/${source.repo}/releases`;
-      const metaPath = source.metaFile ? join(root, source.metaFile) : join(root, ".cache/tools/patches.json");
-      try {
-        const patchesMeta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-        tag = patchesMeta.tag || tag;
-        url = patchesMeta.url || `https://github.com/${source.repo}/releases/tag/${encodeURIComponent(tag)}`;
-      } catch {
-        if (tag && tag !== "latest") {
-          url = `https://github.com/${source.repo}/releases/tag/${encodeURIComponent(tag)}`;
-        }
-      }
-      patchLines.push(`- **${source.label || "Patches"}**: [${source.repo} ${tag}](${url})`);
-    }
-  } else if (patchesRepo) {
-    let patchesTag = process.env.PATCHES_VERSION || "latest";
-    let patchesUrl = `https://github.com/${patchesRepo}/releases`;
-    try {
-      const patchesMeta = JSON.parse(fs.readFileSync(join(root, ".cache/tools/patches.json"), "utf8"));
-      patchesTag = patchesMeta.tag || patchesTag;
-      patchesUrl = patchesMeta.url || `https://github.com/${patchesRepo}/releases/tag/${encodeURIComponent(patchesTag)}`;
-    } catch {
-      if (patchesTag && patchesTag !== "latest") {
-        patchesUrl = `https://github.com/${patchesRepo}/releases/tag/${encodeURIComponent(patchesTag)}`;
-      }
-    }
-    patchLines.push(`- **Patches**: [${patchesRepo} ${patchesTag}](${patchesUrl})`);
-  }
-
-  let cliVersion = process.env.MORPHE_CLI_VERSION || "dev";
-  try {
-    const cliMeta = JSON.parse(fs.readFileSync(join(root, ".cache/tools/morphe-cli.json"), "utf8"));
-    cliVersion = cliMeta.tag || cliVersion;
-  } catch {}
-
-  const date = new Date().toUTCString();
-
-  const lines = [
-    `## ${heading}`,
-    "",
-    ...patchLines,
-    `- **Morphe CLI**: ${cliVersion}`,
-    `- **Date**: ${date}`,
-    "",
-    "### Compiled Artifacts",
-    "",
-  ];
-
   const apps = {};
 
   function getApp(id, label) {
@@ -208,6 +152,66 @@ export function generateReleaseNotes({ root, heading, patchesRepo, patchesSource
       });
     } catch {}
   }
+
+  const patchLines = [];
+  let patchVersionsConfig = {};
+  try {
+    patchVersionsConfig = JSON.parse(fs.readFileSync(join(root, "config/patch-versions.json"), "utf8"));
+  } catch {}
+
+  if (Array.isArray(patchesSources) && patchesSources.length) {
+    for (const source of patchesSources) {
+      const metaPath = source.metaFile ? join(root, source.metaFile) : join(root, ".cache/tools/patches.json");
+      const hasMeta = fs.existsSync(metaPath);
+      if (source.appId && !hasMeta && !apps[source.appId]) {
+        continue;
+      }
+      let tag = source.tag || (source.envVar && process.env[source.envVar]) || (source.configKey && patchVersionsConfig[source.configKey]) || "latest";
+      let url = source.url || `https://github.com/${source.repo}/releases`;
+      try {
+        const patchesMeta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
+        tag = patchesMeta.tag || tag;
+        url = patchesMeta.url || `https://github.com/${source.repo}/releases/tag/${encodeURIComponent(tag)}`;
+      } catch {
+        if (tag && tag !== "latest") {
+          url = `https://github.com/${source.repo}/releases/tag/${encodeURIComponent(tag)}`;
+        }
+      }
+      patchLines.push(`- **${source.label || "Patches"}**: [${source.repo} ${tag}](${url})`);
+    }
+  } else if (patchesRepo) {
+    let patchesTag = process.env.PATCHES_VERSION || "latest";
+    let patchesUrl = `https://github.com/${patchesRepo}/releases`;
+    try {
+      const patchesMeta = JSON.parse(fs.readFileSync(join(root, ".cache/tools/patches.json"), "utf8"));
+      patchesTag = patchesMeta.tag || patchesTag;
+      patchesUrl = patchesMeta.url || `https://github.com/${patchesRepo}/releases/tag/${encodeURIComponent(patchesTag)}`;
+    } catch {
+      if (patchesTag && patchesTag !== "latest") {
+        patchesUrl = `https://github.com/${patchesRepo}/releases/tag/${encodeURIComponent(patchesTag)}`;
+      }
+    }
+    patchLines.push(`- **Patches**: [${patchesRepo} ${patchesTag}](${patchesUrl})`);
+  }
+
+  let cliVersion = process.env.MORPHE_CLI_VERSION || "dev";
+  try {
+    const cliMeta = JSON.parse(fs.readFileSync(join(root, ".cache/tools/morphe-cli.json"), "utf8"));
+    cliVersion = cliMeta.tag || cliVersion;
+  } catch {}
+
+  const date = new Date().toUTCString();
+
+  const lines = [
+    `## ${heading}`,
+    "",
+    ...patchLines,
+    `- **Morphe CLI**: ${cliVersion}`,
+    `- **Date**: ${date}`,
+    "",
+    "### Compiled Artifacts",
+    "",
+  ];
 
   const appKeys = Object.keys(apps).sort();
   if (appKeys.length === 0) {

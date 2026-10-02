@@ -52,11 +52,11 @@ on:
         type: boolean
         default: true
       run_hushfacebook:
-        description: "Build patched Facebook and Messenger APKs from Hush patch sources"
+        description: "Build patched Facebook, Messenger, Threads, and Instagram APKs from Hush patch sources"
         type: boolean
         default: true
       check_apk_releases:
-        description: "Check for new APK releases (e.g. Google Photos) in addition to patch versions"
+        description: "Check for new APK releases (e.g. Google Photos, Facebook, Threads, Instagram) in addition to patch versions"
         type: boolean
         default: true
 
@@ -82,15 +82,23 @@ jobs:
       devanced_tag: ${{ steps.check.outputs.devanced_tag }}
       hushfacebook_tag: ${{ steps.check.outputs.hushfacebook_tag }}
       hushmessenger_tag: ${{ steps.check.outputs.hushmessenger_tag }}
+      hushthreads_tag: ${{ steps.check.outputs.hushthreads_tag }}
+      hushgram_tag: ${{ steps.check.outputs.hushgram_tag }}
       devanced_google_photos_apk: ${{ steps.check.outputs.devanced_google_photos_apk }}
       hushfacebook_facebook_apk: ${{ steps.check.outputs.hushfacebook_facebook_apk }}
+      hushfacebook_threads_apk: ${{ steps.check.outputs.hushfacebook_threads_apk }}
+      hushfacebook_instagram_apk: ${{ steps.check.outputs.hushfacebook_instagram_apk }}
       hushfacebook_apk_changed: ${{ steps.check.outputs.hushfacebook_apk_changed }}
+      hushthreads_apk_changed: ${{ steps.check.outputs.hushthreads_apk_changed }}
+      hushgram_apk_changed: ${{ steps.check.outputs.hushgram_apk_changed }}
       morphe_changed: ${{ steps.check.outputs.morphe_changed }}
       piko_changed: ${{ steps.check.outputs.piko_changed }}
       anddea_changed: ${{ steps.check.outputs.anddea_changed }}
       devanced_changed: ${{ steps.check.outputs.devanced_changed }}
       hushfacebook_changed: ${{ steps.check.outputs.hushfacebook_changed }}
       hushmessenger_changed: ${{ steps.check.outputs.hushmessenger_changed }}
+      hushthreads_changed: ${{ steps.check.outputs.hushthreads_changed }}
+      hushgram_changed: ${{ steps.check.outputs.hushgram_changed }}
       devanced_apk_changed: ${{ steps.check.outputs.devanced_apk_changed }}
       devanced_apk_source: ${{ steps.check.outputs.devanced_apk_source }}
       run_morphe: ${{ steps.check.outputs.run_morphe }}
@@ -143,6 +151,8 @@ jobs:
           devanced_latest="$(gh api repos/RookieEnough/De-Vanced/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
           hushfacebook_latest="$(gh api repos/SysAdminDoc/HushFacebook/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
           hushmessenger_latest="$(gh api repos/SysAdminDoc/HushMessenger/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+          hushthreads_latest="$(gh api repos/SysAdminDoc/HushThreads/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
+          hushgram_latest="$(gh api repos/SysAdminDoc/HushGram/releases --jq '[.[] | select(.draft == false)][0].tag_name' 2>/dev/null || echo '')"
 
           echo "Upstream latest Morphe: $morphe_latest"
           echo "Upstream latest Piko: $piko_latest"
@@ -150,6 +160,8 @@ jobs:
           echo "Upstream latest De-Vanced: $devanced_latest"
           echo "Upstream latest HushFacebook: $hushfacebook_latest"
           echo "Upstream latest HushMessenger: $hushmessenger_latest"
+          echo "Upstream latest HushThreads: $hushthreads_latest"
+          echo "Upstream latest HushGram: $hushgram_latest"
 
           export MORPHE_LATEST="$morphe_latest"
           export PIKO_LATEST="$piko_latest"
@@ -157,6 +169,8 @@ jobs:
           export DEVANCED_LATEST="$devanced_latest"
           export HUSHFACEBOOK_LATEST="$hushfacebook_latest"
           export HUSHMESSENGER_LATEST="$hushmessenger_latest"
+          export HUSHTHREADS_LATEST="$hushthreads_latest"
+          export HUSHGRAM_LATEST="$hushgram_latest"
 
           morphe_exists="false"
           piko_exists="false"
@@ -198,7 +212,25 @@ jobs:
           fi
           export HUSHFACEBOOK_ASSET_APK="$hushfacebook_asset_apk"
 
-          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, devanced=$devanced_exists (asset_apk=${devanced_asset_apk:-none}), hushfacebook=$hushfacebook_exists (asset_apk=${hushfacebook_asset_apk:-none}), combined($target_release_tag)=$combined_exists"
+          hushthreads_asset_apk=""
+          if [ "$hushfacebook_exists" = "true" ]; then
+            hushthreads_asset_apk="$(gh release view "hushfacebook-release" --json assets --jq '.assets[].name' 2>/dev/null | grep -oE 'threads-[0-9.]+-patched\.apk' | head -n1 | sed -E 's/threads-([0-9.]+)-patched\.apk/\1/' || true)"
+          fi
+          if [ -z "$hushthreads_asset_apk" ]; then
+            hushthreads_asset_apk="$(gh release list --limit 10 --json tagName --jq '.[].tagName' 2>/dev/null | grep -E '^hushfacebook' | head -n1 | xargs -I{} gh release view "{}" --json assets --jq '.assets[].name' 2>/dev/null | grep -oE 'threads-[0-9.]+-patched\.apk' | head -n1 | sed -E 's/threads-([0-9.]+)-patched\.apk/\1/' || true)"
+          fi
+          export HUSHTHREADS_ASSET_APK="$hushthreads_asset_apk"
+
+          hushgram_asset_apk=""
+          if [ "$hushfacebook_exists" = "true" ]; then
+            hushgram_asset_apk="$(gh release view "hushfacebook-release" --json assets --jq '.assets[].name' 2>/dev/null | grep -oE 'instagram-[0-9.]+-patched\.apk' | head -n1 | sed -E 's/instagram-([0-9.]+)-patched\.apk/\1/' || true)"
+          fi
+          if [ -z "$hushgram_asset_apk" ]; then
+            hushgram_asset_apk="$(gh release list --limit 10 --json tagName --jq '.[].tagName' 2>/dev/null | grep -E '^hushfacebook' | head -n1 | xargs -I{} gh release view "{}" --json assets --jq '.assets[].name' 2>/dev/null | grep -oE 'instagram-[0-9.]+-patched\.apk' | head -n1 | sed -E 's/instagram-([0-9.]+)-patched\.apk/\1/' || true)"
+          fi
+          export HUSHGRAM_ASSET_APK="$hushgram_asset_apk"
+
+          echo "Existing releases: morphe=$morphe_exists, piko=$piko_exists, anddea=$anddea_exists, devanced=$devanced_exists (asset_apk=${devanced_asset_apk:-none}), hushfacebook=$hushfacebook_exists (asset_fb=${hushfacebook_asset_apk:-none}, asset_threads=${hushthreads_asset_apk:-none}, asset_ig=${hushgram_asset_apk:-none}), combined($target_release_tag)=$combined_exists"
 
           node -e '
             (async () => {
@@ -240,19 +272,23 @@ jobs:
                 return "";
               }
 
-              async function getHushFacebookRecommendedVersion(tag) {
+              async function getRecommendedPatchVersion(repo, tag, defaultTag, pkgName) {
                 try {
-                  const t = tag || "v0.6.0";
-                  const res = await fetch(`https://raw.githubusercontent.com/SysAdminDoc/HushFacebook/${t}/patches-list.json`);
+                  const t = tag || defaultTag;
+                  const res = await fetch(`https://raw.githubusercontent.com/${repo}/${t}/patches-list.json`);
                   if (res.ok) {
                     const data = await res.json();
                     const patches = Array.isArray(data) ? data : (data.patches || []);
                     const versions = new Set();
                     for (const p of patches) {
                       const compat = p.compatiblePackages || {};
-                      const vList = Array.isArray(compat)
-                        ? (compat.find(c => c.packageName === "com.facebook.katana")?.versions || [])
-                        : (compat["com.facebook.katana"] || []);
+                      let vList = [];
+                      if (Array.isArray(compat)) {
+                        const match = compat.find(c => c.packageName === pkgName || c.name === pkgName);
+                        vList = match?.versions || [];
+                      } else if (compat && typeof compat === "object") {
+                        vList = compat[pkgName] || [];
+                      }
                       for (const v of vList) versions.add(String(v));
                     }
                     const sorted = [...versions].sort((a, b) => {
@@ -267,12 +303,25 @@ jobs:
                     return sorted[0] || "";
                   }
                 } catch (e) {
-                  console.warn("HushFacebook recommended version check failed:", e.message);
+                  console.warn(`${repo} recommended version check failed:`, e.message);
                 }
                 return "";
               }
 
-              let state = { morphe: "", piko: "", anddea: "", devanced: "", hushfacebook: "", hushmessenger: "", devanced_google_photos_apk: "", hushfacebook_facebook_apk: "" };
+              let state = {
+                morphe: "",
+                piko: "",
+                anddea: "",
+                devanced: "",
+                hushfacebook: "",
+                hushmessenger: "",
+                hushthreads: "",
+                hushgram: "",
+                devanced_google_photos_apk: "",
+                hushfacebook_facebook_apk: "",
+                hushfacebook_threads_apk: "",
+                hushfacebook_instagram_apk: ""
+              };
               try {
                 state = JSON.parse(fs.readFileSync("config/patch-versions.json", "utf8"));
               } catch {}
@@ -283,6 +332,8 @@ jobs:
               const devanced = (process.env.DEVANCED_LATEST || state.devanced || "").trim();
               const hushfacebook = (process.env.HUSHFACEBOOK_LATEST || state.hushfacebook || "").trim();
               const hushmessenger = (process.env.HUSHMESSENGER_LATEST || state.hushmessenger || "").trim();
+              const hushthreads = (process.env.HUSHTHREADS_LATEST || state.hushthreads || "").trim();
+              const hushgram = (process.env.HUSHGRAM_LATEST || state.hushgram || "").trim();
               const force = process.env.FORCE_RUN === "true";
 
               const checkApkReleases = process.env.EVENT_NAME === "schedule" ? true : (process.env.INPUT_CHECK_APK_RELEASES !== "false");
@@ -294,7 +345,7 @@ jobs:
 
               let latestFacebookApk = "";
               if (checkApkReleases) {
-                latestFacebookApk = (await getHushFacebookRecommendedVersion(hushfacebook || state.hushfacebook)) || "";
+                latestFacebookApk = (await getRecommendedPatchVersion("SysAdminDoc/HushFacebook", hushfacebook || state.hushfacebook, "v0.6.0", "com.facebook.katana")) || "";
               }
               const recordedFacebookApk = (state.hushfacebook_facebook_apk || process.env.HUSHFACEBOOK_ASSET_APK || "").trim();
               const hushfacebookApkChanged = Boolean(
@@ -307,6 +358,40 @@ jobs:
                 checkApkReleases &&
                 latestFacebookApk &&
                 !recordedFacebookApk
+              );
+
+              let latestThreadsApk = "";
+              if (checkApkReleases) {
+                latestThreadsApk = (await getRecommendedPatchVersion("SysAdminDoc/HushThreads", hushthreads || state.hushthreads, "v0.0.3", "com.instagram.barcelona")) || "";
+              }
+              const recordedThreadsApk = (state.hushfacebook_threads_apk || process.env.HUSHTHREADS_ASSET_APK || "").trim();
+              const hushthreadsApkChanged = Boolean(
+                checkApkReleases &&
+                latestThreadsApk &&
+                recordedThreadsApk &&
+                latestThreadsApk !== recordedThreadsApk
+              );
+              const hushthreadsApkMissing = Boolean(
+                checkApkReleases &&
+                latestThreadsApk &&
+                !recordedThreadsApk
+              );
+
+              let latestInstagramApk = "";
+              if (checkApkReleases) {
+                latestInstagramApk = (await getRecommendedPatchVersion("SysAdminDoc/HushGram", hushgram || state.hushgram, "v0.0.3", "com.instagram.android")) || "";
+              }
+              const recordedInstagramApk = (state.hushfacebook_instagram_apk || process.env.HUSHGRAM_ASSET_APK || "").trim();
+              const hushgramApkChanged = Boolean(
+                checkApkReleases &&
+                latestInstagramApk &&
+                recordedInstagramApk &&
+                latestInstagramApk !== recordedInstagramApk
+              );
+              const hushgramApkMissing = Boolean(
+                checkApkReleases &&
+                latestInstagramApk &&
+                !recordedInstagramApk
               );
 
               const releaseMode = process.env.RELEASE_MODE || "separate";
@@ -337,6 +422,8 @@ jobs:
               const devancedChanged = Boolean(devanced && (!state.devanced || devanced !== state.devanced));
               const hushfacebookChanged = Boolean(hushfacebook && (!state.hushfacebook || hushfacebook !== state.hushfacebook));
               const hushmessengerChanged = Boolean(hushmessenger && (!state.hushmessenger || hushmessenger !== state.hushmessenger));
+              const hushthreadsChanged = Boolean(hushthreads && (!state.hushthreads || hushthreads !== state.hushthreads));
+              const hushgramChanged = Boolean(hushgram && (!state.hushgram || hushgram !== state.hushgram));
 
               const devancedApkChanged = Boolean(
                 checkApkReleases &&
@@ -361,7 +448,20 @@ jobs:
               const runPiko = inputRunPiko && (force || pikoChanged || pikoMissing);
               const runAnddea = inputRunAnddea && (force || anddeaChanged || anddeaMissing);
               const runDevanced = inputRunDevanced && (force || devancedChanged || devancedMissing || devancedApkChanged || devancedApkMissing);
-              const runHushfacebook = inputRunHushfacebook && (force || hushfacebookChanged || hushmessengerChanged || hushfacebookMissing || hushfacebookApkChanged || hushfacebookApkMissing);
+              const runHushfacebook = inputRunHushfacebook && (
+                force ||
+                hushfacebookChanged ||
+                hushmessengerChanged ||
+                hushthreadsChanged ||
+                hushgramChanged ||
+                hushfacebookMissing ||
+                hushfacebookApkChanged ||
+                hushfacebookApkMissing ||
+                hushthreadsApkChanged ||
+                hushthreadsApkMissing ||
+                hushgramApkChanged ||
+                hushgramApkMissing
+              );
 
               const devancedApkSource = devancedApkChanged ? (latestGooglePhotosApk || "latest") : "recommended";
 
@@ -371,16 +471,18 @@ jobs:
               const buildRootModules = isSchedule ? true : (process.env.INPUT_BUILD_ROOT_MODULES !== "false");
               const youtubeAbis = process.env.INPUT_YOUTUBE_ABIS || "arm64-v8a";
 
-              console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}, HushFacebook=${state.hushfacebook}, HushMessenger=${state.hushmessenger}, GooglePhotosAPK=${recordedGooglePhotosApk || "none"}, FacebookAPK=${recordedFacebookApk || "none"}`);
-              console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}, HushFacebook=${hushfacebook}, HushMessenger=${hushmessenger}, GooglePhotosAPK=${latestGooglePhotosApk || "none"}, FacebookAPK=${latestFacebookApk || "none"}`);
-              console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}, HushFacebook=${hushfacebookChanged}, HushMessenger=${hushmessengerChanged}, GooglePhotosAPK=${devancedApkChanged} (missing=${devancedApkMissing}), FacebookAPK=${hushfacebookApkChanged} (missing=${hushfacebookApkMissing})`);
+              console.log(`Current state: Morphe=${state.morphe}, Piko=${state.piko}, Anddea=${state.anddea}, De-Vanced=${state.devanced}, HushFacebook=${state.hushfacebook}, HushMessenger=${state.hushmessenger}, HushThreads=${state.hushthreads}, HushGram=${state.hushgram}, GooglePhotosAPK=${recordedGooglePhotosApk || "none"}, FacebookAPK=${recordedFacebookApk || "none"}, ThreadsAPK=${recordedThreadsApk || "none"}, InstagramAPK=${recordedInstagramApk || "none"}`);
+              console.log(`Target state:  Morphe=${morphe}, Piko=${piko}, Anddea=${anddea}, De-Vanced=${devanced}, HushFacebook=${hushfacebook}, HushMessenger=${hushmessenger}, HushThreads=${hushthreads}, HushGram=${hushgram}, GooglePhotosAPK=${latestGooglePhotosApk || "none"}, FacebookAPK=${latestFacebookApk || "none"}, ThreadsAPK=${latestThreadsApk || "none"}, InstagramAPK=${latestInstagramApk || "none"}`);
+              console.log(`Version changes: Morphe=${morpheChanged}, Piko=${pikoChanged}, Anddea=${anddeaChanged}, De-Vanced=${devancedChanged}, HushFacebook=${hushfacebookChanged}, HushMessenger=${hushmessengerChanged}, HushThreads=${hushthreadsChanged}, HushGram=${hushgramChanged}, GooglePhotosAPK=${devancedApkChanged} (missing=${devancedApkMissing}), FacebookAPK=${hushfacebookApkChanged} (missing=${hushfacebookApkMissing}), ThreadsAPK=${hushthreadsApkChanged} (missing=${hushthreadsApkMissing}), InstagramAPK=${hushgramApkChanged} (missing=${hushgramApkMissing})`);
               console.log(`Releases missing: Morphe=${morpheMissing}, Piko=${pikoMissing}, Anddea=${anddeaMissing}, De-Vanced=${devancedMissing}, HushFacebook=${hushfacebookMissing}`);
               console.log(`Build trigger decision: shouldBuild=${shouldBuild} (force=${force})`);
               console.log(`Run builders: morphe=${runMorphe} (${morpheReleaseTag}), piko=${runPiko} (${pikoReleaseTag}), anddea=${runAnddea} (${anddeaReleaseTag}), devanced=${runDevanced} (${devancedReleaseTag}), hushfacebook=${runHushfacebook} (${hushfacebookReleaseTag})`);
               console.log(`Artifact options: youtubeAbis=${youtubeAbis}, buildApks=${buildApks}, buildRootModules=${buildRootModules}, devancedApkSource=${devancedApkSource}`);
 
               if (shouldBuild) {
-                const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged || hushfacebookChanged || hushmessengerChanged || devancedApkChanged || hushfacebookApkChanged;
+                const anyChanged = morpheChanged || pikoChanged || anddeaChanged || devancedChanged ||
+                  hushfacebookChanged || hushmessengerChanged || hushthreadsChanged || hushgramChanged ||
+                  devancedApkChanged || hushfacebookApkChanged || hushthreadsApkChanged || hushgramApkChanged;
                 const newState = {
                   morphe: (runMorphe || morpheChanged) ? morphe : (state.morphe || morphe),
                   piko: (runPiko || pikoChanged) ? piko : (state.piko || piko),
@@ -388,8 +490,12 @@ jobs:
                   devanced: (runDevanced || devancedChanged) ? devanced : (state.devanced || devanced),
                   hushfacebook: (runHushfacebook || hushfacebookChanged) ? hushfacebook : (state.hushfacebook || hushfacebook),
                   hushmessenger: (runHushfacebook || hushmessengerChanged) ? hushmessenger : (state.hushmessenger || hushmessenger),
+                  hushthreads: (runHushfacebook || hushthreadsChanged) ? hushthreads : (state.hushthreads || hushthreads),
+                  hushgram: (runHushfacebook || hushgramChanged) ? hushgram : (state.hushgram || hushgram),
                   devanced_google_photos_apk: latestGooglePhotosApk || recordedGooglePhotosApk || state.devanced_google_photos_apk || "",
                   hushfacebook_facebook_apk: latestFacebookApk || recordedFacebookApk || state.hushfacebook_facebook_apk || "",
+                  hushfacebook_threads_apk: latestThreadsApk || recordedThreadsApk || state.hushfacebook_threads_apk || "",
+                  hushfacebook_instagram_apk: latestInstagramApk || recordedInstagramApk || state.hushfacebook_instagram_apk || "",
                   updated_at: anyChanged ? new Date().toISOString() : (state.updated_at || new Date().toISOString())
                 };
                 fs.writeFileSync("config/patch-versions.json", JSON.stringify(newState, null, 2) + "\n");
@@ -410,7 +516,11 @@ jobs:
                 fs.appendFileSync(outputFile, `devanced_tag=${devanced}\n`);
                 fs.appendFileSync(outputFile, `hushfacebook_tag=${hushfacebook}\n`);
                 fs.appendFileSync(outputFile, `hushmessenger_tag=${hushmessenger}\n`);
+                fs.appendFileSync(outputFile, `hushthreads_tag=${hushthreads}\n`);
+                fs.appendFileSync(outputFile, `hushgram_tag=${hushgram}\n`);
                 fs.appendFileSync(outputFile, `hushmessenger_changed=${hushmessengerChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `hushthreads_changed=${hushthreadsChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `hushgram_changed=${hushgramChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `devanced_google_photos_apk=${latestGooglePhotosApk || recordedGooglePhotosApk}\n`);
                 fs.appendFileSync(outputFile, `devanced_apk_changed=${devancedApkChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `devanced_apk_source=${devancedApkSource}\n`);
@@ -420,7 +530,11 @@ jobs:
                 fs.appendFileSync(outputFile, `devanced_changed=${devancedChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `hushfacebook_changed=${hushfacebookChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `hushfacebook_facebook_apk=${latestFacebookApk || recordedFacebookApk}\n`);
+                fs.appendFileSync(outputFile, `hushfacebook_threads_apk=${latestThreadsApk || recordedThreadsApk}\n`);
+                fs.appendFileSync(outputFile, `hushfacebook_instagram_apk=${latestInstagramApk || recordedInstagramApk}\n`);
                 fs.appendFileSync(outputFile, `hushfacebook_apk_changed=${hushfacebookApkChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `hushthreads_apk_changed=${hushthreadsApkChanged ? "true" : "false"}\n`);
+                fs.appendFileSync(outputFile, `hushgram_apk_changed=${hushgramApkChanged ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_morphe=${runMorphe ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_piko=${runPiko ? "true" : "false"}\n`);
                 fs.appendFileSync(outputFile, `run_anddea=${runAnddea ? "true" : "false"}\n`);
@@ -441,6 +555,8 @@ jobs:
         env:
           HUSHFACEBOOK_PATCHES_VERSION: ${{ steps.check.outputs.hushfacebook_tag }}
           HUSHMESSENGER_PATCHES_VERSION: ${{ steps.check.outputs.hushmessenger_tag }}
+          HUSHTHREADS_PATCHES_VERSION: ${{ steps.check.outputs.hushthreads_tag }}
+          HUSHGRAM_PATCHES_VERSION: ${{ steps.check.outputs.hushgram_tag }}
         run: |
           if [ "${{ steps.check.outputs.run_morphe }}" = "true" ] || [ "${{ steps.check.outputs.morphe_changed }}" = "true" ]; then
             echo "Updating Morphe options..."
@@ -458,13 +574,21 @@ jobs:
             echo "Updating De-Vanced options..."
             node scripts/devanced-builder.mjs options --refresh-tools || true
           fi
-          if [ "${{ steps.check.outputs.run_hushfacebook }}" = "true" ] || [ "${{ steps.check.outputs.hushfacebook_changed }}" = "true" ]; then
+          if [ "${{ steps.check.outputs.run_hushfacebook }}" = "true" ] || [ "${{ steps.check.outputs.hushfacebook_changed }}" = "true" ] || [ "${{ steps.check.outputs.hushfacebook_apk_changed }}" = "true" ]; then
             echo "Updating HushFacebook options..."
-            FACEBOOK_APK_VERSION="${{ steps.check.outputs.hushfacebook_facebook_apk }}" node scripts/hushfacebook-builder.mjs options --refresh-tools || true
+            FACEBOOK_APK_VERSION="${{ steps.check.outputs.hushfacebook_facebook_apk }}" BUILD_TARGETS=facebook node scripts/hushfacebook-builder.mjs options --refresh-tools || true
           fi
           if [ "${{ steps.check.outputs.run_hushfacebook }}" = "true" ] || [ "${{ steps.check.outputs.hushmessenger_changed }}" = "true" ]; then
             echo "Updating HushMessenger options..."
             BUILD_TARGETS=messenger node scripts/hushfacebook-builder.mjs options --refresh-tools || true
+          fi
+          if [ "${{ steps.check.outputs.run_hushfacebook }}" = "true" ] || [ "${{ steps.check.outputs.hushthreads_changed }}" = "true" ] || [ "${{ steps.check.outputs.hushthreads_apk_changed }}" = "true" ]; then
+            echo "Updating HushThreads options..."
+            THREADS_APK_VERSION="${{ steps.check.outputs.hushfacebook_threads_apk }}" BUILD_TARGETS=threads node scripts/hushfacebook-builder.mjs options --refresh-tools || true
+          fi
+          if [ "${{ steps.check.outputs.run_hushfacebook }}" = "true" ] || [ "${{ steps.check.outputs.hushgram_changed }}" = "true" ] || [ "${{ steps.check.outputs.hushgram_apk_changed }}" = "true" ]; then
+            echo "Updating HushGram options..."
+            INSTAGRAM_APK_VERSION="${{ steps.check.outputs.hushfacebook_instagram_apk }}" BUILD_TARGETS=instagram node scripts/hushfacebook-builder.mjs options --refresh-tools || true
           fi
 
       - name: Commit and Push Updated Config Files
@@ -555,7 +679,7 @@ jobs:
       upload_artifact: true
 
   build-hushfacebook:
-    name: Build patched Facebook and Messenger APKs
+    name: Build patched Facebook, Messenger, Threads, and Instagram APKs
     needs: [check-and-update-configs, build-devanced]
     if: |
       always() && !cancelled() &&
@@ -566,8 +690,13 @@ jobs:
     secrets: inherit
     with:
       release_tag: ${{ needs.check-and-update-configs.outputs.hushfacebook_release_tag }}
+      targets: "facebook,messenger,threads,instagram"
       patches_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_tag || 'stable' }}
       messenger_patches_version: ${{ needs.check-and-update-configs.outputs.hushmessenger_tag || 'stable' }}
+      threads_patches_version: ${{ needs.check-and-update-configs.outputs.hushthreads_tag || 'stable' }}
+      hushgram_patches_version: ${{ needs.check-and-update-configs.outputs.hushgram_tag || 'stable' }}
       facebook_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_facebook_apk || '' }}
+      threads_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_threads_apk || '' }}
+      instagram_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_instagram_apk || '' }}
       create_release: true
       upload_artifact: true

@@ -1,0 +1,116 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-10-02T23:02:47.221630+00:00",
+            "updated_at": "2026-10-02T23:02:47.221630+00:00",
+            "source": "patches.mpp"
+        },
+        "patches": {
+            "Clean up Reels": {
+                "enabled": false
+            },
+            "Default playback quality": {
+                "enabled": false
+            },
+            "Disable analytics": {
+                "enabled": true
+            },
+            "Don't send reel watch history": {
+                "enabled": false
+            },
+            "Download any reel": {
+                "enabled": true
+            },
+            "Download any story": {
+                "enabled": true
+            },
+            "Download any video": {
+                "enabled": false
+            },
+            "Hide Meta AI": {
+                "enabled": true
+            },
+            "Hide Reels in the feed": {
+                "enabled": false
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "Hide group buttons on the share sheet": {
+                "enabled": false
+            },
+            "Hide suggested posts": {
+                "enabled": true
+            },
+            "Hide suggested stories": {
+                "enabled": true
+            },
+            "Hide the Explore grid": {
+                "enabled": false
+            },
+            "Hide the Reels tab": {
+                "enabled": false
+            },
+            "Hide the Repost button": {
+                "enabled": false
+            },
+            "HushGram settings": {
+                "enabled": true
+            },
+            "Keep the reel speed": {
+                "enabled": true
+            },
+            "Open developer options": {
+                "enabled": false
+            },
+            "Open links in external browser": {
+                "enabled": true
+            },
+            "Pure black dark mode": {
+                "enabled": false
+            },
+            "Remove build expired popup": {
+                "enabled": true
+            },
+            "Remove the advertising ID": {
+                "enabled": true
+            },
+            "Remove the empty space at the bottom": {
+                "enabled": false
+            },
+            "Restore trust on re-signed builds": {
+                "enabled": true
+            },
+            "Resume long videos": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Show if a profile follows you": {
+                "enabled": true
+            },
+            "Start Home on Following": {
+                "enabled": false
+            },
+            "Start on x86 devices": {
+                "enabled": true
+            },
+            "Stop Story auto-advance": {
+                "enabled": false
+            },
+            "Story ring size": {
+                "enabled": false
+            },
+            "Tap to play": {
+                "enabled": false
+            },
+            "Turn off double tap to like": {
+                "enabled": false
+            },
+            "View stories anonymously": {
+                "enabled": false
+            }
+        }
+    }
+]

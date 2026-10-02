@@ -1,4 +1,4 @@
-name: Build HushFacebook & HushMessenger patched APKs
+name: Build Hush Social patched APKs
 
 on:
   workflow_dispatch:
@@ -7,6 +7,10 @@ on:
         description: "Morphe CLI tag, or latest"
         required: true
         default: "dev"
+      targets:
+        description: "Comma-separated targets: facebook, messenger, threads, instagram"
+        required: false
+        default: "facebook,messenger,threads,instagram"
       patches_version:
         description: "HushFacebook patch release: stable, dev, latest, or an explicit tag"
         required: true
@@ -15,12 +19,28 @@ on:
         description: "HushMessenger patch release: stable, dev, latest, or an explicit tag"
         required: true
         default: "stable"
+      threads_patches_version:
+        description: "HushThreads patch release: stable, dev, latest, or an explicit tag"
+        required: false
+        default: "stable"
+      hushgram_patches_version:
+        description: "HushGram patch release: stable, dev, latest, or an explicit tag"
+        required: false
+        default: "stable"
       facebook_version:
         description: "Facebook APK version (blank uses the version recommended by HushFacebook)"
         required: false
         default: ""
       messenger_version:
         description: "Messenger APK version (blank uses the version recommended by HushMessenger)"
+        required: false
+        default: ""
+      threads_version:
+        description: "Threads APK version (blank uses the version recommended by HushThreads)"
+        required: false
+        default: ""
+      instagram_version:
+        description: "Instagram APK version (blank uses the version recommended by HushGram)"
         required: false
         default: ""
       messenger_apk_url:
@@ -33,7 +53,7 @@ on:
         type: boolean
         default: true
       include_patches:
-        description: "Comma-separated disabled patches to enable for this run (defaults enable the extra Facebook patches)"
+        description: "Comma-separated disabled patches to enable for Facebook run"
         required: false
         default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @"
       create_release:
@@ -56,16 +76,31 @@ on:
       cli_version:
         type: string
         default: "dev"
+      targets:
+        type: string
+        default: "facebook,messenger,threads,instagram"
       patches_version:
         type: string
         default: "stable"
       messenger_patches_version:
         type: string
         default: "stable"
+      threads_patches_version:
+        type: string
+        default: "stable"
+      hushgram_patches_version:
+        type: string
+        default: "stable"
       facebook_version:
         type: string
         default: ""
       messenger_version:
+        type: string
+        default: ""
+      threads_version:
+        type: string
+        default: ""
+      instagram_version:
         type: string
         default: ""
       messenger_apk_url:
@@ -98,7 +133,7 @@ env:
 
 jobs:
   build:
-    name: Build Facebook and Messenger with their Hush patch sources
+    name: Build Hush social apps (${{ inputs.targets || 'all' }})
     runs-on: ubuntu-latest
     permissions:
       actions: write
@@ -128,7 +163,9 @@ jobs:
         run: python -m pip install -r requirements.txt
 
       - name: Download HushFacebook tools
+        if: contains(inputs.targets, 'facebook')
         env:
+          BUILD_TARGETS: facebook
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHFACEBOOK_PATCHES_VERSION: ${{ inputs.patches_version }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -162,6 +199,7 @@ jobs:
           NODE
 
       - name: Build patched Facebook APK
+        if: contains(inputs.targets, 'facebook')
         env:
           BUILD_TARGETS: facebook
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -178,6 +216,7 @@ jobs:
         run: node scripts/hushfacebook-builder.mjs build
 
       - name: Download HushMessenger tools
+        if: contains(inputs.targets, 'messenger')
         env:
           BUILD_TARGETS: messenger
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -188,6 +227,7 @@ jobs:
           cp .cache/tools/patches.json .cache/tools/patches-messenger.json || true
 
       - name: Build patched Messenger APK
+        if: contains(inputs.targets, 'messenger')
         env:
           BUILD_TARGETS: messenger
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -204,10 +244,66 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: bash .github/scripts/build-hushmessenger.sh
 
+      - name: Download HushThreads tools
+        if: contains(inputs.targets, 'threads')
+        env:
+          BUILD_TARGETS: threads
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          HUSHTHREADS_PATCHES_VERSION: ${{ inputs.threads_patches_version }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/hushfacebook-builder.mjs tools
+          cp .cache/tools/patches.json .cache/tools/patches-threads.json || true
+
+      - name: Build patched Threads APK
+        if: contains(inputs.targets, 'threads')
+        env:
+          BUILD_TARGETS: threads
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          HUSHTHREADS_PATCHES_VERSION: ${{ inputs.threads_patches_version }}
+          THREADS_APK_VERSION: ${{ inputs.threads_version }}
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          SIGNER_NAME: Mistu
+          MORPHE_EXTRA_ARGS_JSON: '[]'
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/hushfacebook-builder.mjs build
+
+      - name: Download HushGram tools
+        if: contains(inputs.targets, 'instagram') || contains(inputs.targets, 'hushgram')
+        env:
+          BUILD_TARGETS: instagram
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          HUSHGRAM_PATCHES_VERSION: ${{ inputs.hushgram_patches_version }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          node scripts/hushfacebook-builder.mjs tools
+          cp .cache/tools/patches.json .cache/tools/patches-hushgram.json || true
+
+      - name: Build patched Instagram APK
+        if: contains(inputs.targets, 'instagram') || contains(inputs.targets, 'hushgram')
+        env:
+          BUILD_TARGETS: instagram
+          MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
+          HUSHGRAM_PATCHES_VERSION: ${{ inputs.hushgram_patches_version }}
+          INSTAGRAM_APK_VERSION: ${{ inputs.instagram_version }}
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
+          KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          SIGNER_NAME: Mistu
+          MORPHE_EXTRA_ARGS_JSON: '[]'
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/hushfacebook-builder.mjs build
+
       - name: Validate release outputs
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
-          BUILD_TARGETS: facebook,messenger
+          BUILD_TARGETS: ${{ inputs.targets }}
           MORPHE_EXTRA_ARGS_JSON: '[]'
         run: node scripts/hushfacebook-builder.mjs release-check
 
@@ -216,20 +312,35 @@ jobs:
         env:
           HUSHFACEBOOK_PATCHES_VERSION: ${{ inputs.patches_version }}
           HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
+          HUSHTHREADS_PATCHES_VERSION: ${{ inputs.threads_patches_version }}
+          HUSHGRAM_PATCHES_VERSION: ${{ inputs.hushgram_patches_version }}
           INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
           resolved_facebook_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHFACEBOOK_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches-facebook.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
           resolved_messenger_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHMESSENGER_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches-messenger.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_threads_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHTHREADS_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches-threads.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_hushgram_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHGRAM_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches-hushgram.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
           release_prerelease_flag=""
-          if [[ "${resolved_facebook_tag,,}" == *dev* || "${resolved_facebook_tag,,}" == *pre* || "${resolved_facebook_tag,,}" == *beta* || "${resolved_facebook_tag,,}" == *rc* || "${resolved_messenger_tag,,}" == *dev* || "${resolved_messenger_tag,,}" == *pre* || "${resolved_messenger_tag,,}" == *beta* || "${resolved_messenger_tag,,}" == *rc* ]]; then
-            release_prerelease_flag="--prerelease"
-          fi
+          for tag in "$resolved_facebook_tag" "$resolved_messenger_tag" "$resolved_threads_tag" "$resolved_hushgram_tag"; do
+            if [[ "${tag,,}" == *dev* || "${tag,,}" == *pre* || "${tag,,}" == *beta* || "${tag,,}" == *rc* ]]; then
+              release_prerelease_flag="--prerelease"
+              break
+            fi
+          done
 
-          release_tag="${INPUT_RELEASE_TAG:-hushfacebook-${release_stamp}-${GITHUB_RUN_NUMBER}}"
+          release_tag="${INPUT_RELEASE_TAG:-hushsocial-${release_stamp}-${GITHUB_RUN_NUMBER}}"
           echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
-          echo "RELEASE_NAME=Hush Facebook and Messenger patched APKs ${resolved_facebook_tag} + ${resolved_messenger_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          title_parts=()
+          if [ -f ".cache/tools/patches-facebook.json" ]; then title_parts+=("FB ${resolved_facebook_tag}"); fi
+          if [ -f ".cache/tools/patches-messenger.json" ]; then title_parts+=("Msg ${resolved_messenger_tag}"); fi
+          if [ -f ".cache/tools/patches-threads.json" ]; then title_parts+=("Threads ${resolved_threads_tag}"); fi
+          if [ -f ".cache/tools/patches-hushgram.json" ]; then title_parts+=("HushGram ${resolved_hushgram_tag}"); fi
+          title_str="$(IFS=' + '; echo "${title_parts[*]}")"
+          if [ -z "$title_str" ]; then title_str="${resolved_facebook_tag}"; fi
+
+          echo "RELEASE_NAME=Hush Social Apps (${title_str}) ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
           node scripts/hushfacebook-builder.mjs release-notes > release-notes.md
 
@@ -262,7 +373,7 @@ jobs:
               --title "$RELEASE_NAME" --notes-file release-notes.md
           fi
 
-      - name: Upload patched Facebook and Messenger APKs
+      - name: Upload patched APKs
         if: ${{ inputs.upload_artifact }}
         uses: actions/upload-artifact@v4
         with:

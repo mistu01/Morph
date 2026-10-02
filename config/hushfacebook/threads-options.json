@@ -1,0 +1,29 @@
+[
+    {
+        "meta": {
+            "created_at": "2026-10-02T23:02:47.166034+00:00",
+            "updated_at": "2026-10-02T23:02:47.166034+00:00",
+            "source": "patches.mpp"
+        },
+        "patches": {
+            "Disable analytics": {
+                "enabled": true
+            },
+            "Hide ads": {
+                "enabled": true
+            },
+            "HushThreads settings": {
+                "enabled": true
+            },
+            "Remove the advertising ID": {
+                "enabled": true
+            },
+            "Restore screens on re-signed builds": {
+                "enabled": true
+            },
+            "Sanitize sharing links": {
+                "enabled": true
+            }
+        }
+    }
+]

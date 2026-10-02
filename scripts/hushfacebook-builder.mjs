@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Hush social app builder — patches Facebook and Messenger with separate sources.
+// Hush social app builder — patches Facebook, Messenger, Threads, and Instagram (HushGram) with separate sources.
 
 import {
   applyDefaultPatchArgs,
@@ -17,14 +17,20 @@ const root = builderRoot(import.meta.url);
 const command = process.argv[2] || "build";
 const args = process.argv.slice(3);
 const isMain = isMainScript(import.meta.url);
-const patchesRepoFor = (target) => target === "messenger" ? "SysAdminDoc/HushMessenger" : "SysAdminDoc/HushFacebook";
+const patchesRepoFor = (target) => {
+  if (target === "messenger") return "SysAdminDoc/HushMessenger";
+  if (target === "threads") return "SysAdminDoc/HushThreads";
+  if (target === "instagram" || target === "hushgram") return "SysAdminDoc/HushGram";
+  return "SysAdminDoc/HushFacebook";
+};
 
 if (isMain && command === "release-notes") {
   generateReleaseNotes({
     root,
-    heading: "HushFacebook & HushMessenger Patched APKs",
+    heading: "Hush Social Patched APKs",
     patchesSources: [
       {
+        appId: "facebook",
         label: "Facebook Patches",
         repo: "SysAdminDoc/HushFacebook",
         metaFile: ".cache/tools/patches-facebook.json",
@@ -32,11 +38,28 @@ if (isMain && command === "release-notes") {
         configKey: "hushfacebook",
       },
       {
+        appId: "messenger",
         label: "Messenger Patches",
         repo: "SysAdminDoc/HushMessenger",
         metaFile: ".cache/tools/patches-messenger.json",
         envVar: "HUSHMESSENGER_PATCHES_VERSION",
         configKey: "hushmessenger",
+      },
+      {
+        appId: "threads",
+        label: "Threads Patches",
+        repo: "SysAdminDoc/HushThreads",
+        metaFile: ".cache/tools/patches-threads.json",
+        envVar: "HUSHTHREADS_PATCHES_VERSION",
+        configKey: "hushthreads",
+      },
+      {
+        appId: "instagram",
+        label: "HushGram Patches",
+        repo: "SysAdminDoc/HushGram",
+        metaFile: ".cache/tools/patches-hushgram.json",
+        envVar: "HUSHGRAM_PATCHES_VERSION",
+        configKey: "hushgram",
       },
     ],
   });
@@ -46,6 +69,9 @@ if (isMain && command === "release-notes") {
 const supportedTargets = {
   facebook: { packageName: "com.facebook.katana", label: "Facebook" },
   messenger: { packageName: "com.facebook.orca", label: "Messenger" },
+  threads: { packageName: "com.instagram.barcelona", label: "Threads" },
+  instagram: { packageName: "com.instagram.android", label: "Instagram" },
+  hushgram: { packageName: "com.instagram.android", label: "Instagram" },
 };
 
 export const appConfigs = externalPatchAppConfigs([
@@ -66,19 +92,41 @@ export const appConfigs = externalPatchAppConfigs([
     apkmirrorFallbackArch: "",
     apkmirrorDpi: "any",
   }],
+  ["threads", "Threads", "com.instagram.barcelona", {
+    apkmirrorOrg: "instagram",
+    apkmirrorRepo: "threads-an-instagram-app",
+    apkmirrorType: "bundle",
+    apkmirrorArch: "arm64-v8a",
+    apkmirrorFallbackArch: "",
+    apkmirrorDpi: "nodpi",
+    apkpureSlug: "threads-an-instagram-app",
+  }],
+  ["instagram", "Instagram", "com.instagram.android", {
+    apkmirrorOrg: "instagram",
+    apkmirrorRepo: "instagram-instagram",
+    apkmirrorType: "bundle",
+    apkmirrorArch: "arm64-v8a",
+    apkmirrorFallbackArch: "",
+    apkmirrorDpi: "nodpi",
+    apkpureSlug: "instagram",
+  }],
 ]);
 
 if (isMain) {
   const parsedTargets = parseTargets(env("BUILD_TARGETS") || "facebook");
   validateTargets(command, parsedTargets, { supported: supportedTargets, family: "Hush social apps" });
   if (parsedTargets.length !== 1 && !["release-check"].includes(command)) throw new Error("Build exactly one Hush target per invocation so each target uses its own patch source.");
-  const target = parsedTargets[0];
-  const source = target === "messenger" ? "HUSHMESSENGER" : "HUSHFACEBOOK";
+  const rawTarget = parsedTargets[0];
+  const target = rawTarget === "hushgram" ? "instagram" : rawTarget;
+  let source = "HUSHFACEBOOK";
+  if (target === "messenger") source = "HUSHMESSENGER";
+  else if (target === "threads") source = "HUSHTHREADS";
+  else if (target === "instagram") source = "HUSHGRAM";
 
   const childEnv = {
     ...process.env,
     MORPHE_BUILDER: "hushfacebook",
-    BUILD_TARGETS: parsedTargets.join(","),
+    BUILD_TARGETS: target,
     APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
     APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
     APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
@@ -101,6 +149,20 @@ if (isMain) {
     MESSENGER_OPTIONS: env("MESSENGER_OPTIONS") || "config/hushfacebook/messenger-options.json",
     MESSENGER_APK_VERSION: env("MESSENGER_APK_VERSION") || "",
     MESSENGER_APK_URL: env("MESSENGER_APK_URL") || "",
+    THREADS_APKMIRROR_TYPE: env("THREADS_APKMIRROR_TYPE") || "bundle",
+    THREADS_APKMIRROR_ARCH: "arm64-v8a",
+    THREADS_APKMIRROR_FALLBACK_ARCH: "",
+    THREADS_APKMIRROR_DPI: "nodpi",
+    THREADS_OPTIONS: env("THREADS_OPTIONS") || "config/hushfacebook/threads-options.json",
+    THREADS_APK_VERSION: env("THREADS_APK_VERSION") || "",
+    THREADS_APK_URL: env("THREADS_APK_URL") || "",
+    INSTAGRAM_APKMIRROR_TYPE: env("INSTAGRAM_APKMIRROR_TYPE") || "bundle",
+    INSTAGRAM_APKMIRROR_ARCH: "arm64-v8a",
+    INSTAGRAM_APKMIRROR_FALLBACK_ARCH: "",
+    INSTAGRAM_APKMIRROR_DPI: "nodpi",
+    INSTAGRAM_OPTIONS: env("INSTAGRAM_OPTIONS") || "config/hushfacebook/instagram-options.json",
+    INSTAGRAM_APK_VERSION: env("INSTAGRAM_APK_VERSION") || "",
+    INSTAGRAM_APK_URL: env("INSTAGRAM_APK_URL") || "",
   };
 
   applyDefaultPatchArgs(childEnv, command, { forcePatch: false });

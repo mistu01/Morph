@@ -5,7 +5,11 @@
   "devanced": "v1.5.0-dev.4",
   "hushfacebook": "v0.6.0",
   "hushmessenger": "v0.8.0",
+  "hushthreads": "v0.0.3",
+  "hushgram": "v0.0.3",
   "devanced_google_photos_apk": "7.95.0.989626323",
   "hushfacebook_facebook_apk": "577.0.0.50.72",
+  "hushfacebook_threads_apk": "449.0.0.54.82",
+  "hushfacebook_instagram_apk": "449.0.0.52.84",
   "updated_at": "2026-10-02T05:12:59.562Z"
 }
