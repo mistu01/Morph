@@ -132,7 +132,9 @@ jobs:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHFACEBOOK_PATCHES_VERSION: ${{ inputs.patches_version }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/hushfacebook-builder.mjs tools
+        run: |
+          node scripts/hushfacebook-builder.mjs tools
+          cp .cache/tools/patches.json .cache/tools/patches-facebook.json || true
 
       - name: Restore optional signing keystore
         env:
@@ -181,7 +183,9 @@ jobs:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHMESSENGER_PATCHES_VERSION: ${{ inputs.messenger_patches_version }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/hushfacebook-builder.mjs tools
+        run: |
+          node scripts/hushfacebook-builder.mjs tools
+          cp .cache/tools/patches.json .cache/tools/patches-messenger.json || true
 
       - name: Build patched Messenger APK
         env:
@@ -216,16 +220,16 @@ jobs:
         run: |
           release_date="$(date -u +'%Y-%m-%d')"
           release_stamp="$(date -u +'%Y%m%d-%H%M%S')"
-          resolved_patches_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHFACEBOOK_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_facebook_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHFACEBOOK_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches-facebook.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
+          resolved_messenger_tag="$(node -e 'const fs = require("node:fs"); let tag = process.env.HUSHMESSENGER_PATCHES_VERSION || "stable"; try { tag = JSON.parse(fs.readFileSync(".cache/tools/patches-messenger.json", "utf8")).tag || tag; } catch {} process.stdout.write(tag);')"
           release_prerelease_flag=""
-          if [[ "${resolved_patches_tag,,}" == *dev* || "${resolved_patches_tag,,}" == *pre* || "${resolved_patches_tag,,}" == *beta* || "${resolved_patches_tag,,}" == *rc* ]]; then
+          if [[ "${resolved_facebook_tag,,}" == *dev* || "${resolved_facebook_tag,,}" == *pre* || "${resolved_facebook_tag,,}" == *beta* || "${resolved_facebook_tag,,}" == *rc* || "${resolved_messenger_tag,,}" == *dev* || "${resolved_messenger_tag,,}" == *pre* || "${resolved_messenger_tag,,}" == *beta* || "${resolved_messenger_tag,,}" == *rc* ]]; then
             release_prerelease_flag="--prerelease"
           fi
 
           release_tag="${INPUT_RELEASE_TAG:-hushfacebook-${release_stamp}-${GITHUB_RUN_NUMBER}}"
           echo "RELEASE_TAG=${release_tag}" >> "$GITHUB_ENV"
-          messenger_patches_tag="${HUSHMESSENGER_PATCHES_VERSION:-stable}"
-          echo "RELEASE_NAME=Hush Facebook and Messenger patched APKs ${resolved_patches_tag} + ${messenger_patches_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME=Hush Facebook and Messenger patched APKs ${resolved_facebook_tag} + ${resolved_messenger_tag} ${release_date} #${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
           echo "RELEASE_PRERELEASE_FLAG=${release_prerelease_flag}" >> "$GITHUB_ENV"
           node scripts/hushfacebook-builder.mjs release-notes > release-notes.md
 
@@ -237,6 +241,20 @@ jobs:
           release_args=()
           if [ -n "$RELEASE_PRERELEASE_FLAG" ]; then release_args+=("$RELEASE_PRERELEASE_FLAG"); fi
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release $RELEASE_TAG already exists. Updating release..."
+            gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' > assets-to-delete.txt || true
+            if [ -s assets-to-delete.txt ]; then
+              echo "Wiping existing release assets..."
+              while IFS= read -r asset; do
+                asset="${asset//$'\r'/}"
+                if [ -n "$asset" ]; then
+                  echo "Deleting old asset: $asset"
+                  gh release delete-asset "$RELEASE_TAG" "$asset" --yes || true
+                fi
+              done < assets-to-delete.txt
+            else
+              echo "No old release artifacts to wipe."
+            fi
             gh release upload "$RELEASE_TAG" output/*.apk --clobber
             gh release edit "$RELEASE_TAG" --title "$RELEASE_NAME" --notes-file release-notes.md
           else

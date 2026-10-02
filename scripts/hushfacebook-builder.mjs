@@ -20,7 +20,26 @@ const isMain = isMainScript(import.meta.url);
 const patchesRepoFor = (target) => target === "messenger" ? "SysAdminDoc/HushMessenger" : "SysAdminDoc/HushFacebook";
 
 if (isMain && command === "release-notes") {
-  generateReleaseNotes({ root, heading: "HushFacebook & HushMessenger Patched APKs", patchesRepo: "SysAdminDoc/HushMessenger" });
+  generateReleaseNotes({
+    root,
+    heading: "HushFacebook & HushMessenger Patched APKs",
+    patchesSources: [
+      {
+        label: "Facebook Patches",
+        repo: "SysAdminDoc/HushFacebook",
+        metaFile: ".cache/tools/patches-facebook.json",
+        envVar: "HUSHFACEBOOK_PATCHES_VERSION",
+        configKey: "hushfacebook",
+      },
+      {
+        label: "Messenger Patches",
+        repo: "SysAdminDoc/HushMessenger",
+        metaFile: ".cache/tools/patches-messenger.json",
+        envVar: "HUSHMESSENGER_PATCHES_VERSION",
+        configKey: "hushmessenger",
+      },
+    ],
+  });
   process.exit(0);
 }
 
@@ -37,7 +56,7 @@ export const appConfigs = externalPatchAppConfigs([
     apkmirrorArch: "arm64-v8a",
     apkmirrorFallbackArch: "",
     apkmirrorDpi: "any",
-    apkpureMinAndroidApi: 30,
+    apkpureMinAndroidApi: env("FACEBOOK_MIN_ANDROID_API") ? Number(env("FACEBOOK_MIN_ANDROID_API")) : 26,
   }],
   ["messenger", "Messenger", "com.facebook.orca", {
     apkmirrorOrg: "facebook-2",

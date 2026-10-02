@@ -174,11 +174,28 @@ def main() -> int:
                                     for code, label in candidates
                                 ]
                             )
-                            raise RuntimeError(
-                                f"No {args.arch} variant for {selected['version']} meets Android API "
-                                f"{args.min_android_api}. Available variants: {available}"
-                            )
-                        found_code, found_label, found_api = max(compatible, key=lambda item: item[2])
+                            candidates_with_api = [
+                                (code, label, android_api_level(label))
+                                for code, label in candidates
+                            ]
+                            valid_api = [c for c in candidates_with_api if c[2] is not None]
+                            if valid_api:
+                                found_code, found_label, found_api = max(valid_api, key=lambda item: item[2])
+                                print(
+                                    f"Warning: No {args.arch} variant for {selected['version']} meets Android API "
+                                    f"{args.min_android_api}. Falling back to highest available API {found_api}+: {found_label} (available: {available})",
+                                    file=sys.stderr,
+                                )
+                            else:
+                                found_code = candidates[0][0]
+                                found_label = candidates[0][1]
+                                print(
+                                    f"Warning: No {args.arch} variant for {selected['version']} meets Android API "
+                                    f"{args.min_android_api}. Falling back to default variant: {found_label}",
+                                    file=sys.stderr,
+                                )
+                        else:
+                            found_code, found_label, found_api = max(compatible, key=lambda item: item[2])
                         print(
                             f"Found matching arch variant for Android API {found_api}+: {found_label}",
                             file=sys.stderr,
