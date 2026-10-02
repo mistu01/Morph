@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-01T05:25:12.458514693Z",
+            "updated_at": "2026-10-02T05:13:13.400653710Z",
             "source": "patches.mpp",
-            "sha256": "fd45437062e0892b34c84cbaeb34842d5dcb4818a5d43df53420e82d42be804d"
+            "sha256": "472ae92749e85c08b8de9de6154c863e415c876317c7dba91067a1ac0adbfc93"
         },
         "patches": {
             "Install beside Meta apps": {
