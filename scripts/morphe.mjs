@@ -521,7 +521,7 @@ async function writeBuildFailure(app, error) {
 }
 
 function shouldContinueBuildOnError() {
-  return truthy(env("MORPHE_CONTINUE_ON_ERROR")) || passthroughArgs.includes("--continue-on-error");
+  return truthy(env("MORPHE_CONTINUE_ON_ERROR")) || truthy(env("CONTINUE_ON_ERROR")) || passthroughArgs.includes("--continue-on-error");
 }
 
 async function assertRootPackageName(app) {
@@ -2930,7 +2930,7 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
   const appId = `${app.packageName}@${selectedVersion}`;
   const apkeep = await ensureApkeep(false);
   console.log(`Downloading ${app.label} ${selectedVersion} with apkeep (${exactPageUrl})`);
-  run(apkeep, ["-a", appId, "-d", "apk-pure", outputDir]);
+  run(apkeep, ["-a", appId, "-d", "apk-pure", "-o", "acknowledge_dangers=true", outputDir]);
 
   const downloaded = [...listFiles(outputDir)].filter((file) => !before.has(file));
   const candidate = downloaded.find((file) => [".apk", ".apkm", ".xapk", ".apks"].includes(extname(file).toLowerCase()));
@@ -3555,7 +3555,7 @@ async function listApkeepVersions(app) {
   const outputDir = fromRoot(".cache/apkeep-list");
   mkdirSync(outputDir, { recursive: true });
 
-  const output = runCapture(apkeep, ["-l", "-a", app.packageName, "-d", "apk-pure", outputDir]);
+  const output = runCapture(apkeep, ["-l", "-a", app.packageName, "-d", "apk-pure", "-o", "acknowledge_dangers=true", outputDir]);
   const versions = [...output.matchAll(/\b\d+(?:\.\d+)+\b/g)].map((match) => match[0]);
   return [...new Set(versions)].sort(compareVersions);
 }

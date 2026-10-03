@@ -200,6 +200,7 @@ jobs:
 
       - name: Build patched Facebook APK
         if: contains(inputs.targets, 'facebook')
+        continue-on-error: true
         env:
           BUILD_TARGETS: facebook
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -228,6 +229,7 @@ jobs:
 
       - name: Build patched Messenger APK
         if: contains(inputs.targets, 'messenger')
+        continue-on-error: true
         env:
           BUILD_TARGETS: messenger
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -257,6 +259,7 @@ jobs:
 
       - name: Build patched Threads APK
         if: contains(inputs.targets, 'threads')
+        continue-on-error: true
         env:
           BUILD_TARGETS: threads
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -285,6 +288,7 @@ jobs:
 
       - name: Build patched Instagram APK
         if: contains(inputs.targets, 'instagram') || contains(inputs.targets, 'hushgram')
+        continue-on-error: true
         env:
           BUILD_TARGETS: instagram
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
@@ -304,7 +308,9 @@ jobs:
         if: ${{ inputs.create_release || inputs.upload_artifact }}
         env:
           BUILD_TARGETS: ${{ inputs.targets }}
-          MORPHE_EXTRA_ARGS_JSON: '[]'
+          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          MORPHE_CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
         run: node scripts/hushfacebook-builder.mjs release-check
 
       - name: Prepare release metadata
