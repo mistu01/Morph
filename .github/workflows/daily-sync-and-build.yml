@@ -698,5 +698,6 @@ jobs:
       facebook_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_facebook_apk || '' }}
       threads_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_threads_apk || '' }}
       instagram_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_instagram_apk || '' }}
+      include_instagram_patches: "Copy comment, Don't send reel watch history, Download any video, Save comment photo, View stories anonymously, Keep a seek bar on Reels, View DM photos and videos anonymously"
       create_release: true
       upload_artifact: true

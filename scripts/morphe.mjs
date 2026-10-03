@@ -1507,6 +1507,14 @@ async function ensurePackageNameOptions(app, tools = null) {
 function createDefaultOptionsFile(app, tools, { force = false } = {}) {
   if (!force && existsSync(app.options)) return;
 
+  let existingSettings = null;
+  if (existsSync(app.options)) {
+    try {
+      const data = JSON.parse(readFileSync(app.options, "utf8"));
+      existingSettings = data[0]?.patches || {};
+    } catch {}
+  }
+
   mkdirSync(dirname(app.options), { recursive: true });
   console.log(`\n==> Creating options for ${app.label}`);
   run(javaCommand(), [
@@ -1520,6 +1528,30 @@ function createDefaultOptionsFile(app, tools, { force = false } = {}) {
     "--filter-package-name",
     app.packageName,
   ]);
+
+  if (existingSettings && existsSync(app.options)) {
+    try {
+      const generated = JSON.parse(readFileSync(app.options, "utf8"));
+      if (generated[0]?.patches) {
+        let changed = false;
+        for (const [patchName, patchObj] of Object.entries(generated[0].patches)) {
+          if (existingSettings[patchName]?.hasOwnProperty("enabled")) {
+            patchObj.enabled = existingSettings[patchName].enabled;
+            changed = true;
+          }
+          if (existingSettings[patchName]?.options) {
+            patchObj.options = { ...patchObj.options, ...existingSettings[patchName].options };
+            changed = true;
+          }
+        }
+        if (changed) {
+          writeFileSync(app.options, JSON.stringify(generated, null, 4) + "\n");
+        }
+      }
+    } catch (e) {
+      console.warn(`warning: failed to preserve options for ${app.label}: ${e.message}`);
+    }
+  }
 }
 
 function patchCompatibleWithApp(patch, app) {

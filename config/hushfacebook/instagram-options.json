@@ -17,7 +17,7 @@
                 "enabled": true
             },
             "Download any video": {
-                "enabled": false
+                "enabled": true
             },
             "Hide the Explore grid": {
                 "enabled": false
@@ -59,10 +59,10 @@
                 "enabled": true
             },
             "Copy comment": {
-                "enabled": false
+                "enabled": true
             },
             "Save comment photo": {
-                "enabled": false
+                "enabled": true
             },
             "Open developer options": {
                 "enabled": false
@@ -107,7 +107,7 @@
                 "enabled": false
             },
             "Keep a seek bar on Reels": {
-                "enabled": false
+                "enabled": true
             },
             "Keep the reel speed": {
                 "enabled": true
@@ -119,7 +119,7 @@
                 "enabled": false
             },
             "Don't send reel watch history": {
-                "enabled": false
+                "enabled": true
             },
             "Hide the Repost button": {
                 "enabled": false
@@ -137,12 +137,15 @@
                 "enabled": false
             },
             "View stories anonymously": {
-                "enabled": false
+                "enabled": true
             },
             "Show a story's exact time": {
                 "enabled": false
             },
             "Hide suggested stories": {
+                "enabled": true
+            },
+            "View DM photos and videos anonymously": {
                 "enabled": true
             }
         }

@@ -56,6 +56,10 @@ on:
         description: "Comma-separated disabled patches to enable for Facebook run"
         required: false
         default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @"
+      include_instagram_patches:
+        description: "Comma-separated disabled patches to enable for Instagram run"
+        required: false
+        default: "Copy comment, Don't send reel watch history, Download any video, Save comment photo, View stories anonymously, Keep a seek bar on Reels, View DM photos and videos anonymously"
       create_release:
         description: "Create a GitHub Release and attach the patched APK"
         required: true
@@ -188,14 +192,22 @@ jobs:
         env:
           CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
           INCLUDE_PATCHES: ${{ inputs.include_patches }}
+          INCLUDE_INSTAGRAM_PATCHES: ${{ inputs.include_instagram_patches }}
         run: |
           node <<'NODE' >> "$GITHUB_ENV"
           const args = [];
           if (process.env.CONTINUE_ON_ERROR === 'true') args.push('--continue-on-error');
           const include = (process.env.INCLUDE_PATCHES || '').split(',').map(s => s.trim()).filter(Boolean);
           for (const patch of include) args.push('--enable', patch);
-          if (include.length) process.stderr.write(`Enabling extra patches: ${include.join(', ')}\n`);
+          if (include.length) process.stderr.write(`Enabling extra Facebook patches: ${include.join(', ')}\n`);
           console.log(`MORPHE_EXTRA_ARGS_JSON=${JSON.stringify(args)}`);
+
+          const instagramArgs = [];
+          if (process.env.CONTINUE_ON_ERROR === 'true') instagramArgs.push('--continue-on-error');
+          const instagramInclude = (process.env.INCLUDE_INSTAGRAM_PATCHES || '').split(',').map(s => s.trim()).filter(Boolean);
+          for (const patch of instagramInclude) instagramArgs.push('--enable', patch);
+          if (instagramInclude.length) process.stderr.write(`Enabling extra Instagram patches: ${instagramInclude.join(', ')}\n`);
+          console.log(`MORPHE_INSTAGRAM_EXTRA_ARGS_JSON=${JSON.stringify(instagramArgs)}`);
           NODE
 
       - name: Build patched Facebook APK
@@ -300,7 +312,7 @@ jobs:
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
-          MORPHE_EXTRA_ARGS_JSON: '[]'
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_INSTAGRAM_EXTRA_ARGS_JSON }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/hushfacebook-builder.mjs build
 
