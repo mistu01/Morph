@@ -14,7 +14,7 @@
                 "enabled": true
             },
             "Material You theme": {
-                "enabled": false
+                "enabled": true
             },
             "Hide inbox ads": {
                 "enabled": true
@@ -101,6 +101,9 @@
                 "enabled": true
             },
             "Open settings from menu": {
+                "enabled": true
+            },
+            "Hide joined community chats": {
                 "enabled": true
             }
         }

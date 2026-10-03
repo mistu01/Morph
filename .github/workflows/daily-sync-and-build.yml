@@ -698,6 +698,8 @@ jobs:
       facebook_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_facebook_apk || '' }}
       threads_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_threads_apk || '' }}
       instagram_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_instagram_apk || '' }}
+      include_patches: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @, Block background-return feed refresh, Default comment order, Turn off double tap to like, View stories anonymously"
+      include_messenger_patches: "Hide joined community chats, Material You theme"
       include_instagram_patches: "Copy comment, Don't send reel watch history, Download any video, Save comment photo, View stories anonymously, Keep a seek bar on Reels, View DM photos and videos anonymously"
       create_release: true
       upload_artifact: true

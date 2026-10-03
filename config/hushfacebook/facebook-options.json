@@ -47,7 +47,7 @@
                 "enabled": true
             },
             "Default comment order": {
-                "enabled": false
+                "enabled": true
             },
             "Tag suggestions only after @": {
                 "enabled": false
@@ -83,7 +83,7 @@
                 "enabled": false
             },
             "Block background-return feed refresh": {
-                "enabled": false
+                "enabled": true
             },
             "Hide Stories tray": {
                 "enabled": false
@@ -164,7 +164,7 @@
                 "enabled": false
             },
             "Turn off double tap to like": {
-                "enabled": false
+                "enabled": true
             },
             "Hold a reel for 2x": {
                 "enabled": false
@@ -182,7 +182,7 @@
                 "enabled": false
             },
             "View stories anonymously": {
-                "enabled": false
+                "enabled": true
             },
             "Hide suggested stories": {
                 "enabled": true

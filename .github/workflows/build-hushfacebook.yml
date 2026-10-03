@@ -55,7 +55,11 @@ on:
       include_patches:
         description: "Comma-separated disabled patches to enable for Facebook run"
         required: false
-        default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @"
+        default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @, Block background-return feed refresh, Default comment order, Turn off double tap to like, View stories anonymously"
+      include_messenger_patches:
+        description: "Comma-separated disabled patches to enable for Messenger run"
+        required: false
+        default: "Hide joined community chats, Material You theme"
       include_instagram_patches:
         description: "Comma-separated disabled patches to enable for Instagram run"
         required: false
@@ -192,6 +196,7 @@ jobs:
         env:
           CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
           INCLUDE_PATCHES: ${{ inputs.include_patches }}
+          INCLUDE_MESSENGER_PATCHES: ${{ inputs.include_messenger_patches }}
           INCLUDE_INSTAGRAM_PATCHES: ${{ inputs.include_instagram_patches }}
         run: |
           node <<'NODE' >> "$GITHUB_ENV"
@@ -201,6 +206,13 @@ jobs:
           for (const patch of include) args.push('--enable', patch);
           if (include.length) process.stderr.write(`Enabling extra Facebook patches: ${include.join(', ')}\n`);
           console.log(`MORPHE_EXTRA_ARGS_JSON=${JSON.stringify(args)}`);
+
+          const messengerArgs = [];
+          if (process.env.CONTINUE_ON_ERROR === 'true') messengerArgs.push('--continue-on-error');
+          const messengerInclude = (process.env.INCLUDE_MESSENGER_PATCHES || '').split(',').map(s => s.trim()).filter(Boolean);
+          for (const patch of messengerInclude) messengerArgs.push('--enable', patch);
+          if (messengerInclude.length) process.stderr.write(`Enabling extra Messenger patches: ${messengerInclude.join(', ')}\n`);
+          console.log(`MORPHE_MESSENGER_EXTRA_ARGS_JSON=${JSON.stringify(messengerArgs)}`);
 
           const instagramArgs = [];
           if (process.env.CONTINUE_ON_ERROR === 'true') instagramArgs.push('--continue-on-error');
@@ -254,7 +266,7 @@ jobs:
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
-          MORPHE_EXTRA_ARGS_JSON: '[]'
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_MESSENGER_EXTRA_ARGS_JSON }}
           GITHUB_TOKEN: ${{ github.token }}
         run: bash .github/scripts/build-hushmessenger.sh
 
