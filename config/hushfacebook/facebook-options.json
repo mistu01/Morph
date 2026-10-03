@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-02T05:13:11.378756365Z",
+            "updated_at": "2026-10-03T04:55:51.724243224Z",
             "source": "patches.mpp",
-            "sha256": "4589dc57b8a86ff4ebd437b4d8de5f993576efbb81e9660e98a39bbb20a6786b"
+            "sha256": "d66f355811fee31ac8d3a33d7d1e38b39343d1838f219c6eff62813f8e6c5acd"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -102,6 +102,9 @@
                 "options": {
                     "backgroundColour": "#000000"
                 }
+            },
+            "Force dark mode": {
+                "enabled": true
             },
             "Material You theme": {
                 "enabled": false

@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-10-02T05:13:08.234107506Z",
+            "updated_at": "2026-10-03T04:55:43.449187466Z",
             "source": "patches.mpp",
-            "sha256": "936e67fa18ba361d4757ee2b640bdb08195af3420088aab9d0e1f03ba76a9b22"
+            "sha256": "dba660df61d95131a22242cabe9c44b4b04861b7ba6ebeffe91c4b3647d55b93"
         },
         "patches": {
             "Clone app": {
@@ -178,6 +178,9 @@
                 }
             },
             "Override certificate pinning": {
+                "enabled": false
+            },
+            "Spoof signature": {
                 "enabled": false
             },
             "Disable Play Store updates": {
@@ -199,6 +202,9 @@
                 "enabled": true
             },
             "Downloads": {
+                "enabled": true
+            },
+            "Jam queue sharing": {
                 "enabled": true
             },
             "Remember repeat state": {
@@ -257,6 +263,9 @@
             "Navigation bar": {
                 "enabled": true
             },
+            "Force portrait orientation": {
+                "enabled": true
+            },
             "Return YouTube Dislike": {
                 "enabled": true
             },
@@ -299,6 +308,9 @@
             "GmsCore support": {
                 "enabled": true
             },
+            "Media notification controls": {
+                "enabled": true
+            },
             "PoToken provider": {
                 "enabled": true
             },
@@ -318,6 +330,9 @@
                 "enabled": true
             },
             "Spoof app version": {
+                "enabled": true
+            },
+            "Playback speed": {
                 "enabled": true
             }
         }

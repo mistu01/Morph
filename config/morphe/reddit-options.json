@@ -88,9 +88,9 @@
     {
         "meta": {
             "created_at": "2026-06-23T20:14:18.557516300Z",
-            "updated_at": "2026-10-02T05:13:09.247002513Z",
+            "updated_at": "2026-10-03T04:55:44.833108828Z",
             "source": "patches.mpp",
-            "sha256": "936e67fa18ba361d4757ee2b640bdb08195af3420088aab9d0e1f03ba76a9b22"
+            "sha256": "dba660df61d95131a22242cabe9c44b4b04861b7ba6ebeffe91c4b3647d55b93"
         },
         "patches": {
             "Clone app": {
@@ -109,6 +109,9 @@
             },
             "Override certificate pinning": {
                 "enabled": false
+            },
+            "Spoof signature": {
+                "enabled": true
             },
             "Disable Play Store updates": {
                 "enabled": false
@@ -159,9 +162,6 @@
                 "enabled": true
             },
             "App icon": {
-                "enabled": true
-            },
-            "Spoof signature": {
                 "enabled": true
             },
             "Start as guest": {

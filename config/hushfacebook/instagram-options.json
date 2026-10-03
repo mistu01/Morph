@@ -2,21 +2,13 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-02T23:02:47.221630+00:00",
-            "source": "patches.mpp"
+            "updated_at": "2026-10-03T04:55:56.300009878Z",
+            "source": "patches.mpp",
+            "sha256": "3c80e5b7576fe6b37ed3fd21f35ad2b01e5c38ba1c11e57f1f009d710f269524"
         },
         "patches": {
-            "Clean up Reels": {
-                "enabled": false
-            },
-            "Default playback quality": {
-                "enabled": false
-            },
-            "Disable analytics": {
+            "Hide ads": {
                 "enabled": true
-            },
-            "Don't send reel watch history": {
-                "enabled": false
             },
             "Download any reel": {
                 "enabled": true
@@ -27,38 +19,50 @@
             "Download any video": {
                 "enabled": false
             },
-            "Hide Meta AI": {
-                "enabled": true
-            },
-            "Hide Reels in the feed": {
+            "Hide the Explore grid": {
                 "enabled": false
             },
-            "Hide ads": {
-                "enabled": true
+            "Start Home on Following": {
+                "enabled": false
             },
-            "Hide group buttons on the share sheet": {
+            "Hide Reels in the feed": {
                 "enabled": false
             },
             "Hide suggested posts": {
                 "enabled": true
             },
-            "Hide suggested stories": {
-                "enabled": true
-            },
-            "Hide the Explore grid": {
+            "Stop swipe to create": {
                 "enabled": false
             },
-            "Hide the Reels tab": {
+            "Default playback quality": {
                 "enabled": false
             },
-            "Hide the Repost button": {
+            "Resume long videos": {
+                "enabled": true
+            },
+            "Tap to play": {
                 "enabled": false
             },
-            "HushGram settings": {
+            "Hide Meta AI": {
                 "enabled": true
             },
-            "Keep the reel speed": {
+            "Remove the advertising ID": {
                 "enabled": true
+            },
+            "Disable analytics": {
+                "enabled": true
+            },
+            "Remove the empty space at the bottom": {
+                "enabled": false
+            },
+            "Remove build expired popup": {
+                "enabled": true
+            },
+            "Copy comment": {
+                "enabled": false
+            },
+            "Save comment photo": {
+                "enabled": false
             },
             "Open developer options": {
                 "enabled": false
@@ -66,50 +70,80 @@
             "Open links in external browser": {
                 "enabled": true
             },
-            "Pure black dark mode": {
-                "enabled": false
-            },
-            "Remove build expired popup": {
-                "enabled": true
-            },
-            "Remove the advertising ID": {
-                "enabled": true
-            },
-            "Remove the empty space at the bottom": {
-                "enabled": false
-            },
             "Restore trust on re-signed builds": {
                 "enabled": true
             },
-            "Resume long videos": {
+            "HushGram settings": {
                 "enabled": true
             },
             "Sanitize sharing links": {
                 "enabled": true
             },
-            "Show if a profile follows you": {
-                "enabled": true
-            },
-            "Start Home on Following": {
+            "Pure black dark mode": {
                 "enabled": false
             },
             "Start on x86 devices": {
                 "enabled": true
             },
-            "Stop Story auto-advance": {
+            "Show if a profile follows you": {
+                "enabled": true
+            },
+            "Hide highlights": {
                 "enabled": false
             },
-            "Story ring size": {
+            "Hide suggested people on profiles": {
                 "enabled": false
             },
-            "Tap to play": {
+            "Keep Reels auto scroll on": {
+                "enabled": false
+            },
+            "Clean up Reels": {
                 "enabled": false
             },
             "Turn off double tap to like": {
                 "enabled": false
             },
+            "Stop Reels scrolling": {
+                "enabled": false
+            },
+            "Keep a seek bar on Reels": {
+                "enabled": false
+            },
+            "Keep the reel speed": {
+                "enabled": true
+            },
+            "Hide suggested accounts in Reels": {
+                "enabled": false
+            },
+            "Hide the Reels tab": {
+                "enabled": false
+            },
+            "Don't send reel watch history": {
+                "enabled": false
+            },
+            "Hide the Repost button": {
+                "enabled": false
+            },
+            "Hide group buttons on the share sheet": {
+                "enabled": false
+            },
+            "Stop Story auto-advance": {
+                "enabled": false
+            },
+            "Loop a story": {
+                "enabled": false
+            },
+            "Story ring size": {
+                "enabled": false
+            },
             "View stories anonymously": {
                 "enabled": false
+            },
+            "Show a story's exact time": {
+                "enabled": false
+            },
+            "Hide suggested stories": {
+                "enabled": true
             }
         }
     }

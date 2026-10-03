@@ -271,9 +271,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:19.597922Z",
-            "updated_at": "2026-10-02T05:13:06.127430741Z",
+            "updated_at": "2026-10-03T04:55:40.706757194Z",
             "source": "patches.mpp",
-            "sha256": "936e67fa18ba361d4757ee2b640bdb08195af3420088aab9d0e1f03ba76a9b22"
+            "sha256": "dba660df61d95131a22242cabe9c44b4b04861b7ba6ebeffe91c4b3647d55b93"
         },
         "patches": {
             "Clone app": {
@@ -291,6 +291,9 @@
                 }
             },
             "Override certificate pinning": {
+                "enabled": false
+            },
+            "Spoof signature": {
                 "enabled": false
             },
             "Disable Play Store updates": {
@@ -321,6 +324,9 @@
                 "enabled": true
             },
             "Loop video": {
+                "enabled": true
+            },
+            "Picture-in-picture button": {
                 "enabled": true
             },
             "Play all": {
@@ -356,7 +362,11 @@
                 "enabled": true
             },
             "Navigation bar": {
-                "enabled": true
+                "enabled": true,
+                "options": {
+                    "hideSearchAppShortcut": false,
+                    "hideSubscriptionsAppShortcut": false
+                }
             },
             "Hide player overlay buttons": {
                 "enabled": true
@@ -365,6 +375,9 @@
                 "enabled": true
             },
             "Disable layout updates": {
+                "enabled": true
+            },
+            "Disable auto feed refresh": {
                 "enabled": true
             },
             "Add to queue": {
@@ -431,6 +444,9 @@
             "Override YouTube Music buttons": {
                 "enabled": true
             },
+            "Restore original titles": {
+                "enabled": true
+            },
             "Playback in feeds": {
                 "enabled": true
             },
@@ -452,6 +468,12 @@
             "Open videos fullscreen": {
                 "enabled": true
             },
+            "Player icon style": {
+                "enabled": true,
+                "options": {
+                    "customIcons": null
+                }
+            },
             "Custom player overlay opacity": {
                 "enabled": true
             },
@@ -470,6 +492,12 @@
             "Shorts autoplay": {
                 "enabled": true
             },
+            "Shorts icon style": {
+                "enabled": true,
+                "options": {
+                    "customIcons": null
+                }
+            },
             "Disable Shorts resuming on startup": {
                 "enabled": true
             },
@@ -480,6 +508,9 @@
                 "enabled": true
             },
             "Change start page": {
+                "enabled": true
+            },
+            "Hide status bar": {
                 "enabled": true
             },
             "Theme": {
@@ -547,6 +578,9 @@
                 "enabled": true
             },
             "Force original audio": {
+                "enabled": true
+            },
+            "Playback buffer": {
                 "enabled": true
             },
             "Disable video codecs": {
