@@ -392,7 +392,7 @@ jobs:
             gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name' > assets-to-delete.txt || true
             if [ -s assets-to-delete.txt ]; then
               echo "Wiping existing release assets..."
-              while IFS= read -r asset; do
+              while IFS= read -r asset || [ -n "$asset" ]; do
                 asset="${asset//$'\r'/}"
                 if [ -n "$asset" ]; then
                   echo "Deleting old asset: $asset"
