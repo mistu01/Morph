@@ -19,14 +19,59 @@ set -euo pipefail
 build_log=".cache/hushmessenger-build.log"
 mkdir -p .cache
 
+clear_messenger_outputs() {
+  rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
+  rm -f input/messenger.apk input/messenger.apk.meta.json
+}
+
+is_messenger_patch_successful() {
+  local log_file="${1:-$build_log}"
+  if [ -f "$log_file" ] && grep -qi "version code .* is not supported" "$log_file"; then
+    echo "Patcher logged unsupported version code."
+    return 1
+  fi
+  if [ ! -f "output/messenger-result.json" ]; then
+    echo "output/messenger-result.json is missing."
+    return 1
+  fi
+  local is_ok
+  is_ok="$(node -e '
+    try {
+      const fs = require("node:fs");
+      const r = JSON.parse(fs.readFileSync("output/messenger-result.json", "utf8"));
+      if (r.success === false) { process.stdout.write("false"); process.exit(0); }
+      const applied = Array.isArray(r.appliedPatches) ? r.appliedPatches.length : 0;
+      if (applied === 0) { process.stdout.write("false"); process.exit(0); }
+      process.stdout.write("true");
+    } catch {
+      process.stdout.write("false");
+    }
+  ')"
+  if [ "$is_ok" != "true" ]; then
+    echo "output/messenger-result.json indicates failure or 0 applied patches."
+    return 1
+  fi
+  local apk_found
+  apk_found="$(find output -maxdepth 1 -type f \( -name "messenger-patched.apk" -o -name "messenger-*-patched.apk" \) -size +1M -print -quit 2>/dev/null)"
+  if [ -z "$apk_found" ]; then
+    echo "No patched Messenger APK found in output directory."
+    return 1
+  fi
+  return 0
+}
+
 set +e
 node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$build_log"
 build_status=${PIPESTATUS[0]}
 set -e
 
-if [ "$build_status" -eq 0 ]; then
+if [ "$build_status" -eq 0 ] && is_messenger_patch_successful "$build_log"; then
+  echo "Initial Messenger build succeeded with all patches applied."
   exit 0
 fi
+
+echo "Initial Messenger build failed or applied 0 patches. Clearing initial outputs and resolving supported version codes..."
+clear_messenger_outputs
 
 supported_version_codes="$(node -e '
   const fs = require("node:fs");
@@ -38,7 +83,9 @@ supported_version_codes="$(node -e '
     const codes = [...codeClause.matchAll(/\d{7,}/g)].map(([code]) => code);
     const version = guidance.match(/^\s*([\d]+(?:\.[\d]+)+)\s+APK/i)?.[1] || "";
     if (codes.length && version) {
-      process.stdout.write(JSON.stringify({ codes: [...new Set(codes)], version }));
+      // Prioritize 346013442 and 346013445 as they are verified in APKPure mobile catalog
+      const prioritized = ["346013442", "346013445", ...codes];
+      process.stdout.write(JSON.stringify({ codes: [...new Set(prioritized)], version }));
       process.exit(0);
     }
   }
@@ -64,7 +111,7 @@ supported_version_codes="$(node -e '
                 const codes = [...desc.matchAll(/\d{7,}/g)].map(([code]) => code);
                 if (codes.length && t.version) {
                   // Put 346013442 first as it is verified in APKPure mobile catalog
-                  const prioritized = ["346013442", ...new Set(codes.filter(c => c !== "346013442"))];
+                  const prioritized = ["346013442", "346013445", ...new Set(codes.filter(c => c !== "346013442" && c !== "346013445"))];
                   process.stdout.write(JSON.stringify({ codes: prioritized, version: t.version }));
                   return;
                 }
@@ -92,19 +139,25 @@ if [ -z "$compatible_version" ] || [ -z "$version_codes" ]; then
   exit "$build_status"
 fi
 
-clear_messenger_outputs() {
-  rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
-}
-
 try_patch_downloaded_apk() {
   local apk_path="$1" log_name="$2"
   clear_messenger_outputs
+  local retry_log=".cache/hushmessenger-build-$log_name.log"
   local retry_status
+  mkdir -p input
+  cp "$apk_path" input/messenger.apk
+  rm -f input/messenger.apk.meta.json
   set +e
-  MESSENGER_APK="$apk_path" node scripts/hushfacebook-builder.mjs build 2>&1 | tee ".cache/hushmessenger-build-$log_name.log"
+  MESSENGER_APK="$apk_path" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
   retry_status=${PIPESTATUS[0]}
   set -e
-  return "$retry_status"
+  if [ "$retry_status" -eq 0 ] && is_messenger_patch_successful "$retry_log"; then
+    echo "Messenger successfully patched with variant $log_name!"
+    return 0
+  fi
+  echo "Patching Messenger with variant $log_name failed or applied 0 patches."
+  clear_messenger_outputs
+  return 1
 }
 
 for version_code in $version_codes; do

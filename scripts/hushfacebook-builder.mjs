@@ -126,7 +126,7 @@ if (isMain) {
   const childEnv = {
     ...process.env,
     MORPHE_BUILDER: "hushfacebook",
-    BUILD_TARGETS: target,
+    BUILD_TARGETS: command === "release-check" ? parsedTargets.join(",") : target,
     APK_SOURCE: env("APK_SOURCE") || "apkmirror,apkpure",
     APK_VERSION_SOURCE: env("APK_VERSION_SOURCE") || "recommended",
     APK_FALLBACK_TO_LATEST: env("APK_FALLBACK_TO_LATEST") || "false",
