@@ -2,7 +2,7 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-03T04:55:53.343651286Z",
+            "updated_at": "2026-10-04T07:46:44.406642890Z",
             "source": "patches.mpp",
             "sha256": "6e67bf58dad6ca26a94f2b024f4f229e65acfc84ddf593371bf3acaa2414b2ad"
         },
@@ -101,9 +101,6 @@
                 "enabled": true
             },
             "Open settings from menu": {
-                "enabled": true
-            },
-            "Hide joined community chats": {
                 "enabled": true
             }
         }

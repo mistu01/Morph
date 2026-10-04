@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-03T04:55:51.724243224Z",
+            "updated_at": "2026-10-04T07:46:42.855741801Z",
             "source": "patches.mpp",
-            "sha256": "d66f355811fee31ac8d3a33d7d1e38b39343d1838f219c6eff62813f8e6c5acd"
+            "sha256": "3a1a55839d96ab8997cd0a952d1c2a1d976fbf3b7dcac7ecbae385632b35c524"
         },
         "patches": {
             "Hide affiliate product links": {

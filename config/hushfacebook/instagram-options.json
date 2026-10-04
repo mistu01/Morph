@@ -2,12 +2,18 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-03T04:55:56.300009878Z",
+            "updated_at": "2026-10-04T07:46:47.582130802Z",
             "source": "patches.mpp",
-            "sha256": "3c80e5b7576fe6b37ed3fd21f35ad2b01e5c38ba1c11e57f1f009d710f269524"
+            "sha256": "da8d069ecf76df8cf6dc7337becb5b659d28265d45bc637aab771fb354cf75ca"
         },
         "patches": {
             "Hide ads": {
+                "enabled": true
+            },
+            "Hide the notes row": {
+                "enabled": true
+            },
+            "View DM photos and videos anonymously": {
                 "enabled": true
             },
             "Download any reel": {
@@ -143,9 +149,6 @@
                 "enabled": false
             },
             "Hide suggested stories": {
-                "enabled": true
-            },
-            "View DM photos and videos anonymously": {
                 "enabled": true
             }
         }
