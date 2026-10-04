@@ -119,7 +119,13 @@ on:
         default: true
       include_patches:
         type: string
-        default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @"
+        default: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @, Block background-return feed refresh, Default comment order, Turn off double tap to like, View stories anonymously"
+      include_messenger_patches:
+        type: string
+        default: "Hide joined community chats, Material You theme"
+      include_instagram_patches:
+        type: string
+        default: "Copy comment, Don't send reel watch history, Download any video, Save comment photo, View stories anonymously, Keep a seek bar on Reels, View DM photos and videos anonymously"
       create_release:
         type: boolean
         default: true
