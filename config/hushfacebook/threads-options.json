@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.166034+00:00",
-            "updated_at": "2026-10-04T08:33:08.281937247Z",
+            "updated_at": "2026-10-06T05:57:11.364349732Z",
             "source": "patches.mpp",
-            "sha256": "3bd770c20b2e7630f131b62e0e3201d3cb1b504d44d6f0623a3a7708b0c305cf"
+            "sha256": "b9612548a9c22bddcf534b0804f8c71f32ca58d92acbec9603ada325552a3b32"
         },
         "patches": {
             "Hide ads": {
@@ -36,6 +36,9 @@
             },
             "Sanitize sharing links": {
                 "enabled": true
+            },
+            "Pure black dark mode": {
+                "enabled": false
             }
         }
     }
