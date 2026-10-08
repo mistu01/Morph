@@ -2,15 +2,18 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-06T05:57:08.373473564Z",
+            "updated_at": "2026-10-08T05:39:17.035715145Z",
             "source": "patches.mpp",
-            "sha256": "3a1a55839d96ab8997cd0a952d1c2a1d976fbf3b7dcac7ecbae385632b35c524"
+            "sha256": "11caacd4de3a511e937940540cba36c9dea588e8c6cbed2267e450c5fcc6e7c9"
         },
         "patches": {
             "Hide affiliate product links": {
                 "enabled": true
             },
             "Disable Audience Network": {
+                "enabled": true
+            },
+            "Block Instant Games ads": {
                 "enabled": true
             },
             "Block background ad prefetch": {
@@ -109,6 +112,12 @@
             "Material You theme": {
                 "enabled": false
             },
+            "Turn off HDR brightness": {
+                "enabled": false
+            },
+            "Picture-in-picture": {
+                "enabled": false
+            },
             "Default playback quality": {
                 "enabled": false
             },
@@ -127,11 +136,23 @@
             "Hushfacebook in the Menu": {
                 "enabled": true
             },
+            "Hold back analytics uploads": {
+                "enabled": false
+            },
             "Open links in external browser": {
                 "enabled": true
             },
+            "Turn off haptics": {
+                "enabled": false
+            },
             "Restore screens on re-signed builds": {
                 "enabled": true
+            },
+            "Allow screenshots": {
+                "enabled": false
+            },
+            "Block screenshot detection": {
+                "enabled": false
             },
             "Hushfacebook settings": {
                 "enabled": true
@@ -139,10 +160,16 @@
             "Sanitize sharing links": {
                 "enabled": true
             },
+            "Turn off screen transitions": {
+                "enabled": false
+            },
             "Start on x86 devices": {
                 "enabled": true
             },
             "Tab bar at the bottom": {
+                "enabled": true
+            },
+            "Hide tabs": {
                 "enabled": true
             },
             "Marketplace only": {
@@ -152,6 +179,9 @@
                 "enabled": false
             },
             "Hide the Reels tab dot": {
+                "enabled": true
+            },
+            "Show View profile on Marketplace sellers": {
                 "enabled": true
             },
             "Open on a chosen tab": {

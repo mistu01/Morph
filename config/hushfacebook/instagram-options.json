@@ -2,18 +2,45 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-06T05:57:12.897582139Z",
+            "updated_at": "2026-10-08T05:39:21.805204076Z",
             "source": "patches.mpp",
-            "sha256": "da8d069ecf76df8cf6dc7337becb5b659d28265d45bc637aab771fb354cf75ca"
+            "sha256": "251add8e65ad25e10c613859eff06021800148a070f2fd22583b9ccaaf07c750"
         },
         "patches": {
             "Hide ads": {
                 "enabled": true
             },
+            "Ask before a call": {
+                "enabled": true
+            },
+            "Hide Instants": {
+                "enabled": true
+            },
+            "Keep in chat": {
+                "enabled": true
+            },
+            "Lock your messages": {
+                "enabled": true
+            },
             "Hide the notes row": {
                 "enabled": true
             },
+            "Allow screenshots": {
+                "enabled": true
+            },
+            "Don't report screenshots": {
+                "enabled": true
+            },
+            "Read messages without the seen receipt": {
+                "enabled": false
+            },
             "View DM photos and videos anonymously": {
+                "enabled": true
+            },
+            "Hide that you're typing": {
+                "enabled": false
+            },
+            "Save profile picture": {
                 "enabled": true
             },
             "Download any reel": {
@@ -25,11 +52,35 @@
             "Download any video": {
                 "enabled": true
             },
+            "Download voice messages": {
+                "enabled": true
+            },
             "Hide the Explore grid": {
                 "enabled": false
             },
+            "Don't save recent searches": {
+                "enabled": true
+            },
+            "Hide comments": {
+                "enabled": true
+            },
+            "Ask before a like": {
+                "enabled": true
+            },
+            "Ask before a refresh": {
+                "enabled": true
+            },
             "Start Home on Following": {
                 "enabled": false
+            },
+            "Hide the home feed": {
+                "enabled": true
+            },
+            "Change the like animation": {
+                "enabled": true
+            },
+            "Full resolution photos": {
+                "enabled": true
             },
             "Hide Reels in the feed": {
                 "enabled": false
@@ -39,6 +90,18 @@
             },
             "Stop swipe to create": {
                 "enabled": false
+            },
+            "Stop swiping between tabs": {
+                "enabled": true
+            },
+            "Show a post's exact time": {
+                "enabled": false
+            },
+            "Turn off HDR brightness boosts": {
+                "enabled": true
+            },
+            "Data saver": {
+                "enabled": true
             },
             "Default playback quality": {
                 "enabled": false
@@ -64,6 +127,9 @@
             "Remove build expired popup": {
                 "enabled": true
             },
+            "Clear the media cache": {
+                "enabled": true
+            },
             "Copy comment": {
                 "enabled": true
             },
@@ -74,6 +140,12 @@
                 "enabled": false
             },
             "Open links in external browser": {
+                "enabled": true
+            },
+            "Spoof location": {
+                "enabled": false
+            },
+            "Group Instagram's notifications": {
                 "enabled": true
             },
             "Restore trust on re-signed builds": {
@@ -90,6 +162,9 @@
             },
             "Start on x86 devices": {
                 "enabled": true
+            },
+            "Change version code": {
+                "enabled": false
             },
             "Show if a profile follows you": {
                 "enabled": true
@@ -130,11 +205,17 @@
             "Hide the Repost button": {
                 "enabled": false
             },
+            "Hide the Share button": {
+                "enabled": true
+            },
             "Hide group buttons on the share sheet": {
                 "enabled": false
             },
             "Stop Story auto-advance": {
                 "enabled": false
+            },
+            "View live anonymously": {
+                "enabled": true
             },
             "Loop a story": {
                 "enabled": false
