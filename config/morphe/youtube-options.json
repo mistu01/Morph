@@ -271,9 +271,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:19.597922Z",
-            "updated_at": "2026-10-06T05:57:02.387513116Z",
+            "updated_at": "2026-10-09T05:43:46.402327639Z",
             "source": "patches.mpp",
-            "sha256": "dba660df61d95131a22242cabe9c44b4b04861b7ba6ebeffe91c4b3647d55b93"
+            "sha256": "8764c3c48fd5b1cda0631cbc23dcae054e618f2765d5f15fde1108b7795fab85"
         },
         "patches": {
             "Clone app": {
@@ -372,6 +372,9 @@
                 "enabled": true
             },
             "Captions": {
+                "enabled": true
+            },
+            "DeArrow": {
                 "enabled": true
             },
             "Disable layout updates": {
@@ -520,9 +523,6 @@
                     "lightThemeColor": "in-app"
                 }
             },
-            "Alternative thumbnails": {
-                "enabled": true
-            },
             "Bypass image region restrictions": {
                 "enabled": true
             },
@@ -574,10 +574,16 @@
             "Spoof device dimensions": {
                 "enabled": true
             },
+            "Channel whitelist": {
+                "enabled": true
+            },
             "Disable DRC audio": {
                 "enabled": true
             },
             "Force original audio": {
+                "enabled": true
+            },
+            "Skip silence": {
                 "enabled": true
             },
             "Playback buffer": {

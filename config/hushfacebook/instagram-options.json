@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-08T05:39:21.805204076Z",
+            "updated_at": "2026-10-09T05:44:05.022622864Z",
             "source": "patches.mpp",
-            "sha256": "251add8e65ad25e10c613859eff06021800148a070f2fd22583b9ccaaf07c750"
+            "sha256": "3e1a7dc9076b4b499aed52e7c887d36daffd598387465fc06af0e55491a7a485"
         },
         "patches": {
             "Hide ads": {
@@ -139,6 +139,9 @@
             "Open developer options": {
                 "enabled": false
             },
+            "Emoji style": {
+                "enabled": true
+            },
             "Open links in external browser": {
                 "enabled": true
             },
@@ -174,6 +177,9 @@
             },
             "Hide suggested people on profiles": {
                 "enabled": false
+            },
+            "Hide the Threads button": {
+                "enabled": true
             },
             "Keep Reels auto scroll on": {
                 "enabled": false
@@ -218,6 +224,9 @@
                 "enabled": true
             },
             "Loop a story": {
+                "enabled": false
+            },
+            "See who a story mentions": {
                 "enabled": false
             },
             "Story ring size": {

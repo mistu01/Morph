@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.166034+00:00",
-            "updated_at": "2026-10-08T05:39:20.272317359Z",
+            "updated_at": "2026-10-09T05:44:03.034470126Z",
             "source": "patches.mpp",
-            "sha256": "b9612548a9c22bddcf534b0804f8c71f32ca58d92acbec9603ada325552a3b32"
+            "sha256": "959fb861a3c254d1d73a5c9ea13e6725265bd9d64466bb97735cf586b5729741"
         },
         "patches": {
             "Hide ads": {
@@ -13,7 +13,13 @@
             "Hide suggested users": {
                 "enabled": true
             },
+            "Save photos and videos": {
+                "enabled": true
+            },
             "Disable video autoplay": {
+                "enabled": false
+            },
+            "Max image quality": {
                 "enabled": false
             },
             "Block background-return feed refresh": {
@@ -31,13 +37,25 @@
             "Restore screens on re-signed builds": {
                 "enabled": true
             },
+            "Disable screenshot detection": {
+                "enabled": false
+            },
             "HushThreads settings": {
                 "enabled": true
             },
             "Sanitize sharing links": {
                 "enabled": true
             },
+            "Remove share targets": {
+                "enabled": false
+            },
             "Pure black dark mode": {
+                "enabled": false
+            },
+            "Trust user-added certificates": {
+                "enabled": false
+            },
+            "Change version code": {
                 "enabled": false
             }
         }

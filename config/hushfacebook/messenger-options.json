@@ -2,11 +2,18 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-08T05:39:18.835207994Z",
+            "updated_at": "2026-10-09T05:44:00.912014228Z",
             "source": "patches.mpp",
-            "sha256": "a5f860f4f083f27817a1da7a4ede59b62f7eab03b580a91512ef207964a61d08"
+            "sha256": "1898c011f32786793e12bcb1286c03a651d2ab61689aef01264bdd106700d3fb"
         },
         "patches": {
+            "Clone install under another package name": {
+                "enabled": false,
+                "options": {
+                    "clonePackageName": "com.facebook.orca.hush",
+                    "cloneAppName": "Messenger Clone"
+                }
+            },
             "Install beside Meta apps": {
                 "enabled": true
             },
@@ -58,6 +65,12 @@
             "Hide avatar stickers": {
                 "enabled": true
             },
+            "Restore old emoji drawer": {
+                "enabled": true
+            },
+            "Keep emoji search on emoji": {
+                "enabled": true
+            },
             "Hide chat promotions": {
                 "enabled": true
             },
@@ -85,6 +98,18 @@
             "Send photos at original quality": {
                 "enabled": true
             },
+            "Send videos without re-encoding": {
+                "enabled": true
+            },
+            "Keep a message log": {
+                "enabled": true
+            },
+            "Use the phone's camera app": {
+                "enabled": true
+            },
+            "Stop analytics uploads": {
+                "enabled": true
+            },
             "Allow screenshots": {
                 "enabled": true
             },
@@ -92,6 +117,9 @@
                 "enabled": true
             },
             "Keep unsent messages": {
+                "enabled": true
+            },
+            "Unlock app icons": {
                 "enabled": true
             },
             "View stories anonymously": {
@@ -105,6 +133,18 @@
             },
             "Open settings from menu": {
                 "enabled": true
+            },
+            "Custom new-message sound": {
+                "enabled": false,
+                "options": {
+                    "soundFile": null
+                }
+            },
+            "Spoof package version": {
+                "enabled": false,
+                "options": {
+                    "versionCode": 2147483647
+                }
             }
         }
     }

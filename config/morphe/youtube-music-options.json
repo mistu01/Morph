@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-10-06T05:57:05.227838192Z",
+            "updated_at": "2026-10-09T05:43:49.263000479Z",
             "source": "patches.mpp",
-            "sha256": "dba660df61d95131a22242cabe9c44b4b04861b7ba6ebeffe91c4b3647d55b93"
+            "sha256": "8764c3c48fd5b1cda0631cbc23dcae054e618f2765d5f15fde1108b7795fab85"
         },
         "patches": {
             "Clone app": {
@@ -284,6 +284,9 @@
             "Play albums songs": {
                 "enabled": true
             },
+            "Android Auto": {
+                "enabled": true
+            },
             "Bypass certificate checks": {
                 "enabled": true
             },
@@ -330,6 +333,9 @@
                 "enabled": true
             },
             "Spoof app version": {
+                "enabled": true
+            },
+            "Skip silence": {
                 "enabled": true
             },
             "Playback speed": {

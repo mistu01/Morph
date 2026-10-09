@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-08T05:39:17.035715145Z",
+            "updated_at": "2026-10-09T05:43:58.755928284Z",
             "source": "patches.mpp",
-            "sha256": "11caacd4de3a511e937940540cba36c9dea588e8c6cbed2267e450c5fcc6e7c9"
+            "sha256": "78c027662a44b1c150cba602a0b44531091245c0c3986b3a5490c6d083e1cb47"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -40,10 +40,22 @@
             "Block ad telemetry": {
                 "enabled": true
             },
+            "Clean up Facebook's chat list": {
+                "enabled": true
+            },
             "Hide the Get Messenger card": {
                 "enabled": true
             },
+            "Hide read receipts": {
+                "enabled": false
+            },
+            "Hide typing indicator": {
+                "enabled": false
+            },
             "Open Messenger from the top bar": {
+                "enabled": true
+            },
+            "Send chat photos and videos at original quality": {
                 "enabled": true
             },
             "Install beside Meta's apps": {
@@ -52,8 +64,17 @@
             "Default comment order": {
                 "enabled": true
             },
+            "Comment sheet options": {
+                "enabled": false
+            },
+            "Hide Meta AI comment summaries": {
+                "enabled": true
+            },
             "Tag suggestions only after @": {
                 "enabled": false
+            },
+            "Download any photo": {
+                "enabled": true
             },
             "Download any reel": {
                 "enabled": true
@@ -70,7 +91,13 @@
             "Hide AI-detected posts": {
                 "enabled": true
             },
+            "Turn off auto-translation": {
+                "enabled": true
+            },
             "Hide the Feeds header": {
+                "enabled": true
+            },
+            "Following feed on Home": {
                 "enabled": true
             },
             "Hide Meta AI questions under posts": {
@@ -88,6 +115,9 @@
             "Block background-return feed refresh": {
                 "enabled": true
             },
+            "Hide seen posts": {
+                "enabled": false
+            },
             "Hide Stories tray": {
                 "enabled": false
             },
@@ -98,6 +128,9 @@
                 "enabled": true
             },
             "Use the system font": {
+                "enabled": false
+            },
+            "Accent color": {
                 "enabled": false
             },
             "AMOLED black theme": {
@@ -117,6 +150,9 @@
             },
             "Picture-in-picture": {
                 "enabled": false
+            },
+            "Keep the progress bar": {
+                "enabled": true
             },
             "Default playback quality": {
                 "enabled": false
@@ -166,6 +202,9 @@
             "Start on x86 devices": {
                 "enabled": true
             },
+            "Hide Meta upsells": {
+                "enabled": false
+            },
             "Tab bar at the bottom": {
                 "enabled": true
             },
@@ -186,6 +225,9 @@
             },
             "Open on a chosen tab": {
                 "enabled": false
+            },
+            "Hide tab badges": {
+                "enabled": true
             },
             "Block promotional notifications": {
                 "enabled": true
@@ -219,6 +261,9 @@
             },
             "Stop update prompts": {
                 "enabled": true
+            },
+            "Disable Play Store updates": {
+                "enabled": false
             }
         }
     }
