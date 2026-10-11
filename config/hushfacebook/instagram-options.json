@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-09T05:44:05.022622864Z",
+            "updated_at": "2026-10-11T05:21:00.597100461Z",
             "source": "patches.mpp",
-            "sha256": "3e1a7dc9076b4b499aed52e7c887d36daffd598387465fc06af0e55491a7a485"
+            "sha256": "e4fb3c112685ebc21843f2407c2277c3419e29390099a788876342bf347170dc"
         },
         "patches": {
             "Hide ads": {
@@ -35,6 +35,9 @@
                 "enabled": false
             },
             "View DM photos and videos anonymously": {
+                "enabled": true
+            },
+            "Hide suggested accounts in DMs": {
                 "enabled": true
             },
             "Hide that you're typing": {

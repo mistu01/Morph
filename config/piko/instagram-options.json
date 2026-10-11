@@ -174,9 +174,9 @@
     {
         "meta": {
             "created_at": "2026-06-24T13:02:42.905835300Z",
-            "updated_at": "2026-10-08T05:39:15.363573742Z",
+            "updated_at": "2026-10-11T05:20:53.171091113Z",
             "source": "piko-patches.mpp",
-            "sha256": "825834791264425dca13c9191674b2d6258f7310b87c7d2f911856810ef73933"
+            "sha256": "01cb828fcc66bcdda7c4242fdc509518107b883eaf26665b0da482945b7a8033"
         },
         "patches": {
             "Disable ads": {
@@ -215,6 +215,12 @@
             "Hide reshare button": {
                 "enabled": true
             },
+            "Hide save buttons": {
+                "enabled": true
+            },
+            "Hide share button": {
+                "enabled": true
+            },
             "Disable typing status": {
                 "enabled": true
             },
@@ -225,12 +231,6 @@
                 "enabled": true
             },
             "Sanitize share links": {
-                "enabled": true
-            },
-            "Validate links": {
-                "enabled": true
-            },
-            "Remove build expired popup": {
                 "enabled": true
             },
             "Change like animation": {
@@ -247,6 +247,9 @@
                 "enabled": true
             },
             "Save media comment": {
+                "enabled": true
+            },
+            "Custom font": {
                 "enabled": true
             },
             "Download voice message": {
@@ -267,9 +270,6 @@
             "Hide group creation button on sharesheet": {
                 "enabled": true
             },
-            "Hide navigation buttons": {
-                "enabled": true
-            },
             "Hide notes tray": {
                 "enabled": true
             },
@@ -280,6 +280,12 @@
                 "enabled": true
             },
             "Disable double tap like": {
+                "enabled": true
+            },
+            "Focus Lock": {
+                "enabled": true
+            },
+            "Inbox lock": {
                 "enabled": true
             },
             "Save deleted messages": {
@@ -297,6 +303,9 @@
             "Improve image viewing": {
                 "enabled": true
             },
+            "Save Instants": {
+                "enabled": true
+            },
             "Recommended flags": {
                 "enabled": true
             },
@@ -312,13 +321,16 @@
             "More options on post": {
                 "enabled": true
             },
-            "Disable onboarding permission prompts": {
+            "Customize navigation bar": {
                 "enabled": true
             },
             "Disable screenshot detection": {
                 "enabled": true
             },
             "Disable Reels scrolling": {
+                "enabled": true
+            },
+            "Hide Reels follow button": {
                 "enabled": true
             },
             "Remove empty bottom space": {
@@ -340,9 +352,6 @@
                 "enabled": true
             },
             "View story mentions": {
-                "enabled": true
-            },
-            "Stories audio autoplay": {
                 "enabled": true
             },
             "Theme": {

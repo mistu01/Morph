@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-09T05:43:58.755928284Z",
+            "updated_at": "2026-10-11T05:20:54.976968687Z",
             "source": "patches.mpp",
-            "sha256": "78c027662a44b1c150cba602a0b44531091245c0c3986b3a5490c6d083e1cb47"
+            "sha256": "6e474d30567e0ee1ae0fca87d3eff9adf66d9477474fdcdf57a9b618f63a9abf"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -175,6 +175,9 @@
             "Hold back analytics uploads": {
                 "enabled": false
             },
+            "Unlock app icons": {
+                "enabled": true
+            },
             "Open links in external browser": {
                 "enabled": true
             },
@@ -194,6 +197,9 @@
                 "enabled": true
             },
             "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Share sheet items": {
                 "enabled": true
             },
             "Turn off screen transitions": {

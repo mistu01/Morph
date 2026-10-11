@@ -239,9 +239,9 @@
     {
         "meta": {
             "created_at": "2026-06-24T13:02:39.783544600Z",
-            "updated_at": "2026-10-08T05:39:14.533227166Z",
+            "updated_at": "2026-10-11T05:20:52.206012542Z",
             "source": "piko-patches.mpp",
-            "sha256": "825834791264425dca13c9191674b2d6258f7310b87c7d2f911856810ef73933"
+            "sha256": "01cb828fcc66bcdda7c4242fdc509518107b883eaf26665b0da482945b7a8033"
         },
         "patches": {
             "Remove Ads": {
@@ -263,6 +263,9 @@
                 "enabled": true
             },
             "Remove view count": {
+                "enabled": true
+            },
+            "Restore legacy follower lists": {
                 "enabled": true
             },
             "Hook feature flag": {

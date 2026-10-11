@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.166034+00:00",
-            "updated_at": "2026-10-09T05:44:03.034470126Z",
+            "updated_at": "2026-10-11T05:20:58.524863265Z",
             "source": "patches.mpp",
-            "sha256": "959fb861a3c254d1d73a5c9ea13e6725265bd9d64466bb97735cf586b5729741"
+            "sha256": "80223db018add06882921f6a840db2578b6d7a507e49a26ef9c2bc4569635068"
         },
         "patches": {
             "Hide ads": {
@@ -57,6 +57,12 @@
             },
             "Change version code": {
                 "enabled": false
+            },
+            "Hide ghost post bubbles": {
+                "enabled": true
+            },
+            "Hide the Instagram button": {
+                "enabled": true
             }
         }
     }
