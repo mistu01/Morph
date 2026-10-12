@@ -2,13 +2,20 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-11T05:21:00.597100461Z",
+            "updated_at": "2026-10-12T05:32:48.896575369Z",
             "source": "patches.mpp",
-            "sha256": "e4fb3c112685ebc21843f2407c2277c3419e29390099a788876342bf347170dc"
+            "sha256": "05b6af7c70794efee93053278020632a8d00846803f102160cfadfbc0c5a06b8"
         },
         "patches": {
             "Hide ads": {
                 "enabled": true
+            },
+            "Install next to Instagram": {
+                "enabled": false,
+                "options": {
+                    "packageName": "com.instagram.android.hush",
+                    "appName": "Instagram Clone"
+                }
             },
             "Ask before a call": {
                 "enabled": true
@@ -23,6 +30,12 @@
                 "enabled": true
             },
             "Hide the notes row": {
+                "enabled": true
+            },
+            "Hide your active status": {
+                "enabled": true
+            },
+            "Show when someone was last active": {
                 "enabled": true
             },
             "Allow screenshots": {
@@ -64,6 +77,9 @@
             "Don't save recent searches": {
                 "enabled": true
             },
+            "Back leaves Home": {
+                "enabled": true
+            },
             "Hide comments": {
                 "enabled": true
             },
@@ -82,11 +98,20 @@
             "Change the like animation": {
                 "enabled": true
             },
+            "Show hidden like counts": {
+                "enabled": true
+            },
             "Full resolution photos": {
                 "enabled": true
             },
             "Hide Reels in the feed": {
                 "enabled": false
+            },
+            "Rounded post corners": {
+                "enabled": true
+            },
+            "Start feed videos with sound": {
+                "enabled": true
             },
             "Hide suggested posts": {
                 "enabled": true
@@ -99,6 +124,9 @@
             },
             "Show a post's exact time": {
                 "enabled": false
+            },
+            "Long press to zoom": {
+                "enabled": true
             },
             "Turn off HDR brightness boosts": {
                 "enabled": true
@@ -148,10 +176,19 @@
             "Open links in external browser": {
                 "enabled": true
             },
+            "Glass tab bar": {
+                "enabled": true
+            },
+            "Stop background wake-ups": {
+                "enabled": true
+            },
             "Spoof location": {
                 "enabled": false
             },
             "Group Instagram's notifications": {
+                "enabled": true
+            },
+            "Saved on your profile": {
                 "enabled": true
             },
             "Restore trust on re-signed builds": {
@@ -161,6 +198,12 @@
                 "enabled": true
             },
             "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Accent color": {
+                "enabled": true
+            },
+            "HushGram launch screen": {
                 "enabled": true
             },
             "Pure black dark mode": {
@@ -178,6 +221,12 @@
             "Hide highlights": {
                 "enabled": false
             },
+            "Hide Notes on profile pictures": {
+                "enabled": true
+            },
+            "Profile posts as a list": {
+                "enabled": true
+            },
             "Hide suggested people on profiles": {
                 "enabled": false
             },
@@ -187,11 +236,23 @@
             "Keep Reels auto scroll on": {
                 "enabled": false
             },
+            "Blur the bars around Reels": {
+                "enabled": true
+            },
             "Clean up Reels": {
                 "enabled": false
             },
             "Turn off double tap to like": {
                 "enabled": false
+            },
+            "Full screen Reels and Home": {
+                "enabled": true
+            },
+            "Find the reel you came from": {
+                "enabled": true
+            },
+            "Hide paid partnership Reels": {
+                "enabled": true
             },
             "Stop Reels scrolling": {
                 "enabled": false
@@ -207,6 +268,9 @@
             },
             "Hide the Reels tab": {
                 "enabled": false
+            },
+            "Control taps and volume on Reels": {
+                "enabled": true
             },
             "Don't send reel watch history": {
                 "enabled": true
@@ -232,10 +296,16 @@
             "See who a story mentions": {
                 "enabled": false
             },
+            "Upload stories at full quality": {
+                "enabled": true
+            },
             "Story ring size": {
                 "enabled": false
             },
             "View stories anonymously": {
+                "enabled": true
+            },
+            "Start stories with sound": {
                 "enabled": true
             },
             "Show a story's exact time": {
