@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-14T04:31:12.574841126Z",
+            "updated_at": "2026-10-15T04:13:25.705943985Z",
             "source": "patches.mpp",
-            "sha256": "67ebd5e8a749bcf9c16632c996ff6b288b5bd7206ba6be6894e9b0c725d82595"
+            "sha256": "2b56f21cf47449b3b773a1da5f790279a77f8580f508536c749c54729081628c"
         },
         "patches": {
             "Clone install under another package name": {
@@ -47,6 +47,12 @@
             "Hide inbox tabs": {
                 "enabled": true
             },
+            "Hide Mark as read": {
+                "enabled": true
+            },
+            "Pin more chats": {
+                "enabled": true
+            },
             "Hide Facebook shortcuts": {
                 "enabled": true
             },
@@ -57,6 +63,12 @@
                 "enabled": true
             },
             "Hide Reels badge": {
+                "enabled": true
+            },
+            "Hide People tab": {
+                "enabled": true
+            },
+            "Hide Notifications tab": {
                 "enabled": true
             },
             "Hide AI sticker tools": {
@@ -128,6 +140,12 @@
             "Stop inbox and ad link logging": {
                 "enabled": true
             },
+            "Stop MQTT logging": {
+                "enabled": true
+            },
+            "Stop nearby scans": {
+                "enabled": true
+            },
             "Allow screenshots": {
                 "enabled": true
             },
@@ -150,6 +168,9 @@
                 "enabled": true
             },
             "Slide chats in and out": {
+                "enabled": true
+            },
+            "Bold and italic text": {
                 "enabled": true
             },
             "Open settings from menu": {
