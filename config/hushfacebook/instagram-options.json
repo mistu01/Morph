@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-15T04:13:29.682401011Z",
+            "updated_at": "2026-10-16T04:09:33.948427576Z",
             "source": "patches.mpp",
-            "sha256": "05b6af7c70794efee93053278020632a8d00846803f102160cfadfbc0c5a06b8"
+            "sha256": "3a2a1fca27a80a54dafa82f7b55f2d2605973be2466d8582bc1a58aedda25aad"
         },
         "patches": {
             "Hide ads": {
@@ -14,7 +14,8 @@
                 "enabled": false,
                 "options": {
                     "packageName": "com.instagram.android.hush",
-                    "appName": "Instagram Clone"
+                    "appName": "Instagram Clone",
+                    "markIcon": false
                 }
             },
             "Ask before a call": {
@@ -122,6 +123,9 @@
             "Stop swiping between tabs": {
                 "enabled": true
             },
+            "Tap a feed video to pause it": {
+                "enabled": true
+            },
             "Show a post's exact time": {
                 "enabled": false
             },
@@ -174,6 +178,9 @@
                 "enabled": true
             },
             "Open links in external browser": {
+                "enabled": true
+            },
+            "Font": {
                 "enabled": true
             },
             "Glass tab bar": {
@@ -233,6 +240,9 @@
             "Hide the Threads button": {
                 "enabled": true
             },
+            "Hide AI-labeled reels": {
+                "enabled": true
+            },
             "Keep Reels auto scroll on": {
                 "enabled": false
             },
@@ -270,6 +280,9 @@
                 "enabled": false
             },
             "Control taps and volume on Reels": {
+                "enabled": true
+            },
+            "Show a reel's exact time": {
                 "enabled": true
             },
             "Don't send reel watch history": {
