@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-16T04:09:27.364146192Z",
+            "updated_at": "2026-10-17T03:59:51.229332604Z",
             "source": "patches.mpp",
-            "sha256": "b85cfab8a5740c9f2c06fc8449561f0a84243b3c7686d02783b2c320b1ba93c8"
+            "sha256": "ffb27c076052b52cec247b735beade79bce61e8ba6a5fe566f7c9745a3c0bea4"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -166,6 +166,9 @@
             "Resume long videos": {
                 "enabled": true
             },
+            "Skip silent parts": {
+                "enabled": true
+            },
             "Tap to play": {
                 "enabled": false
             },
@@ -179,6 +182,9 @@
                 "enabled": false
             },
             "Unlock app icons": {
+                "enabled": true
+            },
+            "Hide carrier data banners": {
                 "enabled": true
             },
             "Open links in external browser": {
@@ -269,6 +275,9 @@
                 "enabled": true
             },
             "Hide suggested stories": {
+                "enabled": true
+            },
+            "Upload Stories in HD": {
                 "enabled": true
             },
             "Stop update prompts": {
