@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-17T03:59:51.229332604Z",
+            "updated_at": "2026-10-19T04:15:42.450460300Z",
             "source": "patches.mpp",
-            "sha256": "ffb27c076052b52cec247b735beade79bce61e8ba6a5fe566f7c9745a3c0bea4"
+            "sha256": "759b85f3b46e8433a0429edc9a4118b01e0d8b561966e3156b16a29e1a4e7ba0"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -62,6 +62,9 @@
                 "enabled": true
             },
             "Default comment order": {
+                "enabled": true
+            },
+            "Open comments at full height": {
                 "enabled": true
             },
             "Comment sheet options": {
@@ -254,6 +257,9 @@
                 "enabled": false
             },
             "Turn off double tap to like": {
+                "enabled": true
+            },
+            "Open comments with a gesture": {
                 "enabled": true
             },
             "Hold a reel for 2x": {

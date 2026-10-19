@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-17T03:59:53.201630400Z",
+            "updated_at": "2026-10-19T04:15:44.126884162Z",
             "source": "patches.mpp",
-            "sha256": "2b56f21cf47449b3b773a1da5f790279a77f8580f508536c749c54729081628c"
+            "sha256": "18232add72c25c953cbccc79ba53cf7b861f0f760539d413774f1c6c3b53b5d7"
         },
         "patches": {
             "Clone install under another package name": {
@@ -71,6 +71,9 @@
             "Hide Notifications tab": {
                 "enabled": true
             },
+            "Hold stories at the end": {
+                "enabled": true
+            },
             "Hide AI sticker tools": {
                 "enabled": true
             },
@@ -116,7 +119,7 @@
             "Send videos without re-encoding": {
                 "enabled": true
             },
-            "Fix shared videos with xHE-AAC sound": {
+            "Fix videos that won't send": {
                 "enabled": true
             },
             "Turn off the swipe up for disappearing messages": {
@@ -129,6 +132,9 @@
                 "enabled": true
             },
             "Use the phone's camera app": {
+                "enabled": true
+            },
+            "Open your gallery app": {
                 "enabled": true
             },
             "Stop analytics uploads": {
@@ -146,10 +152,16 @@
             "Stop nearby scans": {
                 "enabled": true
             },
+            "Stop app list and device ID sharing": {
+                "enabled": true
+            },
             "Allow screenshots": {
                 "enabled": true
             },
             "Hide read receipts": {
+                "enabled": true
+            },
+            "Mark as read button": {
                 "enabled": true
             },
             "Keep unsent messages": {

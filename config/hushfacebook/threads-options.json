@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.166034+00:00",
-            "updated_at": "2026-10-17T03:59:55.054272635Z",
+            "updated_at": "2026-10-19T04:15:45.782977442Z",
             "source": "patches.mpp",
-            "sha256": "c5ca5217bf24a5599abd5e466c956dc06bd2f1a170b5e963fa28744343d38368"
+            "sha256": "19ff38798e6ff7f8e64ad4b7d9249ff17df16a9b0592bd131452aff727c5bcca"
         },
         "patches": {
             "Hide ads": {
