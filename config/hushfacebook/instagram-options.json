@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-19T04:15:47.512978910Z",
+            "updated_at": "2026-10-22T04:18:26.029218556Z",
             "source": "patches.mpp",
-            "sha256": "45a0320022e0ca70bcfeeeefee97001942cc2caa98d1715ebad317ba7d08164f"
+            "sha256": "836459c3beeddfba9a35b416dcc84192d0d88f16776615e7ce8eee64b527f0e1"
         },
         "patches": {
             "Hide ads": {
@@ -30,6 +30,9 @@
             "Lock your messages": {
                 "enabled": true
             },
+            "Message box buttons": {
+                "enabled": true
+            },
             "Hide the notes row": {
                 "enabled": true
             },
@@ -43,6 +46,9 @@
                 "enabled": true
             },
             "Don't report screenshots": {
+                "enabled": true
+            },
+            "Hide the search bar in Messages": {
                 "enabled": true
             },
             "Read messages without the seen receipt": {
@@ -78,7 +84,13 @@
             "Don't save recent searches": {
                 "enabled": true
             },
+            "Show all recent searches": {
+                "enabled": true
+            },
             "Back leaves Home": {
+                "enabled": true
+            },
+            "Open comments without the keyboard": {
                 "enabled": true
             },
             "Hide comments": {
@@ -159,9 +171,6 @@
             "Remove the advertising ID": {
                 "enabled": true
             },
-            "Disable analytics": {
-                "enabled": true
-            },
             "Remove the empty space at the bottom": {
                 "enabled": false
             },
@@ -176,9 +185,6 @@
             },
             "Save comment photo": {
                 "enabled": true
-            },
-            "Open developer options": {
-                "enabled": false
             },
             "Emoji style": {
                 "enabled": true
@@ -243,6 +249,9 @@
             "Hide suggested people on profiles": {
                 "enabled": false
             },
+            "Hide profile tabs": {
+                "enabled": true
+            },
             "Hide the Threads button": {
                 "enabled": true
             },
@@ -283,6 +292,9 @@
                 "enabled": true
             },
             "Hide suggested accounts in Reels": {
+                "enabled": false
+            },
+            "Swipe left to open the profile": {
                 "enabled": false
             },
             "Hide the Reels tab": {
@@ -331,6 +343,9 @@
                 "enabled": true
             },
             "Start stories with sound": {
+                "enabled": true
+            },
+            "Stop swipe up to reply": {
                 "enabled": true
             },
             "Show a story's exact time": {

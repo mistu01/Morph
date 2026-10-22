@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-19T04:15:42.450460300Z",
+            "updated_at": "2026-10-22T04:18:19.813995039Z",
             "source": "patches.mpp",
-            "sha256": "759b85f3b46e8433a0429edc9a4118b01e0d8b561966e3156b16a29e1a4e7ba0"
+            "sha256": "6d6494f290174c2734a4b5c8f323c9fd4434bb201efb27378e77765dc5e857e9"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -272,6 +272,9 @@
                 "enabled": false
             },
             "Hide Meta AI in search": {
+                "enabled": true
+            },
+            "Don't save search history": {
                 "enabled": true
             },
             "Stop Story auto-advance": {
