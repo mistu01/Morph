@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-22T04:18:21.594399225Z",
+            "updated_at": "2026-10-23T04:22:37.038483217Z",
             "source": "patches.mpp",
-            "sha256": "18232add72c25c953cbccc79ba53cf7b861f0f760539d413774f1c6c3b53b5d7"
+            "sha256": "3c43ed798c5c1cc24ec7b4bac56bcd404a07fa7551c90380576d994047c65eac"
         },
         "patches": {
             "Clone install under another package name": {
@@ -21,9 +21,6 @@
                 "enabled": true
             },
             "Material You theme": {
-                "enabled": true
-            },
-            "Hide inbox ads": {
                 "enabled": true
             },
             "Hide People You May Know": {
@@ -69,6 +66,9 @@
                 "enabled": true
             },
             "Hide Notifications tab": {
+                "enabled": true
+            },
+            "Hide tab badges": {
                 "enabled": true
             },
             "Hold stories at the end": {
@@ -122,13 +122,19 @@
             "Fix videos that won't send": {
                 "enabled": true
             },
-            "Turn off the swipe up for disappearing messages": {
+            "Ignore the swipe up for disappearing messages": {
+                "enabled": true
+            },
+            "Hide the recent photo card": {
                 "enabled": true
             },
             "Keep a message log": {
                 "enabled": true
             },
             "Auto reply": {
+                "enabled": true
+            },
+            "Quiet incoming calls": {
                 "enabled": true
             },
             "Use the phone's camera app": {
@@ -146,7 +152,7 @@
             "Stop inbox and ad link logging": {
                 "enabled": true
             },
-            "Stop MQTT logging": {
+            "Stop live connection logging": {
                 "enabled": true
             },
             "Stop nearby scans": {

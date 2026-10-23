@@ -271,9 +271,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:19.597922Z",
-            "updated_at": "2026-10-22T04:18:07.295756864Z",
+            "updated_at": "2026-10-23T04:22:20.209085578Z",
             "source": "patches.mpp",
-            "sha256": "e6c5594b79b0aa0db70096c1195587c9de5af517ea097dff0f1d70ba5726fe44"
+            "sha256": "82bc696c94c26dbf75242b59980251315145457575b663200b981ca351e1c0f7"
         },
         "patches": {
             "Clone app": {
@@ -302,6 +302,9 @@
             "Hide ads": {
                 "enabled": true
             },
+            "Ask flyout menu": {
+                "enabled": true
+            },
             "Channel search": {
                 "enabled": true
             },
@@ -326,6 +329,9 @@
             "Downloads": {
                 "enabled": true
             },
+            "Feed video actions": {
+                "enabled": true
+            },
             "Disable haptic feedback": {
                 "enabled": true
             },
@@ -347,7 +353,13 @@
             "Seekbar": {
                 "enabled": true
             },
+            "Skip live Shorts": {
+                "enabled": true
+            },
             "Swipe controls": {
+                "enabled": true
+            },
+            "Force animations": {
                 "enabled": true
             },
             "Custom branding": {
@@ -386,13 +398,19 @@
             "Disable layout updates": {
                 "enabled": true
             },
+            "Feed card layout": {
+                "enabled": true
+            },
             "Disable auto feed refresh": {
+                "enabled": true
+            },
+            "Feed view count": {
                 "enabled": true
             },
             "Add to queue": {
                 "enabled": false
             },
-            "Force system font": {
+            "Custom font": {
                 "enabled": true
             },
             "Change form factor": {
@@ -604,10 +622,16 @@
             "Disable video codecs": {
                 "enabled": true
             },
+            "Video delay": {
+                "enabled": true
+            },
             "Remember live stream playback position": {
                 "enabled": true
             },
             "Video quality": {
+                "enabled": true
+            },
+            "Series tracking": {
                 "enabled": true
             },
             "Playback speed": {

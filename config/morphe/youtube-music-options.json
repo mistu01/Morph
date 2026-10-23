@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-10-22T04:18:10.409122086Z",
+            "updated_at": "2026-10-23T04:22:22.305399134Z",
             "source": "patches.mpp",
-            "sha256": "e6c5594b79b0aa0db70096c1195587c9de5af517ea097dff0f1d70ba5726fe44"
+            "sha256": "82bc696c94c26dbf75242b59980251315145457575b663200b981ca351e1c0f7"
         },
         "patches": {
             "Clone app": {
@@ -237,6 +237,9 @@
                 "enabled": true
             },
             "Navigation bar": {
+                "enabled": true
+            },
+            "Custom font": {
                 "enabled": true
             },
             "Hide flyout menu components": {

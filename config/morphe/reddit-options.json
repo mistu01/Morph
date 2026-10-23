@@ -88,9 +88,9 @@
     {
         "meta": {
             "created_at": "2026-06-23T20:14:18.557516300Z",
-            "updated_at": "2026-10-22T04:18:11.890972514Z",
+            "updated_at": "2026-10-23T04:22:23.494796221Z",
             "source": "patches.mpp",
-            "sha256": "e6c5594b79b0aa0db70096c1195587c9de5af517ea097dff0f1d70ba5726fe44"
+            "sha256": "82bc696c94c26dbf75242b59980251315145457575b663200b981ca351e1c0f7"
         },
         "patches": {
             "Clone app": {
@@ -137,10 +137,37 @@
             "Hide communities shelf": {
                 "enabled": true
             },
+            "Copy text": {
+                "enabled": true
+            },
+            "Keep feed position": {
+                "enabled": true
+            },
+            "Show flairs in home feed": {
+                "enabled": true
+            },
+            "Full width feed media": {
+                "enabled": true
+            },
+            "Feed media max height": {
+                "enabled": true
+            },
+            "Hide media viewer components": {
+                "enabled": true
+            },
+            "Media viewer black background": {
+                "enabled": true
+            },
+            "Media viewer fade": {
+                "enabled": true
+            },
             "Disable modern home": {
                 "enabled": true
             },
             "Hide navigation buttons": {
+                "enabled": true
+            },
+            "Customize post layout": {
                 "enabled": true
             },
             "Disable screenshot popup": {
@@ -158,10 +185,13 @@
             "Hide Trending shelves": {
                 "enabled": true
             },
-            "Show view count": {
+            "App icon": {
                 "enabled": true
             },
-            "App icon": {
+            "Remember collapsed comments": {
+                "enabled": true
+            },
+            "Download location": {
                 "enabled": true
             },
             "Start as guest": {
@@ -174,6 +204,9 @@
                 "enabled": true
             },
             "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Redgifs audio": {
                 "enabled": true
             }
         }
