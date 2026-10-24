@@ -1,15 +1,15 @@
 {
-  "morphe": "v1.48.0",
+  "morphe": "v1.49.0-dev.1",
   "piko": "v3.11.0-dev.1",
   "anddea": "v4.4.0-dev.3",
   "devanced": "v1.5.1",
   "hushfacebook": "v0.17.0",
   "hushmessenger": "v0.26.0",
-  "hushthreads": "v0.0.15",
+  "hushthreads": "v0.0.16",
   "hushgram": "v0.0.15",
   "devanced_google_photos_apk": "7.98.0.1001971222",
   "hushfacebook_facebook_apk": "584.0.0.51.56",
-  "hushfacebook_threads_apk": "451.0.0.51.80",
+  "hushfacebook_threads_apk": "452.0.0.50.64",
   "hushfacebook_instagram_apk": "452.1.0.53.64",
-  "updated_at": "2026-10-23T04:22:16.291Z"
+  "updated_at": "2026-10-24T04:12:48.330Z"
 }
