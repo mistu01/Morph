@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-10-24T04:13:00.919013501Z",
+            "updated_at": "2026-10-25T04:15:47.487509370Z",
             "source": "patches.mpp",
-            "sha256": "2e7255df0eacfaa69c37c3c45ffc0396fe1a1023f6a96b098c75ffc463063525"
+            "sha256": "18530e60f6583d685bac4809ead3593a24ed2ffe81568116434717e5de5c7c65"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -157,6 +157,9 @@
             "Turn off HDR brightness": {
                 "enabled": false
             },
+            "Pinch to zoom": {
+                "enabled": true
+            },
             "Picture-in-picture": {
                 "enabled": false
             },
@@ -198,6 +201,9 @@
             },
             "Turn off haptics": {
                 "enabled": false
+            },
+            "Home header text": {
+                "enabled": true
             },
             "Restore screens on re-signed builds": {
                 "enabled": true
@@ -256,10 +262,16 @@
             "Block promotional notifications": {
                 "enabled": true
             },
+            "Hide profile notes": {
+                "enabled": true
+            },
             "Clean up Reels": {
                 "enabled": false
             },
             "Turn off double tap to like": {
+                "enabled": true
+            },
+            "Double tap to skip": {
                 "enabled": true
             },
             "Open comments with a gesture": {
@@ -268,7 +280,13 @@
             "Hold a reel for 2x": {
                 "enabled": false
             },
+            "Newest reels first": {
+                "enabled": true
+            },
             "Hide reel interest prompts": {
+                "enabled": true
+            },
+            "Tap shows the controls": {
                 "enabled": true
             },
             "Don't send reel watch history": {
@@ -282,6 +300,9 @@
             },
             "Stop Story auto-advance": {
                 "enabled": false
+            },
+            "Longer music on photo stories": {
+                "enabled": true
             },
             "View stories anonymously": {
                 "enabled": true

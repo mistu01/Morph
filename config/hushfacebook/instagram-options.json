@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-24T04:13:06.726713250Z",
+            "updated_at": "2026-10-25T04:15:52.412460786Z",
             "source": "patches.mpp",
-            "sha256": "6f1fe7d12fe11c3afb2e1494b9968fdc1ec1015893fd1a45c1905e22d2b03108"
+            "sha256": "51b81009ef870dba06cf0feb0af329ee52b5753a7290da6a26839748a9e4a270"
         },
         "patches": {
             "Hide ads": {
@@ -201,6 +201,9 @@
             "Stop background wake-ups": {
                 "enabled": true
             },
+            "Pick the app icon": {
+                "enabled": true
+            },
             "Spoof location": {
                 "enabled": false
             },
@@ -214,6 +217,9 @@
                 "enabled": true
             },
             "HushGram settings": {
+                "enabled": true
+            },
+            "Hide rows in Instagram's settings": {
                 "enabled": true
             },
             "Sanitize sharing links": {
@@ -322,6 +328,9 @@
                 "enabled": false
             },
             "Hide Follow on stories": {
+                "enabled": true
+            },
+            "Story text fonts": {
                 "enabled": true
             },
             "View live anonymously": {
