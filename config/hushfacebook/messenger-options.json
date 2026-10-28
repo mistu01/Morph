@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-10-27T04:38:34.146078202Z",
+            "updated_at": "2026-10-28T05:12:28.518139576Z",
             "source": "patches.mpp",
-            "sha256": "3c43ed798c5c1cc24ec7b4bac56bcd404a07fa7551c90380576d994047c65eac"
+            "sha256": "362f6be6b4f53b4f7819dd89a990c4a7b6b734dff8f7b59f7cabd259a745cf0e"
         },
         "patches": {
             "Clone install under another package name": {
@@ -128,6 +128,9 @@
             "Hide the recent photo card": {
                 "enabled": true
             },
+            "Hide Your story when sharing": {
+                "enabled": true
+            },
             "Keep a message log": {
                 "enabled": true
             },
@@ -176,6 +179,9 @@
             "Unlock app icons": {
                 "enabled": true
             },
+            "Square profile pictures": {
+                "enabled": true
+            },
             "Use your own font": {
                 "enabled": true
             },
@@ -193,6 +199,12 @@
             },
             "Open settings from menu": {
                 "enabled": true
+            },
+            "Custom launcher icon": {
+                "enabled": false,
+                "options": {
+                    "iconStyle": "white-on-black"
+                }
             },
             "Custom new-message sound": {
                 "enabled": false,
