@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-28T05:12:32.030816007Z",
+            "updated_at": "2026-10-29T05:23:32.695002167Z",
             "source": "patches.mpp",
-            "sha256": "51b81009ef870dba06cf0feb0af329ee52b5753a7290da6a26839748a9e4a270"
+            "sha256": "c7519ec4c3a5d4855a5c9d49bbaf3288635a04f70e61355ae49f492596bf8e7c"
         },
         "patches": {
             "Hide ads": {
@@ -40,6 +40,9 @@
                 "enabled": true
             },
             "Show when someone was last active": {
+                "enabled": true
+            },
+            "Swipe through a chat's reels": {
                 "enabled": true
             },
             "Allow screenshots": {
@@ -121,6 +124,9 @@
                 "enabled": true
             },
             "Full resolution photos": {
+                "enabled": true
+            },
+            "Keep your place in Home": {
                 "enabled": true
             },
             "Hide Reels in the feed": {
@@ -294,6 +300,9 @@
             "Keep a seek bar on Reels": {
                 "enabled": true
             },
+            "Start reels with sound": {
+                "enabled": true
+            },
             "Keep the reel speed": {
                 "enabled": true
             },
@@ -305,6 +314,9 @@
             },
             "Hide the Reels tab": {
                 "enabled": false
+            },
+            "Tab bar layout": {
+                "enabled": true
             },
             "Control taps and volume on Reels": {
                 "enabled": true
@@ -342,11 +354,17 @@
             "See who a story mentions": {
                 "enabled": false
             },
+            "Thicker story progress bar": {
+                "enabled": true
+            },
             "Upload stories at full quality": {
                 "enabled": true
             },
             "Story ring size": {
                 "enabled": false
+            },
+            "Seek bar on stories": {
+                "enabled": true
             },
             "View stories anonymously": {
                 "enabled": true
