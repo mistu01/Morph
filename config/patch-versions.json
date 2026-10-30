@@ -1,8 +1,8 @@
 {
-  "morphe": "v1.49.0-dev.10",
+  "morphe": "v2.0.0-dev.1",
   "piko": "v3.11.0-dev.3",
   "anddea": "v4.4.0-dev.3",
-  "devanced": "v1.6.1",
+  "devanced": "v1.6.2",
   "hushfacebook": "v0.19.0",
   "hushmessenger": "v0.27.0",
   "hushthreads": "v0.0.16",
@@ -11,5 +11,5 @@
   "hushfacebook_facebook_apk": "584.0.0.51.56",
   "hushfacebook_threads_apk": "452.0.0.50.64",
   "hushfacebook_instagram_apk": "453.0.0.55.79",
-  "updated_at": "2026-10-29T05:23:10.956Z"
+  "updated_at": "2026-10-30T05:22:59.466Z"
 }
