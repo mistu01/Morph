@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-10-29T05:23:32.695002167Z",
+            "updated_at": "2026-11-01T05:38:25.738808681Z",
             "source": "patches.mpp",
-            "sha256": "c7519ec4c3a5d4855a5c9d49bbaf3288635a04f70e61355ae49f492596bf8e7c"
+            "sha256": "2876cf936d4c9b5eed45737b4bef4ed4a4e0a50794390428ff4f115453aba248"
         },
         "patches": {
             "Hide ads": {
@@ -19,6 +19,9 @@
                 }
             },
             "Ask before a call": {
+                "enabled": true
+            },
+            "Chat history tools": {
                 "enabled": true
             },
             "Hide Instants": {
@@ -66,6 +69,9 @@
             "Hide that you're typing": {
                 "enabled": false
             },
+            "Mark one-time photos and videos": {
+                "enabled": true
+            },
             "Save profile picture": {
                 "enabled": true
             },
@@ -81,6 +87,9 @@
             "Download voice messages": {
                 "enabled": true
             },
+            "Explore without personalization": {
+                "enabled": true
+            },
             "Hide the Explore grid": {
                 "enabled": false
             },
@@ -90,7 +99,16 @@
             "Show all recent searches": {
                 "enabled": true
             },
+            "Ambient light": {
+                "enabled": true
+            },
             "Back leaves Home": {
+                "enabled": true
+            },
+            "Hide captions": {
+                "enabled": true
+            },
+            "Carousel arrows": {
                 "enabled": true
             },
             "Open comments without the keyboard": {
@@ -135,6 +153,12 @@
             "Rounded post corners": {
                 "enabled": true
             },
+            "Skip the collections tray": {
+                "enabled": true
+            },
+            "Seek bar on feed videos": {
+                "enabled": true
+            },
             "Start feed videos with sound": {
                 "enabled": true
             },
@@ -153,10 +177,16 @@
             "Show a post's exact time": {
                 "enabled": false
             },
+            "Keep Home's top bar": {
+                "enabled": true
+            },
             "Long press to zoom": {
                 "enabled": true
             },
             "Turn off HDR brightness boosts": {
+                "enabled": true
+            },
+            "Stop videos looping": {
                 "enabled": true
             },
             "Data saver": {
@@ -219,6 +249,12 @@
             "Saved on your profile": {
                 "enabled": true
             },
+            "App-only proxy": {
+                "enabled": true
+            },
+            "Use the highest refresh rate": {
+                "enabled": true
+            },
             "Restore trust on re-signed builds": {
                 "enabled": true
             },
@@ -226,6 +262,9 @@
                 "enabled": true
             },
             "Hide rows in Instagram's settings": {
+                "enabled": true
+            },
+            "Skip the contacts and location popups": {
                 "enabled": true
             },
             "Sanitize sharing links": {
@@ -324,7 +363,13 @@
             "Show a reel's exact time": {
                 "enabled": true
             },
+            "Keep the Reels top bar": {
+                "enabled": true
+            },
             "Don't send reel watch history": {
+                "enabled": true
+            },
+            "Pinch to zoom on Reels": {
                 "enabled": true
             },
             "Hide the Repost button": {
@@ -353,6 +398,9 @@
             },
             "See who a story mentions": {
                 "enabled": false
+            },
+            "Smooth story opening": {
+                "enabled": true
             },
             "Thicker story progress bar": {
                 "enabled": true
