@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-11-01T05:38:19.997858248Z",
+            "updated_at": "2026-11-02T05:35:40.255346685Z",
             "source": "patches.mpp",
-            "sha256": "d654ca6835a10acbeb0567158b0c24165301581e333e6409c0bcb079058c2ed6"
+            "sha256": "f6e3c4c9af707fb346851f2c01a72427f116c3b58a7d64328f68803f373e14ca"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -131,6 +131,9 @@
                 "enabled": false
             },
             "Hide suggested and promoted posts": {
+                "enabled": true
+            },
+            "See who shared": {
                 "enabled": true
             },
             "Hide posts by words": {
@@ -275,6 +278,9 @@
             "Hide profile notes": {
                 "enabled": true
             },
+            "Local profile counts": {
+                "enabled": true
+            },
             "Clean up Reels": {
                 "enabled": false
             },
@@ -305,6 +311,9 @@
             "Hide Meta AI in search": {
                 "enabled": true
             },
+            "Search date range": {
+                "enabled": true
+            },
             "Don't save search history": {
                 "enabled": true
             },
@@ -318,6 +327,9 @@
                 "enabled": true
             },
             "Hide suggested stories": {
+                "enabled": true
+            },
+            "Round stories tray": {
                 "enabled": true
             },
             "Upload Stories in HD": {
