@@ -130,6 +130,83 @@ def pick_variant(variants: list[dict], version_code: str) -> dict | None:
     return None
 
 
+def fetch_range(url: str, user_agent: str, start: str) -> bytes:
+    """GET a byte range, following the CDN redirect for a signed URL."""
+    request = urllib.request.Request(url, headers={"User-Agent": user_agent, "Range": f"bytes={start}"})
+    with urllib.request.urlopen(request, timeout=60) as response:
+        if response.status not in (200, 206):
+            raise RuntimeError(f"range request returned HTTP {response.status} (Range: {start})")
+        return response.read()
+
+
+def read_central_directory_names(url: str) -> list[str] | None:
+    """Read a bundle's zip central directory with two Range requests.
+
+    Small cost, no full download: the tail holds the EOCD record (and central
+    directory size + offset), the second read holds every entry name, which
+    for an XAPK includes every split's contents -- enough to tell which ABIs
+    the bundle builds without downloading it.
+    """
+    try:
+        tail = None
+        for user_agent in (OKHTTP_UA, BROWSER_UA):
+            try:
+                tail = fetch_range(url, user_agent, "-262144")
+                break
+            except Exception as error:  # noqa: BLE001 - try the next UA
+                last_error = error
+        if tail is None:
+            raise RuntimeError(f"range read failed: {last_error}")
+        eocd_at = tail.rfind(b"PK\x05\x06")
+        if eocd_at < 0 or eocd_at + 22 > len(tail):
+            return None
+        entry_count, cd_size, cd_offset = struct.unpack_from(
+            "<HII", tail, eocd_at + 10,  # count at +10, size at +12, offset at +16
+        )
+        if cd_size == 0 or cd_offset == 0 or cd_size == 0xFFFFFFFF or cd_offset == 0xFFFFFFFF:
+            return None  # zip64 (or corrupt) is not worth handling here
+        last_error = None
+        cd = None
+        for user_agent in (OKHTTP_UA, BROWSER_UA):
+            try:
+                cd = fetch_range(url, user_agent, f"{cd_offset}-{cd_offset + cd_size - 1}")
+                break
+            except Exception as error:  # noqa: BLE001 - try the next UA
+                last_error = error
+        if cd is None:
+            raise RuntimeError(f"central directory read failed: {last_error}")
+        names: list[str] = []
+        pos = 0
+        while pos + 46 <= len(cd):
+            pos = cd.find(b"PK\x01\x02", pos)
+            if pos < 0 or pos + 46 > len(cd):
+                break
+            name_len = struct.unpack_from("<H", cd, pos + 28)[0]
+            extra_len, comment_len = struct.unpack_from("<HH", cd, pos + 30)
+            names.append(cd[pos + 46: pos + 46 + name_len].decode("utf-8", "replace"))
+            pos += 46 + name_len + extra_len + comment_len
+        return names if names else None
+    except Exception:  # noqa: BLE001 - probing is best-effort; callers fall back
+        return None
+
+
+def bundle_abis(names: list[str]) -> set[str]:
+    """Maps zip entry names of a bundle to the ABI set it ships."""
+    abis: set[str] = set()
+    for name in names:
+        lowered = name.replace("\\", "/").lower()
+        head = lowered.split("/")[0]
+        if head.startswith("config."):
+            for abi in ("arm64-v8a", "armeabi-v7a", "x86_64", "x86"):
+                if abi.replace("-", "_") in head:
+                    abis.add(abi)
+        match = re.match(r"^(?:base/)?lib/([a-z0-9_-]+)/", lowered)
+        if match:
+            abis.add(match.group(1))
+    return abis
+
+
+
 def content_disposition_filename(header: str) -> str | None:
     """Parse a Content-Disposition header, preferring RFC 5987 filename*."""
     if not header:
@@ -274,6 +351,17 @@ def main() -> int:
         help="warn if the downloaded APK lacks lib/<arch>/ entries (informational)",
     )
     parser.add_argument(
+        "--allow-nearby-codes",
+        action="store_true",
+        help="when the exact code is absent from the catalog, probe nearby delivery "
+        "codes of the same version and pick one whose bundle ships the wanted ABI",
+    )
+    parser.add_argument(
+        "--expect-abi",
+        default="",
+        help="ABI the bundle must ship when --allow-nearby-codes is used (e.g. arm64-v8a)",
+    )
+    parser.add_argument(
         "--skip-catalog-check",
         action="store_true",
         help="download from the mirror endpoint without querying the catalog API first",
@@ -299,14 +387,39 @@ def main() -> int:
             print(f"Catalog lists {len(variants)} downloadable variants.", file=sys.stderr)
             variant = pick_variant(variants, args.version_code)
             if variant is None:
-                codes = sorted({v["code"] for v in variants})
-                nearby = [c for c in codes if c[:5] == args.version_code[:5]]
-                print(
-                    f"{args.app_name}: APKPure catalog has no variant with version code "
-                    f"{args.version_code}. Codes sharing its prefix: {', '.join(nearby) or 'none'}.",
-                    file=sys.stderr,
-                )
-                return 2
+                requested = int(args.version_code)
+                nearby = [v for v in variants if 0 < abs(int(v["code"]) - requested) <= 10_000]
+                if args.allow_nearby_codes and args.expect_abi and nearby:
+                    # APKPure republishes Play bundles with its own delivery
+                    # codes, so the patches' exact code may be absent while the
+                    # same version's ABI variants are all there. Probe each
+                    # nearby variant's central directory (two Range requests,
+                    # no full download) and take one that ships the wanted ABI.
+                    nearby.sort(key=lambda v: int(v["code"]))
+                    probed: list[str] = []
+                    for candidate in nearby:
+                        names = read_central_directory_names(candidate["url"])
+                        abis = bundle_abis(names) if names else set()
+                        probed.append(
+                            f"{candidate['code']}: {', '.join(sorted(abis)) or 'cd unreadable'}"
+                        )
+                        if args.expect_abi in abis:
+                            variant = candidate
+                            break
+                    print(
+                        f"{args.app_name}: probed nearby variants (want {args.expect_abi}): "
+                        + "; ".join(probed),
+                        file=sys.stderr,
+                    )
+                if variant is None:
+                    codes = sorted({v["code"] for v in variants})
+                    sharing = [c for c in codes if c[:5] == args.version_code[:5]]
+                    print(
+                        f"{args.app_name}: APKPure catalog has no variant with version code "
+                        f"{args.version_code}. Codes sharing its prefix: {', '.join(sharing) or 'none'}.",
+                        file=sys.stderr,
+                    )
+                    return 2
     if variant is None:
         variant = {
             "code": args.version_code,

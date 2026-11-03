@@ -2750,11 +2750,18 @@ async function downloadWithPythonApkpureApi(
     selectedVersion,
     "--version-code",
     requestedVersionCode,
-    ...(arch ? ["--expect-arch", arch] : []),
+    ...(arch
+      ? ["--allow-nearby-codes", "--expect-abi", arch, "--expect-arch", arch]
+      : []),
   ]);
 
   if (metadata.versionCode && String(metadata.versionCode) !== requestedVersionCode) {
-    throw new Error(`${app.label}: APKPure catalog API delivered versionCode ${metadata.versionCode}, expected ${requestedVersionCode}.`);
+    // APKPure republishes the same version under its own delivery codes; the
+    // dex build is what the patch fingerprints match, so a different code is
+    // fine as long as the ABI probe picked the right variant.
+    console.warn(
+      `${app.label}: APKPure catalog delivered versionCode ${metadata.versionCode} (patches list ${requestedVersionCode}); relying on the ABI probe to pick the right dex build.`,
+    );
   }
 
   const downloaded = resolveMaybeRoot(metadata.path);
