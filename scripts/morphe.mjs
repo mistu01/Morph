@@ -1643,6 +1643,28 @@ function includeExperimentalTargets() {
   return truthy(env("MORPHE_INCLUDE_EXPERIMENTAL_TARGETS"));
 }
 
+// `file` is an .apk slug, or a bundle (.xapk/.apks) whose AndroidManifest.xml
+// lives inside a nested .apk. Returns `code` (the expected variant code) when
+// the manifest carries it, null otherwise.
+async function readManifestVersionCode(file, code) {
+  try {
+    const audit = runPythonJson([
+      "-c",
+      "import io,json,struct,sys,zipfile; manifest=None; z=None; inner=None; "
+      + "z=zipfile.ZipFile(sys.argv[1]); manifest=z.read('AndroidManifest.xml') if 'AndroidManifest.xml' in z.namelist() else None; "
+      + "manifest = manifest or next((zipfile.ZipFile(io.BytesIO(z.read(n))).read('AndroidManifest.xml') for n in z.namelist() if n.endswith('.apk') and 'AndroidManifest.xml' in zipfile.ZipFile(io.BytesIO(z.read(n))).namelist()), None); "
+      + "print(json.dumps(bool(manifest is not None and struct.pack('<I', int(sys.argv[2])) in manifest)))",
+      file,
+      code,
+    ]);
+    return audit === true ? code : null;
+  } catch (error) {
+    console.warn(`${basename(file)}: manifest versionCode check failed: ${error.message}`);
+    return null;
+  }
+}
+
+
 function findPatchEntry(bundle, patchName) {
   if (!bundle?.patches) return null;
 
@@ -3105,7 +3127,10 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
   // required minimum Android API (e.g. Facebook, whose variants are separate
   // Redex builds the patch fingerprints are written against) need the arm64
   // variant, so filter the APKPure bundle selection when the app pins one.
+  // All options must be comma-joined into a single `-o` value.
   const archFilter = app.apkpureMinAndroidApi ? (splitList(app.apkmirrorArch)[0] || "") : "";
+  const apkeepOptions = ["acknowledge_dangers=true"];
+  if (archFilter) apkeepOptions.push(`arch=${archFilter}`);
   console.log(`Downloading ${app.label} ${selectedVersion} with apkeep (${exactPageUrl}${archFilter ? `, arch=${archFilter}` : ""})`);
   run(apkeep, [
     "-a",
@@ -3113,8 +3138,7 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
     "-d",
     "apk-pure",
     "-o",
-    "acknowledge_dangers=true",
-    ...(archFilter ? ["-o", `arch=${archFilter}`] : []),
+    apkeepOptions.join(","),
     outputDir,
   ]);
 
@@ -3130,6 +3154,27 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
       `APKPure-compatible recommended versions found: ${availableCompatible.join(", ") || "none"}. ` +
       `Set ${envNameFor(app.id)}_URL to a direct APK URL for exactly ${selectedVersion}, or deliberately set APK_VERSION_SOURCE=latest.`,
     );
+  }
+
+  console.log(`${app.label}: apkeep delivered ${basename(candidate)}`);
+  if (app.apkpureMinAndroidApi && expectedVersionCodeFor(app, list, selectedVersion)) {
+    const expectedCode = expectedVersionCodeFor(app, list, selectedVersion);
+    try {
+      const configs = runPythonJson([
+        "-c",
+        "import json,sys,zipfile; print(json.dumps(sorted({n.split('.', 1)[1].replace('.apk','') for n in zipfile.ZipFile(sys.argv[1]).namelist() if n.startswith('config.')})))",
+        candidate,
+      ]);
+      console.log(`${app.label}: apkeep bundle splits: ${configs.join(", ") || "none"}`);
+    } catch (error) {
+      console.warn(`${app.label}: apkeep bundle split inspection failed: ${error.message}`);
+    }
+    const manifestCode = await readManifestVersionCode(candidate, expectedCode);
+    if (manifestCode === null) {
+      console.warn(`${app.label}: apkeep bundle manifest does not carry the expected variant versionCode ${expectedCode}; fingerprints may not match this build.`);
+    } else {
+      console.log(`${app.label}: apkeep delivered variant versionCode ${manifestCode} (matches patches).`);
+    }
   }
 
   const extension = extname(candidate).toLowerCase() || ".apk";
