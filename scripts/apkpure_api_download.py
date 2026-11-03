@@ -26,6 +26,7 @@ needed.
 
 import argparse
 import base64
+import io
 import json
 import re
 import struct
@@ -217,6 +218,34 @@ def bundle_abis(names: list[str]) -> set[str]:
     return abis
 
 
+def bundle_abis_from_file(path: Path) -> set[str]:
+    """Maps a downloaded bundle on disk to the ABI set it ships.
+
+    APKPure XAPKs are zips of whole .apk splits, so the lib directories live
+    inside each member apk rather than at the top level of the bundle.
+    """
+    abis: set[str] = set()
+    with zipfile.ZipFile(path) as bundle:
+        members = [name for name in bundle.namelist() if name.lower().endswith(".apk")]
+        if not members:
+            members = [path.name]  # the file itself is an .apk, not a bundle
+        for name in members:
+            try:
+                if members == [path.name]:
+                    inner_bytes = path.read_bytes()
+                else:
+                    inner_bytes = bundle.read(name)
+                with zipfile.ZipFile(io.BytesIO(inner_bytes)) as inner:
+                    for member in inner.namelist():
+                        match = re.match(r"^(?:base/)?lib/([a-z0-9_-]+)/", member.lower().replace("\\", "/"))
+                        if match:
+                            abis.add(match.group(1))
+            except Exception:  # noqa: BLE001 - a member failing to open shouldn't hide the rest
+                continue
+    return abis
+
+
+
 
 def content_disposition_filename(header: str) -> str | None:
     """Parse a Content-Disposition header, preferring RFC 5987 filename*."""
@@ -403,28 +432,40 @@ def main() -> int:
                 if args.allow_nearby_codes and args.expect_abi and nearby:
                     # APKPure republishes Play bundles with its own delivery
                     # codes, so the patches' exact code may be absent while the
-                    # same version's ABI variants are all there. Probe each
-                    # nearby variant's central directory (two Range requests,
-                    # no full download) and take one that ships the wanted ABI.
-                    nearby.sort(key=lambda v: int(v["code"]))
-                    probed: list[str] = []
+                    # same version's ABI variants are all there. The ABIs only
+                    # show inside each member apk, so try candidates download-
+                    # first (closest code first), check what they ship, and
+                    # delete anything that doesn't match the wanted ABI.
+                    nearby.sort(key=lambda v: int(v["code"]), reverse=True)
+                    tried: list[str] = []
                     for candidate in nearby:
-                        mirror_url = MIRROR_URL_FORMAT.format(
-                            file_type=candidate["fileType"],
-                            package_name=urllib.parse.quote(args.package_name),
-                            version_code=candidate["code"],
+                        print(
+                            f"{args.app_name}: trying delivery code {candidate['code']} "
+                            f"({candidate['fileType']}) for the {args.expect_abi} variant...",
+                            file=sys.stderr,
                         )
-                        names = read_central_directory_names(candidate["url"], [mirror_url])
-                        abis = bundle_abis(names) if names else set()
-                        probed.append(
-                            f"{candidate['code']}: {', '.join(sorted(abis)) or 'cd unreadable'}"
-                        )
+                        try:
+                            path = download_exact(candidate, args.package_name, out_dir, int(candidate["code"]))
+                        except Exception as error:  # noqa: BLE001 - try the next candidate
+                            tried.append(f"{candidate['code']}: download failed ({error})")
+                            continue
+                        abis = bundle_abis_from_file(path)
                         if args.expect_abi in abis:
                             variant = candidate
+                            print(
+                                f"{args.app_name}: delivery code {candidate['code']} "
+                                f"ships {', '.join(sorted(abis))}; taking it.",
+                                file=sys.stderr,
+                            )
                             break
+                        tried.append(f"{candidate['code']}: ships {', '.join(sorted(abis)) or 'no libs'}")
+                        try:
+                            path.unlink()
+                        except OSError:
+                            pass
                     print(
-                        f"{args.app_name}: probed nearby variants (want {args.expect_abi}): "
-                        + "; ".join(probed),
+                        f"{args.app_name}: nearby delivery codes tried (want {args.expect_abi}): "
+                        + "; ".join(tried),
                         file=sys.stderr,
                     )
                 if variant is None:
