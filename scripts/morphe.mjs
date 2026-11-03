@@ -2701,8 +2701,13 @@ async function downloadWithPythonApkpure(
       ...(selectedVersion ? ["--version", selectedVersion] : []),
     ]);
   } catch (error) {
-    if (!selectedVersion || app.apkpureMinAndroidApi) throw error;
+    if (!selectedVersion) throw error;
 
+    if (app.apkpureMinAndroidApi) {
+      console.warn(
+        `${app.label}: Android API ${app.apkpureMinAndroidApi}+ could not be verified for the apkeep fallback; the variant is downloaded unfiltered.`,
+      );
+    }
     console.warn(`${app.label}: Python APKPure download failed: ${error.message}`);
     console.warn(`${app.label}: retrying APKPure exact version with apkeep.`);
     return downloadWithApkeep(app, {

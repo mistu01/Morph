@@ -39,6 +39,10 @@ on:
         description: "Threads APK version (blank uses the version recommended by HushThreads)"
         required: false
         default: ""
+      include_threads_patches:
+        description: "Comma-separated disabled patches to enable for Threads run"
+        required: false
+        default: ""
       instagram_version:
         description: "Instagram APK version (blank uses the version recommended by HushGram)"
         required: false
@@ -106,6 +110,9 @@ on:
         type: string
         default: ""
       threads_version:
+        type: string
+        default: ""
+      include_threads_patches:
         type: string
         default: ""
       instagram_version:
@@ -203,6 +210,7 @@ jobs:
           CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
           INCLUDE_PATCHES: ${{ inputs.include_patches }}
           INCLUDE_MESSENGER_PATCHES: ${{ inputs.include_messenger_patches }}
+          INCLUDE_THREADS_PATCHES: ${{ inputs.include_threads_patches }}
           INCLUDE_INSTAGRAM_PATCHES: ${{ inputs.include_instagram_patches }}
         run: |
           node <<'NODE' >> "$GITHUB_ENV"
@@ -212,6 +220,13 @@ jobs:
           for (const patch of include) args.push('--enable', patch);
           if (include.length) process.stderr.write(`Enabling extra Facebook patches: ${include.join(', ')}\n`);
           console.log(`MORPHE_EXTRA_ARGS_JSON=${JSON.stringify(args)}`);
+
+          const threadsArgs = [];
+          if (process.env.CONTINUE_ON_ERROR === 'true') threadsArgs.push('--continue-on-error');
+          const threadsInclude = (process.env.INCLUDE_THREADS_PATCHES || '').split(',').map(s => s.trim()).filter(Boolean);
+          for (const patch of threadsInclude) threadsArgs.push('--enable', patch);
+          if (threadsInclude.length) process.stderr.write(`Enabling extra Threads patches: ${threadsInclude.join(', ')}\n`);
+          console.log(`MORPHE_THREADS_EXTRA_ARGS_JSON=${JSON.stringify(threadsArgs)}`);
 
           const messengerArgs = [];
           if (process.env.CONTINUE_ON_ERROR === 'true') messengerArgs.push('--continue-on-error');
@@ -301,7 +316,7 @@ jobs:
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           SIGNER_NAME: Mistu
-          MORPHE_EXTRA_ARGS_JSON: '[]'
+          MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_THREADS_EXTRA_ARGS_JSON }}
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/hushfacebook-builder.mjs build
 
