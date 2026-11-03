@@ -1602,6 +1602,43 @@ function compatibleVersionsFromEntry(entry, { includeExperimental = includeExper
   return [];
 }
 
+function versionCodeKeyForAbi(abi) {
+  const normalized = (abi || "").toLowerCase();
+  if (normalized === "arm64-v8a") return "ARM64_V8A";
+  if (normalized === "armeabi-v7a") return "ARMEABI_V7A";
+  if (normalized === "x86_64") return "X86_64";
+  if (normalized === "x86") return "X86";
+  return "";
+}
+
+// Some apps (e.g. Facebook) ship several distinct builds per version: each
+// ABI/minSdk variant is a separate Redex pass, so the dex contents differ.
+// Hush patch lists publish `targets[].versionCodes` naming exactly which
+// variant the fingerprints were written against, so downloads must match it.
+function expectedVersionCodeFor(app, patchesList, version) {
+  if (!patchesList || !Array.isArray(patchesList.patches) || !version) return "";
+
+  const abiKey = versionCodeKeyForAbi(splitList(app.apkmirrorArch)[0] || "");
+  if (!abiKey) return "";
+
+  const entries = [];
+  for (const patch of patchesList.patches) {
+    if (Array.isArray(patch?.compatibility)) entries.push(...patch.compatibility);
+    for (const [, entry] of allCompatiblePackageEntriesFor(patch)) entries.push(entry);
+  }
+
+  for (const entry of entries) {
+    if (entry?.packageName && entry.packageName !== app.packageName) continue;
+    for (const target of entry?.targets || []) {
+      if (String(target?.version || "") !== version) continue;
+      const code = target?.versionCodes?.[abiKey];
+      if (code) return String(code);
+    }
+  }
+
+  return "";
+}
+
 function includeExperimentalTargets() {
   return truthy(env("MORPHE_INCLUDE_EXPERIMENTAL_TARGETS"));
 }
@@ -2650,6 +2687,91 @@ async function downloadWithPythonApkmirror(
   });
 }
 
+async function downloadWithPythonApkpureApi(
+  app,
+  { selectedVersion, force = false, patchesList = null, metadataFile, existing, desiredVersion = "" },
+) {
+  if (
+    selectedVersion &&
+    !force &&
+    existing?.source === "apkpure-python-api" &&
+    existing?.version === selectedVersion &&
+    existing?.destination &&
+    existsSync(existing.destination)
+  ) {
+    app.input = existing.destination;
+    console.log(`${app.label} ${selectedVersion} already downloaded at ${relative(app.input)}`);
+    return;
+  }
+
+  const list = patchesList || await fetchPatchesList();
+  const requestedVersionCode = expectedVersionCodeFor(app, list, selectedVersion);
+  if (!requestedVersionCode) {
+    throw new Error(`${app.label}: patches list publishes no versionCode for the ${app.apkmirrorArch || "selected"} variant of ${selectedVersion}.`);
+  }
+
+  const outputDir = fromRoot(".cache/apkpure-api", app.id);
+  rmSync(outputDir, { recursive: true, force: true });
+  mkdirSync(outputDir, { recursive: true });
+
+  const arch = splitList(app.apkmirrorArch)[0] || "";
+  console.log(`Downloading APKPure catalog variant ${app.label} ${selectedVersion} (versionCode ${requestedVersionCode}${arch ? `, ${arch}` : ""})`);
+  const metadata = runPythonJson([
+    fromRoot("scripts/apkpure_api_download.py"),
+    "--app-name",
+    app.label,
+    "--package-name",
+    app.packageName,
+    "--out-dir",
+    outputDir,
+    "--version",
+    selectedVersion,
+    "--version-code",
+    requestedVersionCode,
+    ...(arch ? ["--expect-arch", arch] : []),
+  ]);
+
+  if (metadata.versionCode && String(metadata.versionCode) !== requestedVersionCode) {
+    throw new Error(`${app.label}: APKPure catalog API delivered versionCode ${metadata.versionCode}, expected ${requestedVersionCode}.`);
+  }
+
+  const downloaded = resolveMaybeRoot(metadata.path);
+  const downloadedSize = existsSync(downloaded) ? statSync(downloaded).size : 0;
+  if (!existsSync(downloaded)) {
+    throw new Error(`${app.label}: APKPure catalog API reported a missing downloaded file: ${metadata.path}`);
+  }
+
+  const extension = extname(downloaded).toLowerCase() || ".apk";
+  const destination = replaceExtension(app.input, extension);
+  rmSync(destination, { force: true });
+  renameSync(downloaded, destination);
+  app.input = destination;
+
+  const topRecommendedVersion = recommendedVersionFor(app, list);
+  const compatible = compatibleVersionsFor(app, list);
+
+  await writeJson(metadataFile, {
+    app: app.id,
+    baseApp: app.baseId || app.id,
+    artifactAbi: app.artifactAbi,
+    packageName: app.packageName,
+    sourcePage: app.apkpurePage,
+    source: "apkpure-python-api",
+    directUrl: metadata.downloadUrl,
+    destination,
+    version: metadata.version,
+    versionCode: metadata.versionCode,
+    requestedVersionCode,
+    fileType: metadata.fileType,
+    desiredVersion,
+    morpheTopRecommendedVersion: topRecommendedVersion,
+    availableCompatibleVersions: compatible.filter((version) => version === metadata.version),
+    filename: basename(destination),
+    size: formatBytes(downloadedSize),
+    downloadedAt: new Date().toISOString(),
+  });
+}
+
 async function downloadWithPythonApkpure(
   app,
   {
@@ -2704,10 +2826,23 @@ async function downloadWithPythonApkpure(
     if (!selectedVersion) throw error;
 
     if (app.apkpureMinAndroidApi) {
-      console.warn(
-        `${app.label}: Android API ${app.apkpureMinAndroidApi}+ could not be verified for the apkeep fallback; the variant is downloaded unfiltered.`,
-      );
+      // Variant-sensitive apps must get the exact build the patch fingerprints
+      // were written against, so try the versionCode-addressed catalog API
+      // before the unfiltered apkeep fallback.
+      try {
+        return await downloadWithPythonApkpureApi(app, {
+          selectedVersion,
+          force,
+          patchesList,
+          metadataFile,
+          existing,
+          desiredVersion,
+        });
+      } catch (apiError) {
+        console.warn(`${app.label}: APKPure catalog API download for versionCode failed: ${apiError.message}`);
+      }
     }
+
     console.warn(`${app.label}: Python APKPure download failed: ${error.message}`);
     console.warn(`${app.label}: retrying APKPure exact version with apkeep.`);
     return downloadWithApkeep(app, {
@@ -2966,8 +3101,22 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
   const before = listFiles(outputDir);
   const appId = `${app.packageName}@${selectedVersion}`;
   const apkeep = await ensureApkeep(false);
-  console.log(`Downloading ${app.label} ${selectedVersion} with apkeep (${exactPageUrl})`);
-  run(apkeep, ["-a", appId, "-d", "apk-pure", "-o", "acknowledge_dangers=true", outputDir]);
+  // apkeep grabs only the first download URL listed for a version. Apps with a
+  // required minimum Android API (e.g. Facebook, whose variants are separate
+  // Redex builds the patch fingerprints are written against) need the arm64
+  // variant, so filter the APKPure bundle selection when the app pins one.
+  const archFilter = app.apkpureMinAndroidApi ? (splitList(app.apkmirrorArch)[0] || "") : "";
+  console.log(`Downloading ${app.label} ${selectedVersion} with apkeep (${exactPageUrl}${archFilter ? `, arch=${archFilter}` : ""})`);
+  run(apkeep, [
+    "-a",
+    appId,
+    "-d",
+    "apk-pure",
+    "-o",
+    "acknowledge_dangers=true",
+    ...(archFilter ? ["-o", `arch=${archFilter}`] : []),
+    outputDir,
+  ]);
 
   const downloaded = [...listFiles(outputDir)].filter((file) => !before.has(file));
   const candidate = downloaded.find((file) => [".apk", ".apkm", ".xapk", ".apks"].includes(extname(file).toLowerCase()));
