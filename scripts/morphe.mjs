@@ -3139,15 +3139,28 @@ async function downloadWithApkeep(app, { desiredVersion, force, patchesList, met
   const apkeepOptions = ["acknowledge_dangers=true"];
   if (archFilter) apkeepOptions.push(`arch=${archFilter}`);
   console.log(`Downloading ${app.label} ${selectedVersion} with apkeep (${exactPageUrl}${archFilter ? `, arch=${archFilter}` : ""})`);
-  run(apkeep, [
-    "-a",
-    appId,
-    "-d",
-    "apk-pure",
-    "-o",
-    apkeepOptions.join(","),
-    outputDir,
-  ]);
+  // APKPure's edge occasionally resets connections mid-request (seen as
+  // reqwest "Connection reset by peer"); retry a couple of times before
+  // declaring the source unusable.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      run(apkeep, [
+        "-a",
+        appId,
+        "-d",
+        "apk-pure",
+        "-o",
+        apkeepOptions.join(","),
+        outputDir,
+      ]);
+      break;
+    } catch (error) {
+      if (attempt >= 3) throw error;
+      console.warn(`${app.label}: apkeep attempt ${attempt} failed: ${error.message}; retrying.`);
+      rmSync(outputDir, { recursive: true, force: true });
+      mkdirSync(outputDir, { recursive: true });
+    }
+  }
 
   const downloaded = [...listFiles(outputDir)].filter((file) => !before.has(file));
   const candidate = downloaded.find((file) => [".apk", ".apkm", ".xapk", ".apks"].includes(extname(file).toLowerCase()));

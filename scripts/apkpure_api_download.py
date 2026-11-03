@@ -139,55 +139,66 @@ def fetch_range(url: str, user_agent: str, start: str) -> bytes:
         return response.read()
 
 
-def read_central_directory_names(url: str) -> list[str] | None:
+def read_central_directory_names(url: str, extra_urls: list[str] | None = None) -> list[str] | None:
     """Read a bundle's zip central directory with two Range requests.
 
     Small cost, no full download: the tail holds the EOCD record (and central
     directory size + offset), the second read holds every entry name, which
     for an XAPK includes every split's contents -- enough to tell which ABIs
-    the bundle builds without downloading it.
+    the bundle builds without downloading it. `extra_urls` are fallback
+    addresses for the same bundle (the token CDN redirects, and the mirror
+    endpoint serves different user agents), each tried with both UAs.
     """
-    try:
-        tail = None
-        for user_agent in (OKHTTP_UA, BROWSER_UA):
-            try:
-                tail = fetch_range(url, user_agent, "-262144")
-                break
-            except Exception as error:  # noqa: BLE001 - try the next UA
-                last_error = error
-        if tail is None:
-            raise RuntimeError(f"range read failed: {last_error}")
-        eocd_at = tail.rfind(b"PK\x05\x06")
-        if eocd_at < 0 or eocd_at + 22 > len(tail):
-            return None
-        entry_count, cd_size, cd_offset = struct.unpack_from(
-            "<HII", tail, eocd_at + 10,  # count at +10, size at +12, offset at +16
-        )
-        if cd_size == 0 or cd_offset == 0 or cd_size == 0xFFFFFFFF or cd_offset == 0xFFFFFFFF:
-            return None  # zip64 (or corrupt) is not worth handling here
-        last_error = None
-        cd = None
-        for user_agent in (OKHTTP_UA, BROWSER_UA):
-            try:
-                cd = fetch_range(url, user_agent, f"{cd_offset}-{cd_offset + cd_size - 1}")
-                break
-            except Exception as error:  # noqa: BLE001 - try the next UA
-                last_error = error
-        if cd is None:
-            raise RuntimeError(f"central directory read failed: {last_error}")
-        names: list[str] = []
-        pos = 0
-        while pos + 46 <= len(cd):
-            pos = cd.find(b"PK\x01\x02", pos)
-            if pos < 0 or pos + 46 > len(cd):
-                break
-            name_len = struct.unpack_from("<H", cd, pos + 28)[0]
-            extra_len, comment_len = struct.unpack_from("<HH", cd, pos + 30)
-            names.append(cd[pos + 46: pos + 46 + name_len].decode("utf-8", "replace"))
-            pos += 46 + name_len + extra_len + comment_len
-        return names if names else None
-    except Exception:  # noqa: BLE001 - probing is best-effort; callers fall back
-        return None
+    addresses = [url] + [u for u in (extra_urls or []) if u]
+    last_error: Exception | None = None
+    for address in addresses:
+        try:
+            tail = None
+            for user_agent in (OKHTTP_UA, BROWSER_UA):
+                try:
+                    tail = fetch_range(address, user_agent, "-262144")
+                    break
+                except Exception as error:  # noqa: BLE001 - try the next UA
+                    last_error = error
+            if tail is None:
+                raise RuntimeError(f"tail read failed: {last_error}")
+            eocd_at = tail.rfind(b"PK\x05\x06")
+            if eocd_at < 0 or eocd_at + 22 > len(tail):
+                raise RuntimeError(
+                    f"no zip EOCD in {len(tail)} range bytes (body looks like: {tail[:64]!r})"
+                )
+            entry_count, cd_size, cd_offset = struct.unpack_from(
+                "<HII", tail, eocd_at + 10,  # count at +10, size at +12, offset at +16
+            )
+            if cd_size == 0 or cd_offset == 0 or cd_size == 0xFFFFFFFF or cd_offset == 0xFFFFFFFF:
+                raise RuntimeError("zip64 (or corrupt) central directory is not handled")
+            last_error = None
+            cd = None
+            for user_agent in (OKHTTP_UA, BROWSER_UA):
+                try:
+                    cd = fetch_range(address, user_agent, f"{cd_offset}-{cd_offset + cd_size - 1}")
+                    break
+                except Exception as error:  # noqa: BLE001 - try the next UA
+                    last_error = error
+            if cd is None:
+                raise RuntimeError(f"central directory read failed: {last_error}")
+            names: list[str] = []
+            pos = 0
+            while pos + 46 <= len(cd):
+                pos = cd.find(b"PK\x01\x02", pos)
+                if pos < 0 or pos + 46 > len(cd):
+                    break
+                name_len = struct.unpack_from("<H", cd, pos + 28)[0]
+                extra_len, comment_len = struct.unpack_from("<HH", cd, pos + 30)
+                names.append(cd[pos + 46: pos + 46 + name_len].decode("utf-8", "replace"))
+                pos += 46 + name_len + extra_len + comment_len
+            if not names:
+                raise RuntimeError("central directory parsed to no entry names")
+            return names
+        except Exception as error:  # noqa: BLE001 - report and try the next address
+            last_error = error
+            print(f"  probe of {address[:96]} failed: {error}", file=sys.stderr)
+    return None
 
 
 def bundle_abis(names: list[str]) -> set[str]:
@@ -398,7 +409,12 @@ def main() -> int:
                     nearby.sort(key=lambda v: int(v["code"]))
                     probed: list[str] = []
                     for candidate in nearby:
-                        names = read_central_directory_names(candidate["url"])
+                        mirror_url = MIRROR_URL_FORMAT.format(
+                            file_type=candidate["fileType"],
+                            package_name=urllib.parse.quote(args.package_name),
+                            version_code=candidate["code"],
+                        )
+                        names = read_central_directory_names(candidate["url"], [mirror_url])
                         abis = bundle_abis(names) if names else set()
                         probed.append(
                             f"{candidate['code']}: {', '.join(sorted(abis)) or 'cd unreadable'}"
