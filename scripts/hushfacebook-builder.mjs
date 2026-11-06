@@ -165,6 +165,6 @@ if (isMain) {
     INSTAGRAM_APK_URL: env("INSTAGRAM_APK_URL") || "",
   };
 
-  applyDefaultPatchArgs(childEnv, command, { forcePatch: false });
+  applyDefaultPatchArgs(childEnv, command, { forcePatch: true });
   runMorphe({ root, command, args, childEnv, builderName: "hushfacebook" });
 }

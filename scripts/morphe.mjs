@@ -1267,6 +1267,16 @@ async function ensureInput(app) {
   const canAutoDownload = sources.some((source) => source !== "local");
   const refreshInput = canAutoDownload && truthy(env("AUTO_UPDATE_APKS"));
 
+  if (!existsSync(app.input)) {
+    for (const ext of [".xapk", ".apkm", ".apks"]) {
+      const candidate = replaceExtension(app.input, ext);
+      if (existsSync(candidate)) {
+        app.input = candidate;
+        break;
+      }
+    }
+  }
+
   if (existsSync(app.input) && !refreshInput) {
     await applyCachedInputMetadata(app);
     return;

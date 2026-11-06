@@ -250,6 +250,13 @@ jobs:
           console.log(`MORPHE_INSTAGRAM_EXTRA_ARGS_JSON=${JSON.stringify(instagramArgs)}`);
           NODE
 
+      - name: Install browser tooling for Facebook scraper
+        if: contains(inputs.targets, 'facebook')
+        run: |
+          python -m pip install --quiet playwright
+          python -m playwright install --with-deps chrome || python -m playwright install --with-deps chromium
+          sudo apt-get install -y -qq xvfb >/dev/null 2>&1 || true
+
       - name: Build patched Facebook APK
         if: contains(inputs.targets, 'facebook')
         continue-on-error: true
