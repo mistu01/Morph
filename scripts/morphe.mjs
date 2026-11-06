@@ -368,7 +368,7 @@ async function checkReleaseOutputs() {
     if (!outputStatus.ok) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: ${outputStatus.reason} - skipping from release (continue-on-error is set).`);
-        discardReleaseOutput(outputStatus.output, app.label);
+        discardReleaseOutput(outputStatus.output, app.label, app);
         skippedLabels.push(app.label);
         continue;
       }
@@ -448,10 +448,20 @@ async function inspectReleaseOutput(app) {
   return { ok: true, output, result };
 }
 
-function discardReleaseOutput(output, label) {
-  if (!output || !existsSync(output)) return;
-  rmSync(output, { force: true });
-  console.warn(`warning: ${label}: removed skipped release output ${relative(output)}.`);
+function discardReleaseOutput(output, label, app = null) {
+  if (output && existsSync(output)) {
+    rmSync(output, { force: true });
+    console.warn(`warning: ${label}: removed skipped release output ${relative(output)}.`);
+  }
+  if (app?.result && existsSync(app.result)) {
+    try {
+      const data = JSON.parse(readFileSync(app.result, "utf8"));
+      data.success = false;
+      data.error = data.error || "Release output skipped: no patches applied or invalid artifact";
+      delete data.artifactName;
+      writeFileSync(app.result, JSON.stringify(data, null, 2));
+    } catch {}
+  }
 }
 
 
@@ -597,7 +607,7 @@ async function packageRootModules() {
     if (!outputStatus.ok) {
       if (continueOnError) {
         console.warn(`warning: ${app.label}: ${outputStatus.reason} - skipping root module (continue-on-error is set).`);
-        discardReleaseOutput(outputStatus.output, app.label);
+        discardReleaseOutput(outputStatus.output, app.label, app);
         skippedLabels.push(app.label);
         continue;
       }
@@ -3913,8 +3923,8 @@ function patchesFrom(patches) {
 function failedPatchesFrom(patches) {
   return Array.isArray(patches)
     ? patches.map((entry) => ({
-        name: patchName(entry?.patch),
-        reason: firstReasonLine(entry?.reason),
+        name: patchName(entry?.name || entry?.patch || entry),
+        reason: firstReasonLine(entry?.error || entry?.reason),
       })).filter((entry) => entry.name)
     : [];
 }

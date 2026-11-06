@@ -287,16 +287,23 @@ def select_version_page(org: str, repo: str, requested: str, slug: str = "") -> 
             flags=re.IGNORECASE
         )
         release_slug = slug or repo
-        # Try primary URL pattern with -release suffix
-        url1 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested_clean.replace('.', '-')}-release/"
-        # Try secondary URL pattern without -release suffix
-        url2 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{requested_clean.replace('.', '-')}/"
-        # Try tertiary URL pattern with clean version replacing dots with dashes
+        candidate_orgs = [org]
+        if org == "facebook-2" and "meta-platforms-inc" not in candidate_orgs:
+            candidate_orgs.append("meta-platforms-inc")
+        elif org == "meta-platforms-inc" and "facebook-2" not in candidate_orgs:
+            candidate_orgs.append("facebook-2")
+        
         dots_to_dashes = requested_clean.replace('.', '-')
-        url3 = f"{BASE_URL}/apk/{org}/{repo}/{release_slug}-{dots_to_dashes}/"
+        urls = []
+        for c_org in candidate_orgs:
+            urls.extend([
+                f"{BASE_URL}/apk/{c_org}/{repo}/{release_slug}-{requested_clean.replace('.', '-')}-release/",
+                f"{BASE_URL}/apk/{c_org}/{repo}/{release_slug}-{requested_clean.replace('.', '-')}/",
+                f"{BASE_URL}/apk/{c_org}/{repo}/{release_slug}-{dots_to_dashes}/",
+            ])
         
         errors = []
-        for url in [url1, url2, url3]:
+        for url in urls:
             try:
                 ensure_page_exists(url)
                 return {"name": requested_clean, "url": url}

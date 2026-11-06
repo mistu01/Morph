@@ -59,6 +59,14 @@ on:
         description: "Check for new APK releases (e.g. Google Photos, Facebook, Threads, Instagram) in addition to patch versions"
         type: boolean
         default: true
+      facebook_apk_url:
+        description: "Direct URL to stock arm64 Facebook APK with accepted version code (optional)"
+        type: string
+        default: ""
+      messenger_apk_url:
+        description: "Direct URL to stock arm64 Messenger APK with accepted version code (optional)"
+        type: string
+        default: ""
 
 permissions:
   contents: write
@@ -696,6 +704,8 @@ jobs:
       threads_patches_version: ${{ needs.check-and-update-configs.outputs.hushthreads_tag || 'stable' }}
       hushgram_patches_version: ${{ needs.check-and-update-configs.outputs.hushgram_tag || 'stable' }}
       facebook_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_facebook_apk || '' }}
+      facebook_apk_url: ${{ inputs.facebook_apk_url || '' }}
+      messenger_apk_url: ${{ inputs.messenger_apk_url || '' }}
       threads_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_threads_apk || '' }}
       instagram_version: ${{ needs.check-and-update-configs.outputs.hushfacebook_instagram_apk || '' }}
       include_patches: "Use the phone's emoji, Use the system font, Download any video, Material You theme, Tag suggestions only after @, Block background-return feed refresh, Default comment order, Turn off double tap to like, View stories anonymously"

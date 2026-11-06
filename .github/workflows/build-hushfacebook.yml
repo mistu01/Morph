@@ -31,6 +31,10 @@ on:
         description: "Facebook APK version (blank uses the version recommended by HushFacebook)"
         required: false
         default: ""
+      facebook_apk_url:
+        description: "Direct URL to a stock arm64 Facebook APK with an accepted version code (bypasses mirror lookups)"
+        required: false
+        default: ""
       messenger_version:
         description: "Messenger APK version (blank uses the version recommended by HushMessenger)"
         required: false
@@ -104,6 +108,9 @@ on:
         type: string
         default: "stable"
       facebook_version:
+        type: string
+        default: ""
+      facebook_apk_url:
         type: string
         default: ""
       messenger_version:
@@ -251,7 +258,8 @@ jobs:
           MORPHE_CLI_VERSION: ${{ inputs.cli_version }}
           HUSHFACEBOOK_PATCHES_VERSION: ${{ inputs.patches_version }}
           FACEBOOK_APK_VERSION: ${{ inputs.facebook_version }}
-          CONTINUE_ON_ERROR: ${{ inputs.continue_on_error }}
+          FACEBOOK_APK_URL: ${{ inputs.facebook_apk_url }}
+          CONTINUE_ON_ERROR: "false"
           KEYSTORE_PASSWORD: ${{ secrets.APK_KEYSTORE_PASSWORD }}
           KEYSTORE_ALIAS: ${{ secrets.APK_KEYSTORE_ALIAS || 'mistu' }}
           KEYSTORE_ENTRY_PASSWORD: ${{ secrets.APK_KEYSTORE_ENTRY_PASSWORD }}
@@ -259,7 +267,7 @@ jobs:
           SIGNER_NAME: Mistu
           MORPHE_EXTRA_ARGS_JSON: ${{ env.MORPHE_EXTRA_ARGS_JSON }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: node scripts/hushfacebook-builder.mjs build
+        run: bash .github/scripts/build-hushfacebook.sh
 
       - name: Download HushMessenger tools
         if: contains(inputs.targets, 'messenger')

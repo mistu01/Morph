@@ -222,22 +222,26 @@ export function generateReleaseNotes({ root, heading, patchesRepo, patchesSource
       const statusParts = [];
 
       if (app.standard) {
-        if (app.standard.success !== false) {
-          const applied = patchesFrom(app.standard.appliedPatches).length;
-          const failed = failedPatchesFrom(app.standard.failedPatches).length;
+        const applied = patchesFrom(app.standard.appliedPatches).length;
+        const failed = failedPatchesFrom(app.standard.failedPatches).length;
+        const fileExists = app.standard.output ? fs.existsSync(app.standard.output) : true;
+        if (app.standard.success !== false && applied > 0 && fileExists) {
           statusParts.push(`Standard APK (✅ \`${app.standard.artifactName || basename(app.standard.output) || "N/A"}\` | patches: ${applied} succeeded, ${failed} failed)`);
         } else {
-          statusParts.push(`Standard APK (❌ Failed: ${app.standard.error || "Unknown error"})`);
+          const reason = app.standard.error || (applied === 0 ? "0 patches applied" : "artifact missing");
+          statusParts.push(`Standard APK (❌ Failed: ${reason}${failed > 0 ? ` [${failed} failed]` : ""})`);
         }
       }
 
       if (app.root) {
-        if (app.root.success !== false) {
-          const applied = patchesFrom(app.root.appliedPatches).length;
-          const failed = failedPatchesFrom(app.root.failedPatches).length;
+        const applied = patchesFrom(app.root.appliedPatches).length;
+        const failed = failedPatchesFrom(app.root.failedPatches).length;
+        const fileExists = app.root.output ? fs.existsSync(app.root.output) : true;
+        if (app.root.success !== false && applied > 0 && fileExists) {
           statusParts.push(`Magisk Module (✅ \`${app.root.artifactName || "N/A"}\` | patches: ${applied} succeeded, ${failed} failed)`);
         } else {
-          statusParts.push(`Magisk Module (❌ Failed: ${app.root.error || "Unknown error"})`);
+          const reason = app.root.error || (applied === 0 ? "0 patches applied" : "module missing");
+          statusParts.push(`Magisk Module (❌ Failed: ${reason}${failed > 0 ? ` [${failed} failed]` : ""})`);
         }
       }
 
@@ -262,8 +266,8 @@ function patchesFrom(patches) {
 function failedPatchesFrom(patches) {
   return Array.isArray(patches)
     ? patches.map((entry) => ({
-        name: patchName(entry?.patch),
-        reason: firstReasonLine(entry?.reason),
+        name: patchName(entry?.name || entry?.patch || entry),
+        reason: firstReasonLine(entry?.error || entry?.reason),
       })).filter((entry) => entry.name)
     : [];
 }

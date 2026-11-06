@@ -76,7 +76,7 @@ const supportedTargets = {
 
 export const appConfigs = externalPatchAppConfigs([
   ["facebook", "Facebook", "com.facebook.katana", {
-    apkmirrorOrg: "facebook-2",
+    apkmirrorOrg: "meta-platforms-inc",
     apkmirrorRepo: "facebook",
     apkmirrorType: "bundle",
     apkmirrorArch: "arm64-v8a",
