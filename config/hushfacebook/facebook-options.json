@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-11-05T06:12:46.827610417Z",
+            "updated_at": "2026-11-06T06:06:23.056771648Z",
             "source": "patches.mpp",
-            "sha256": "f6e3c4c9af707fb346851f2c01a72427f116c3b58a7d64328f68803f373e14ca"
+            "sha256": "8c7a4f1cedd5f083db0029a427f4da5ed6c490efd7a4ddd5206c1bce6f7fa78e"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -100,6 +100,9 @@
             "Turn off auto-translation": {
                 "enabled": true
             },
+            "Photo carousel": {
+                "enabled": true
+            },
             "Hide the Feeds header": {
                 "enabled": true
             },
@@ -116,6 +119,9 @@
                 "enabled": true
             },
             "Show full post text": {
+                "enabled": true
+            },
+            "Translate posts": {
                 "enabled": true
             },
             "Hide Reels in the feed": {
@@ -211,10 +217,16 @@
             "Open links in external browser": {
                 "enabled": true
             },
+            "GmsCore support": {
+                "enabled": false
+            },
             "Turn off haptics": {
                 "enabled": false
             },
             "Home header text": {
+                "enabled": true
+            },
+            "Open in Facebook from the share menu": {
                 "enabled": true
             },
             "Restore screens on re-signed builds": {
@@ -252,6 +264,9 @@
                 "enabled": true
             },
             "Hide tabs": {
+                "enabled": true
+            },
+            "Remove the gap above Marketplace listings": {
                 "enabled": true
             },
             "Marketplace only": {
@@ -317,8 +332,14 @@
             "Don't save search history": {
                 "enabled": true
             },
+            "Search posts tab": {
+                "enabled": true
+            },
             "Stop Story auto-advance": {
                 "enabled": false
+            },
+            "Clean up the story viewer": {
+                "enabled": true
             },
             "Longer music on photo stories": {
                 "enabled": true
@@ -327,6 +348,9 @@
                 "enabled": true
             },
             "Hide suggested stories": {
+                "enabled": true
+            },
+            "Story viewer taps": {
                 "enabled": true
             },
             "Round stories tray": {
