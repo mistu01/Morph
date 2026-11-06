@@ -55,12 +55,18 @@ is_facebook_patch_successful() {
 if [ -n "${FACEBOOK_APK_URL:-}" ]; then
   echo "Downloading Facebook APK from direct URL: $FACEBOOK_APK_URL"
   mkdir -p input
-  if curl -sSL -f -o input/facebook.apk "$FACEBOOK_APK_URL"; then
-    echo "Downloaded Facebook APK from direct URL."
-    rm -f input/facebook.apk.meta.json
+  dest_file="input/facebook.apk"
+  if [[ "$FACEBOOK_APK_URL" =~ \.xapk(\?.*)?$ ]]; then
+    dest_file="input/facebook.xapk"
+  elif [[ "$FACEBOOK_APK_URL" =~ \.apkm(\?.*)?$ ]]; then
+    dest_file="input/facebook.apkm"
+  fi
+  if curl -sSL -f -o "$dest_file" "$FACEBOOK_APK_URL"; then
+    echo "Downloaded Facebook APK from direct URL: $dest_file"
+    rm -f input/facebook.apk.meta.json input/facebook.xapk.meta.json input/facebook.apkm.meta.json
   else
     echo "Warning: failed to download from FACEBOOK_APK_URL, falling back to mirror resolution."
-    rm -f input/facebook.apk
+    rm -f "$dest_file"
   fi
 fi
 
@@ -122,10 +128,12 @@ try_patch_downloaded_apk() {
   local retry_log=".cache/hushfacebook-build-$log_name.log"
   local retry_status
   mkdir -p input
-  cp "$apk_path" input/facebook.apk
-  rm -f input/facebook.apk.meta.json
+  local ext="${apk_path##*.}"
+  local target_input="input/facebook.${ext}"
+  cp "$apk_path" "$target_input"
+  rm -f input/facebook.apk.meta.json input/facebook.xapk.meta.json input/facebook.apkm.meta.json
   set +e
-  FACEBOOK_APK="$apk_path" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
+  node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
   retry_status=${PIPESTATUS[0]}
   set -e
   if [ "$retry_status" -eq 0 ] && is_facebook_patch_successful "$retry_log"; then
@@ -184,9 +192,15 @@ done
 
 echo ""
 echo "=========================================================================================="
-echo "Facebook build failed: No mirror delivered the required arm64 variant (version code: $version_codes)."
-echo "HushFacebook patches strictly require an unmodified arm64 APK with versionCode: $version_codes."
-echo "Workaround: Set the 'facebook_apk_url' workflow input to a direct download URL of a stock"
-echo "arm64 Facebook $compatible_version APK carrying version code $version_codes."
+echo "Facebook build failed: No public mirror delivered the required arm64 variant ($version_codes)."
+echo "HushFacebook patches strictly require an unmodified arm64 APK/bundle with versionCode: $version_codes."
+echo "Root Cause: APKPure does not host this exact variant code, and APKMirror is Cloudflare-protected"
+echo "against automated downloads from GitHub Actions runner datacenter IPs."
+echo ""
+echo "Workaround:"
+echo "1. Download Facebook $compatible_version (arm64-v8a, versionCode $version_codes) from APKMirror:"
+echo "   https://www.apkmirror.com/apk/meta-platforms-inc/facebook/facebook-${compatible_version//./-}-release/"
+echo "2. Host the downloaded stock APK / bundle on a direct URL (or private GitHub release / bucket)."
+echo "3. Run the workflow with the input 'facebook_apk_url' set to that direct download URL."
 echo "=========================================================================================="
 exit 1

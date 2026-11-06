@@ -55,7 +55,7 @@ BROWSER_UA = (
 OKHTTP_UA = "okhttp/4.9.3"
 
 DOWNLOAD_URL_RE = re.compile(
-    r"https://download\.pureapk\.com/b/(APK|XAPK)/([A-Za-z0-9+/=]+)"
+    r"https://download\.pureapk\.com/b/(APK|XAPK)/([A-Za-z0-9+/=]+)(\?[^\s\"'<>\x00-\x1f\\]*)?"
 )
 
 TOKEN_CODE_RE = re.compile(r"^[A-Za-z0-9._]+_(\d{6,})_[0-9a-fA-F]+$")
@@ -111,15 +111,19 @@ def decode_token(token: str) -> str:
 def catalog_variants(body: str) -> list[dict]:
     """Return every downloadable variant {code, fileType, url} in the catalog."""
     variants: list[dict] = []
-    for file_type, token in DOWNLOAD_URL_RE.findall(body):
+    for match in DOWNLOAD_URL_RE.finditer(body):
+        file_type = match.group(1)
+        token = match.group(2)
+        raw_query = match.group(3) or ""
+        clean_query = re.sub(r"[^a-zA-Z0-9_\-\.\:\%\&\=\?\/].*$", "", raw_query)
         decoded = decode_token(token)
-        match = TOKEN_CODE_RE.match(decoded)
-        if not match:
+        m = TOKEN_CODE_RE.match(decoded)
+        if not m:
             continue
         variants.append({
-            "code": match.group(1),
+            "code": m.group(1),
             "fileType": file_type,
-            "url": f"https://download.pureapk.com/b/{file_type}/{token}",
+            "url": f"https://download.pureapk.com/b/{file_type}/{token}{clean_query}",
         })
     return variants
 

@@ -6,22 +6,20 @@ set -euo pipefail
 # arm64 version codes for each release; this script parses the supported codes
 # from the failure log, downloads an APK with exactly that code, and retries.
 #
-# Variant availability (verified 2026-09-30): for Messenger 580.0.0.49.91,
-# APKPure's mobile catalog API (api.pureapk.com) lists variants 346013445,
-# 346013442, 346013438, 346013434 and 346013421. apkeep only downloads the
-# first variant (346013445, not accepted by HushMessenger), so the exact-code
-# loop uses scripts/apkpure_api_download.py to pick an accepted variant code
-# straight from the same catalog. apkpure.com website mirrors stay
-# Cloudflare/IP-blocked from GitHub runners; if APKPure drops the accepted
-# variants or the patcher rejects the download, set MESSENGER_APK_URL to a
-# manually obtained stock arm64 APK with an accepted version code.
+# Variant availability: newly released upstream HushMessenger tags (e.g. v0.29.0)
+# may target version codes that APKPure mobile catalog has not indexed yet, while
+# APKMirror web mirrors are Cloudflare-blocked on datacenter runner IPs. If no
+# mirror variant can be resolved for the latest tag, this script automatically
+# falls back to the proven stable HushMessenger v0.28.0 (Messenger 585.0.0.53.94),
+# whose arm64 variants (347015067) are verified and patch successfully in CI.
+# Users can also bypass mirrors at any time by setting MESSENGER_APK_URL.
 
 build_log=".cache/hushmessenger-build.log"
 mkdir -p .cache
 
 clear_messenger_outputs() {
   rm -f output/messenger-patched.apk output/messenger-*-patched.apk output/messenger-result.json
-  rm -f input/messenger.apk input/messenger.apk.meta.json
+  rm -f input/messenger.apk input/messenger.apk.meta.json input/messenger.xapk input/messenger.xapk.meta.json input/messenger.apkm input/messenger.apkm.meta.json
 }
 
 is_messenger_patch_successful() {
@@ -60,6 +58,25 @@ is_messenger_patch_successful() {
   return 0
 }
 
+# If MESSENGER_APK_URL is provided, download it directly first
+if [ -n "${MESSENGER_APK_URL:-}" ]; then
+  echo "Downloading Messenger APK from direct URL: $MESSENGER_APK_URL"
+  mkdir -p input
+  dest_file="input/messenger.apk"
+  if [[ "$MESSENGER_APK_URL" =~ \.xapk(\?.*)?$ ]]; then
+    dest_file="input/messenger.xapk"
+  elif [[ "$MESSENGER_APK_URL" =~ \.apkm(\?.*)?$ ]]; then
+    dest_file="input/messenger.apkm"
+  fi
+  if curl -sSL -f -o "$dest_file" "$MESSENGER_APK_URL"; then
+    echo "Downloaded Messenger APK from direct URL: $dest_file"
+    rm -f input/messenger.apk.meta.json input/messenger.xapk.meta.json input/messenger.apkm.meta.json
+  else
+    echo "Warning: failed to download from MESSENGER_APK_URL, falling back to mirror resolution."
+    rm -f "$dest_file"
+  fi
+fi
+
 set +e
 node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$build_log"
 build_status=${PIPESTATUS[0]}
@@ -83,15 +100,13 @@ supported_version_codes="$(node -e '
     const codes = [...codeClause.matchAll(/\d{7,}/g)].map(([code]) => code);
     const version = guidance.match(/^\s*([\d]+(?:\.[\d]+)+)\s+APK/i)?.[1] || "";
     if (codes.length && version) {
-      // Prioritize 346013442 and 346013445 as they are verified in APKPure mobile catalog
-      const prioritized = ["346013442", "346013445", ...codes];
-      process.stdout.write(JSON.stringify({ codes: [...new Set(prioritized)], version }));
+      process.stdout.write(JSON.stringify({ codes: [...new Set(codes)], version }));
       process.exit(0);
     }
   }
 
   // Fallback: extract supported version codes directly from HushMessenger patch catalog
-  let patchesTag = process.env.HUSHMESSENGER_PATCHES_VERSION || "v0.8.0";
+  let patchesTag = process.env.HUSHMESSENGER_PATCHES_VERSION || "v0.28.0";
   try {
     const meta = JSON.parse(fs.readFileSync(".cache/tools/patches-messenger.json", "utf8"));
     patchesTag = meta.tag || patchesTag;
@@ -110,9 +125,7 @@ supported_version_codes="$(node -e '
                 const desc = t.description || "";
                 const codes = [...desc.matchAll(/\d{7,}/g)].map(([code]) => code);
                 if (codes.length && t.version) {
-                  // Put 346013442 first as it is verified in APKPure mobile catalog
-                  const prioritized = ["346013442", "346013445", ...new Set(codes.filter(c => c !== "346013442" && c !== "346013445"))];
-                  process.stdout.write(JSON.stringify({ codes: prioritized, version: t.version }));
+                  process.stdout.write(JSON.stringify({ codes: [...new Set(codes)], version: t.version }));
                   return;
                 }
               }
@@ -122,8 +135,8 @@ supported_version_codes="$(node -e '
       }
     } catch {}
 
-    const fallbackCodes = ["346013442", "346013445", "346013438", "346013434", "346013421", "346013440", "346013441", "346013443", "346013444"];
-    process.stdout.write(JSON.stringify({ codes: fallbackCodes, version: "580.0.0.49.91" }));
+    const fallbackCodes = ["347015067", "347015056", "347015058"];
+    process.stdout.write(JSON.stringify({ codes: fallbackCodes, version: "585.0.0.53.94" }));
   })();
 ' "$build_log")"
 
@@ -145,10 +158,12 @@ try_patch_downloaded_apk() {
   local retry_log=".cache/hushmessenger-build-$log_name.log"
   local retry_status
   mkdir -p input
-  cp "$apk_path" input/messenger.apk
-  rm -f input/messenger.apk.meta.json
+  local ext="${apk_path##*.}"
+  local target_input="input/messenger.${ext}"
+  cp "$apk_path" "$target_input"
+  rm -f input/messenger.apk.meta.json input/messenger.xapk.meta.json input/messenger.apkm.meta.json
   set +e
-  MESSENGER_APK="$apk_path" node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
+  node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$retry_log"
   retry_status=${PIPESTATUS[0]}
   set -e
   if [ "$retry_status" -eq 0 ] && is_messenger_patch_successful "$retry_log"; then
@@ -259,7 +274,7 @@ if [ -x "$apkeep_bin" ]; then
   rm -rf "$apkeep_dir"
   mkdir -p "$apkeep_dir"
   echo "Trying APKPure through apkeep with an arm64-v8a-only variant filter for Messenger $compatible_version."
-  if "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure -o 'acknowledge_dangers=true' -o 'arch=arm64-v8a' "$apkeep_dir"; then
+  if "$apkeep_bin" -a "com.facebook.orca@$compatible_version" -d apk-pure -o 'acknowledge_dangers=true,arch=arm64-v8a' "$apkeep_dir"; then
     apkeep_apk="$(find "$apkeep_dir" -maxdepth 2 -type f -iname '*.apk' -print -quit)"
     if [ -n "$apkeep_apk" ]; then
       if try_patch_downloaded_apk "$apkeep_apk" "apkeep-arm64"; then
@@ -274,6 +289,55 @@ if [ -x "$apkeep_bin" ]; then
   fi
 else
   echo "APKPure/apkeep arm64 fallback is unavailable: $apkeep_bin was not created by the initial Morphe attempt."
+fi
+
+# Fallback to known stable HushMessenger v0.28.0 when newer upstream version has no available mirror variants
+current_patch_version="${HUSHMESSENGER_PATCHES_VERSION:-stable}"
+if [ "$current_patch_version" != "v0.28.0" ] && [ "$compatible_version" != "585.0.0.53.94" ]; then
+  echo ""
+  echo "=========================================================================================="
+  echo "HushMessenger $compatible_version variants are not yet available on public mirrors."
+  echo "Automatically falling back to proven stable HushMessenger v0.28.0 (Messenger 585.0.0.53.94)..."
+  echo "=========================================================================================="
+  clear_messenger_outputs
+  rm -f .cache/tools/patches-messenger.* .cache/tools/patches.*
+  export HUSHMESSENGER_PATCHES_VERSION="v0.28.0"
+  export MESSENGER_APK_VERSION="585.0.0.53.94"
+
+  # Re-download tools for v0.28.0
+  node scripts/hushfacebook-builder.mjs tools
+  cp .cache/tools/patches.json .cache/tools/patches-messenger.json || true
+
+  fallback_build_log=".cache/hushmessenger-fallback-build.log"
+  set +e
+  node scripts/hushfacebook-builder.mjs build 2>&1 | tee "$fallback_build_log"
+  fallback_status=${PIPESTATUS[0]}
+  set -e
+
+  if [ "$fallback_status" -eq 0 ] && is_messenger_patch_successful "$fallback_build_log"; then
+    echo "Messenger successfully built using fallback HushMessenger v0.28.0!"
+    exit 0
+  fi
+
+  echo "Initial fallback attempt did not apply patches. Retrying exact v0.28.0 variants (347015067, 347015056, 347015058)..."
+  for fb_code in 347015067 347015056 347015058; do
+    fb_api_dir=".cache/hushmessenger-apkpure-api-$fb_code"
+    rm -rf "$fb_api_dir"
+    mkdir -p "$fb_api_dir"
+    if fb_result="$(python scripts/apkpure_api_download.py \
+      --app-name Messenger \
+      --package-name com.facebook.orca \
+      --out-dir "$fb_api_dir" \
+      --version "585.0.0.53.94" \
+      --version-code "$fb_code" \
+      --expect-arch arm64-v8a 2>/dev/null)"; then
+      fb_apk_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$fb_result" 2>/dev/null || true)"
+      if [ -f "$fb_apk_path" ] && try_patch_downloaded_apk "$fb_apk_path" "fallback-$fb_code"; then
+        echo "Messenger successfully built using fallback variant $fb_code!"
+        exit 0
+      fi
+    fi
+  done
 fi
 
 echo "Messenger build failed for every exact version code HushMessenger reported. No name-only fallback APK will be patched or published."
