@@ -176,21 +176,53 @@ if command -v xvfb-run >/dev/null 2>&1; then
 fi
 
 downloaded_bundle=""
+expected_bundle="$uptodown_dir/facebook-$compatible_version-arm64-v8a.xapk"
 for attempt in 1 2 3 4; do
+  if [ -f "$expected_bundle" ] && [ "$(wc -c < "$expected_bundle")" -gt 10000000 ]; then
+    downloaded_bundle="$expected_bundle"
+    echo "Found existing valid Uptodown bundle: $downloaded_bundle"
+    break
+  fi
+
   echo "== Uptodown fetch attempt $attempt for Facebook $compatible_version"
   set +e
-  $xvfb_prefix python scripts/fetch_uptodown.py "$compatible_version" "$uptodown_dir" > ".cache/uptodown_result.json" 2>&1
+  $xvfb_prefix python scripts/fetch_uptodown.py "$compatible_version" "$uptodown_dir" > ".cache/uptodown_stdout.json" 2> ".cache/uptodown_stderr.log"
   fetch_code=$?
   set -e
-  if [ "$fetch_code" -eq 0 ]; then
-    candidate="$(node -e 'try { const r = JSON.parse(require("node:fs").readFileSync(".cache/uptodown_result.json", "utf8")); process.stdout.write(r.path || ""); } catch {}')"
-    if [ -n "$candidate" ] && [ -f "$candidate" ]; then
-      downloaded_bundle="$candidate"
-      echo "Successfully downloaded Facebook from Uptodown: $downloaded_bundle"
-      break
-    fi
+  cat ".cache/uptodown_stderr.log" 2>/dev/null || true
+
+  candidate="$(node -e '
+    const fs = require("node:fs");
+    try {
+      const r = JSON.parse(fs.readFileSync(".cache/uptodown_stdout.json", "utf8").trim());
+      process.stdout.write(r.path || "");
+    } catch {
+      try {
+        const text = fs.readFileSync(".cache/uptodown_stdout.json", "utf8");
+        const match = text.match(/\{[^{}]*"path"\s*:\s*"([^"]+)"[^{}]*\}/);
+        if (match) process.stdout.write(match[1]);
+      } catch {}
+    }
+  ')"
+  if [ -n "$candidate" ] && [ -f "$candidate" ] && [ "$(wc -c < "$candidate")" -gt 10000000 ]; then
+    downloaded_bundle="$candidate"
+    echo "Successfully downloaded Facebook from Uptodown: $downloaded_bundle"
+    break
   fi
-  cat ".cache/uptodown_result.json" 2>/dev/null || true
+
+  if [ -f "$expected_bundle" ] && [ "$(wc -c < "$expected_bundle")" -gt 10000000 ]; then
+    downloaded_bundle="$expected_bundle"
+    echo "Successfully downloaded Facebook from Uptodown: $downloaded_bundle"
+    break
+  fi
+
+  any_saved="$(find "$uptodown_dir" -maxdepth 1 -type f \( -name "*.xapk" -o -name "*.apk" -o -name "*.apkm" \) -size +10M -print -quit 2>/dev/null || true)"
+  if [ -n "$any_saved" ] && [ -f "$any_saved" ]; then
+    downloaded_bundle="$any_saved"
+    echo "Found downloaded bundle in directory: $downloaded_bundle"
+    break
+  fi
+
   echo "Attempt $attempt failed; sleeping $((attempt * 15))s..."
   sleep $((attempt * 15))
 done

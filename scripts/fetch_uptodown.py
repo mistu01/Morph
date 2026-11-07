@@ -199,9 +199,6 @@ def download(file_id, version, out):
         ctx = browser.new_context(locale="en-US", viewport={"width": 1920, "height": 1080})
         page = ctx.new_page()
         page.add_init_script(STEALTH)
-        page.on("console", lambda m: log(f"console[{m.type}]: {m.text[:200]}")
-                if m.type in ("error", "warning") else None)
-        page.on("pageerror", lambda e: log(f"pageerror: {str(e)[:300]}"))
 
         def handle_resp(response):
             if "download-url" in response.url and response.status == 200:
@@ -243,13 +240,41 @@ def download(file_id, version, out):
             hash_ = fetch_download_url(ctx, file_id, token)
 
         file_url = ("https://dw.uptodown.com/dwn/" + hash_) if not hash_.startswith("http") else hash_
-        log(f"fetching {file_url}")
-        resp = ctx.request.get(file_url, headers={"Referer": UT_BASE + "/"}, timeout=300000)
-        if resp.status != 200:
-            raise RuntimeError(f"file fetch HTTP {resp.status}")
-        data = resp.body()
-        with open(out, "wb") as fh:
-            fh.write(data)
+        
+        # Collect cookies and headers from browser session
+        cookies = ctx.cookies()
+        cookie_header = "; ".join([f"{c['name']}={c['value']}" for c in cookies])
+        headers = {
+            "User-Agent": UA,
+            "Referer": UT_BASE + "/",
+        }
+        if cookie_header:
+            headers["Cookie"] = cookie_header
+
+        downloaded = False
+        log(f"fetching {file_url} (streaming)")
+        try:
+            req = urllib.request.Request(file_url, headers=headers)
+            with urllib.request.urlopen(req, timeout=180) as stream_resp:
+                if stream_resp.status == 200:
+                    with open(out, "wb") as fh:
+                        while True:
+                            chunk = stream_resp.read(1024 * 512)
+                            if not chunk:
+                                break
+                            fh.write(chunk)
+                    downloaded = True
+                    log(f"streaming download complete: {os.path.getsize(out)} bytes")
+        except Exception as stream_err:
+            log(f"::warning::streaming download failed ({stream_err}); falling back to playwright request")
+
+        if not downloaded:
+            resp = ctx.request.get(file_url, headers={"Referer": UT_BASE + "/"}, timeout=300000)
+            if resp.status != 200:
+                raise RuntimeError(f"file fetch HTTP {resp.status}")
+            data = resp.body()
+            with open(out, "wb") as fh:
+                fh.write(data)
         browser.close()
 
 
@@ -260,21 +285,23 @@ def main():
     version, outdir = sys.argv[1], sys.argv[2]
     os.makedirs(outdir, exist_ok=True)
 
-    log(f"== Picking {version} (Android + 11) from Uptodown version history")
-    file_id, sdk = pick_file_id(version)
-    if not file_id:
-        log(f"::error::Version {version} not found on Uptodown")
-        sys.exit(1)
-    log(f"selected file {file_id} ({sdk})")
-
     out = os.path.join(outdir, f"facebook-{version}-arm64-v8a.xapk")
-    download(file_id, version, out)
-
-    size = os.path.getsize(out)
-    if size < 10 * 1024 * 1024:
-        log(f"::error::Downloaded file too small ({size} bytes)")
-        sys.exit(1)
-    log(f"saved {out} ({size} bytes)")
+    if os.path.isfile(out) and os.path.getsize(out) >= 10 * 1024 * 1024:
+        size = os.path.getsize(out)
+        log(f"Bundle already downloaded and valid: {out} ({size} bytes)")
+    else:
+        log(f"== Picking {version} (Android + 11) from Uptodown version history")
+        file_id, sdk = pick_file_id(version)
+        if not file_id:
+            log(f"::error::Version {version} not found on Uptodown")
+            sys.exit(1)
+        log(f"selected file {file_id} ({sdk})")
+        download(file_id, version, out)
+        size = os.path.getsize(out)
+        if size < 10 * 1024 * 1024:
+            log(f"::error::Downloaded file too small ({size} bytes)")
+            sys.exit(1)
+        log(f"saved {out} ({size} bytes)")
 
     # Print standard downloader JSON result on stdout
     result = {
@@ -285,6 +312,7 @@ def main():
         "size": size,
     }
     print(json.dumps(result))
+    sys.stdout.flush()
 
 
 if __name__ == "__main__":
