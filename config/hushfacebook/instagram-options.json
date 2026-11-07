@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-11-06T06:06:28.800473034Z",
+            "updated_at": "2026-11-07T04:21:37.600678894Z",
             "source": "patches.mpp",
-            "sha256": "2876cf936d4c9b5eed45737b4bef4ed4a4e0a50794390428ff4f115453aba248"
+            "sha256": "4923cb9d5ee121f38cdb3791623954103e9dd4212c858e9b78c4979a676442b9"
         },
         "patches": {
             "Hide ads": {
@@ -18,7 +18,13 @@
                     "markIcon": false
                 }
             },
+            "Don't report Blend visits": {
+                "enabled": true
+            },
             "Ask before a call": {
+                "enabled": true
+            },
+            "Glass in chats": {
                 "enabled": true
             },
             "Chat history tools": {
@@ -39,10 +45,16 @@
             "Hide the notes row": {
                 "enabled": true
             },
+            "Chat plus menu": {
+                "enabled": true
+            },
             "Hide your active status": {
                 "enabled": true
             },
             "Show when someone was last active": {
+                "enabled": true
+            },
+            "Preview chats": {
                 "enabled": true
             },
             "Swipe through a chat's reels": {
@@ -102,7 +114,13 @@
             "Ambient light": {
                 "enabled": true
             },
+            "Hide the audio icon on posts": {
+                "enabled": true
+            },
             "Back leaves Home": {
+                "enabled": true
+            },
+            "Hide activity bubbles": {
                 "enabled": true
             },
             "Hide captions": {
@@ -183,6 +201,9 @@
             "Long press to zoom": {
                 "enabled": true
             },
+            "Keep playing in the background": {
+                "enabled": true
+            },
             "Turn off HDR brightness boosts": {
                 "enabled": true
             },
@@ -222,6 +243,9 @@
             "Save comment photo": {
                 "enabled": true
             },
+            "Skip the ad data reminder": {
+                "enabled": true
+            },
             "Emoji style": {
                 "enabled": true
             },
@@ -244,6 +268,9 @@
                 "enabled": false
             },
             "Group Instagram's notifications": {
+                "enabled": true
+            },
+            "Phone layout on big screens": {
                 "enabled": true
             },
             "Saved on your profile": {
@@ -271,6 +298,9 @@
                 "enabled": true
             },
             "Accent color": {
+                "enabled": true
+            },
+            "Home header text": {
                 "enabled": true
             },
             "HushGram launch screen": {
@@ -325,6 +355,9 @@
                 "enabled": false
             },
             "Full screen Reels and Home": {
+                "enabled": true
+            },
+            "Hide reels with few views": {
                 "enabled": true
             },
             "Find the reel you came from": {
@@ -402,10 +435,16 @@
             "Smooth story opening": {
                 "enabled": true
             },
+            "Stories priority": {
+                "enabled": true
+            },
             "Thicker story progress bar": {
                 "enabled": true
             },
             "Upload stories at full quality": {
+                "enabled": true
+            },
+            "Hide the reply box on stories": {
                 "enabled": true
             },
             "Story ring size": {
@@ -420,6 +459,9 @@
             "Start stories with sound": {
                 "enabled": true
             },
+            "Speed button on stories": {
+                "enabled": true
+            },
             "Stop swipe up to reply": {
                 "enabled": true
             },
@@ -427,6 +469,9 @@
                 "enabled": false
             },
             "Hide suggested stories": {
+                "enabled": true
+            },
+            "Keep stories playing while zooming": {
                 "enabled": true
             }
         }

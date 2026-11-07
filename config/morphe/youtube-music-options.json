@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-11-06T06:06:19.239348642Z",
+            "updated_at": "2026-11-07T04:21:25.334323281Z",
             "source": "patches.mpp",
-            "sha256": "f0f5cfd857950ed61a26a7b2eeeecf37d4d66bece2e8f94802280e189b69ed00"
+            "sha256": "114eafa139ea3018f35af3498e8e67fe7850d4dd22a6065a02e891699dcc5e96"
         },
         "patches": {
             "Clone app": {
@@ -216,6 +216,9 @@
             "Scrobbling": {
                 "enabled": false
             },
+            "SoundProof": {
+                "enabled": true
+            },
             "Custom branding": {
                 "enabled": true,
                 "options": {
@@ -267,6 +270,9 @@
                 "enabled": true
             },
             "Force portrait orientation": {
+                "enabled": true
+            },
+            "Playlist tags": {
                 "enabled": true
             },
             "Return YouTube Dislike": {

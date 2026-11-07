@@ -2,22 +2,26 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-11-06T06:06:24.972481273Z",
+            "updated_at": "2026-11-07T04:21:34.103669497Z",
             "source": "patches.mpp",
-            "sha256": "10c7bd6da6455c3af3187c390ba2c7fda7397b0afb5608d97a2a6fd956f59a7d"
+            "sha256": "46c43c6a817e9f4dc8262ad881b1f8a6c9237c8691eb234d4f2ef33d98326a61"
         },
         "patches": {
             "Clone install under another package name": {
                 "enabled": false,
                 "options": {
                     "clonePackageName": "com.facebook.orca.hush",
-                    "cloneAppName": "Messenger Clone"
+                    "cloneAppName": "Messenger Clone",
+                    "cloneFacebookPackage": "com.facebook.katana"
                 }
             },
             "Install beside Meta apps": {
                 "enabled": true
             },
             "Restore screens on re-signed builds": {
+                "enabled": true
+            },
+            "Keep chat pop-ups": {
                 "enabled": true
             },
             "Material You theme": {
@@ -47,10 +51,19 @@
             "Hide inbox tabs": {
                 "enabled": true
             },
+            "Keep the search bar": {
+                "enabled": true
+            },
             "Hide Mark as read": {
                 "enabled": true
             },
+            "Preview chats on long press": {
+                "enabled": true
+            },
             "Pin more chats": {
+                "enabled": true
+            },
+            "Hide chosen chats": {
                 "enabled": true
             },
             "Hide Facebook shortcuts": {
@@ -66,6 +79,9 @@
                 "enabled": true
             },
             "Hide People tab": {
+                "enabled": true
+            },
+            "Show People tab": {
                 "enabled": true
             },
             "Hide Notifications tab": {
@@ -128,10 +144,16 @@
             "Ignore the swipe up for disappearing messages": {
                 "enabled": true
             },
+            "Customize message actions": {
+                "enabled": true
+            },
             "Hide the recent photo card": {
                 "enabled": true
             },
             "Save voice messages you play": {
+                "enabled": true
+            },
+            "Save button for voice messages": {
                 "enabled": true
             },
             "Hide Your story when sharing": {
@@ -147,6 +169,24 @@
                 "enabled": true
             },
             "Android Auto messages": {
+                "enabled": true
+            },
+            "Search saved messages": {
+                "enabled": true
+            },
+            "Jump to the first message or a date": {
+                "enabled": true
+            },
+            "Allow landscape": {
+                "enabled": true
+            },
+            "Record calls": {
+                "enabled": true
+            },
+            "Hide call buttons": {
+                "enabled": true
+            },
+            "Ask before a call": {
                 "enabled": true
             },
             "Use the phone's camera app": {
@@ -188,10 +228,22 @@
             "Keep unsent messages": {
                 "enabled": true
             },
+            "Hide pictures on the Blocked list": {
+                "enabled": true
+            },
+            "Notify for restricted chats": {
+                "enabled": true
+            },
             "Unlock app icons": {
                 "enabled": true
             },
+            "Unlock app themes": {
+                "enabled": true
+            },
             "Square profile pictures": {
+                "enabled": true
+            },
+            "Your own home header": {
                 "enabled": true
             },
             "Use your own font": {
