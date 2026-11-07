@@ -155,8 +155,9 @@ fi
 # Tier 2: Check GitHub Release cache for stock bundle
 cache_dir=".cache/facebook-release-cache"
 mkdir -p "$cache_dir"
-echo "Checking GitHub Release asset cache for $cache_release_tag..."
-if gh release download "$cache_release_tag" -D "$cache_dir" 2>/dev/null; then
+echo "Checking GitHub Release asset cache for $compatible_version..."
+if gh release download "hushfacebook-release" -p "facebook-$compatible_version*.xapk" -D "$cache_dir" 2>/dev/null || \
+   gh release download "$cache_release_tag" -D "$cache_dir" 2>/dev/null; then
   cached_bundle="$(find "$cache_dir" -maxdepth 1 -type f \( -name "*.xapk" -o -name "*.apk" -o -name "*.apkm" \) -size +10M -print -quit 2>/dev/null || true)"
   if [ -n "$cached_bundle" ] && [ -f "$cached_bundle" ]; then
     echo "Found cached Facebook stock bundle: $cached_bundle"
@@ -230,11 +231,8 @@ done
 if [ -n "$downloaded_bundle" ] && [ -f "$downloaded_bundle" ]; then
   if try_patch_downloaded_apk "$downloaded_bundle" "uptodown-$compatible_version"; then
     if [ -n "${GITHUB_TOKEN:-}" ]; then
-      echo "Caching stock split bundle to GitHub Release $cache_release_tag for instant future builds..."
-      gh release create "$cache_release_tag" "$downloaded_bundle" \
-        --title "Stock Facebook $compatible_version" \
-        --notes "Stock split bundle (arm64-v8a, versionCode $version_codes) cached for CI" >/dev/null 2>&1 || \
-      gh release upload "$cache_release_tag" "$downloaded_bundle" --clobber >/dev/null 2>&1 || true
+      echo "Caching stock split bundle to hushfacebook-release for instant future builds..."
+      gh release upload "hushfacebook-release" "$downloaded_bundle" --clobber >/dev/null 2>&1 || true
     fi
     exit 0
   fi
