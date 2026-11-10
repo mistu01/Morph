@@ -174,9 +174,9 @@
     {
         "meta": {
             "created_at": "2026-06-24T13:02:42.905835300Z",
-            "updated_at": "2026-11-08T04:04:33.232730880Z",
+            "updated_at": "2026-11-10T05:44:56.313164644Z",
             "source": "piko-patches.mpp",
-            "sha256": "01cb828fcc66bcdda7c4242fdc509518107b883eaf26665b0da482945b7a8033"
+            "sha256": "87e7ab20837bb0ae229113f66c83af0ae0cfbd09ff01941a563a299169f1844c"
         },
         "patches": {
             "Disable ads": {
@@ -204,6 +204,9 @@
                 "enabled": true
             },
             "Disable stories": {
+                "enabled": true
+            },
+            "Hide like buttons": {
                 "enabled": true
             },
             "Disable analytics": {
@@ -267,7 +270,13 @@
             "Disable swipe to create": {
                 "enabled": true
             },
+            "Hide feed posts": {
+                "enabled": true
+            },
             "Hide group creation button on sharesheet": {
+                "enabled": true
+            },
+            "Hide hidden requests": {
                 "enabled": true
             },
             "Hide notes tray": {
@@ -285,6 +294,12 @@
             "Focus Lock": {
                 "enabled": true
             },
+            "Disable disappearing messages swipe": {
+                "enabled": true
+            },
+            "Hidden chats": {
+                "enabled": true
+            },
             "Inbox lock": {
                 "enabled": true
             },
@@ -295,6 +310,9 @@
                 "enabled": true
             },
             "External downloader": {
+                "enabled": true
+            },
+            "Mark as read after reply": {
                 "enabled": true
             },
             "View DMs anonymously": {
@@ -333,10 +351,16 @@
             "Hide Reels follow button": {
                 "enabled": true
             },
+            "Resume Reels after scrolling": {
+                "enabled": true
+            },
             "Remove empty bottom space": {
                 "enabled": true
             },
             "Add settings": {
+                "enabled": true
+            },
+            "Hide story follow button": {
                 "enabled": true
             },
             "Customise story ring size": {
@@ -352,6 +376,9 @@
                 "enabled": true
             },
             "View story mentions": {
+                "enabled": true
+            },
+            "Disable telemetry": {
                 "enabled": true
             },
             "Theme": {
