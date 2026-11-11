@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync, renameSync, rmSync, createWriteStream, statSync } from "node:fs";
+import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join, resolve, extname } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -492,13 +492,7 @@ async function build() {
             if (jsonMatch) {
               const metadata = JSON.parse(jsonMatch[0]);
               if (metadata.path && existsSync(metadata.path)) {
-                const ext = extname(metadata.path).toLowerCase() || ".apk";
-                const targetPath = app.input.slice(0, app.input.length - extname(app.input).length) + ext;
-                if (existsSync(targetPath)) {
-                  rmSync(targetPath, { force: true });
-                }
-                renameSync(metadata.path, targetPath);
-                actualInputPath = targetPath;
+                actualInputPath = moveDownloadedInput(app, metadata.path);
                 downloadSucceeded = true;
                 console.log(`Successfully downloaded ${app.label} v${metadata.version} from APKPure: ${actualInputPath}`);
               } else {
@@ -513,11 +507,22 @@ async function build() {
         } else {
           console.error(`APKPure downloader process failed with exit code ${apkpureProc.status}`);
         }
+
+        if (!downloadSucceeded) {
+          console.warn(`APKPure web download failed for ${app.label} v${version}. Trying apkeep fallback...`);
+          try {
+            actualInputPath = await downloadWithApkeep(app, version);
+            downloadSucceeded = true;
+            console.log(`Successfully downloaded ${app.label} v${version} with apkeep: ${actualInputPath}`);
+          } catch (apkeepErr) {
+            console.error(`apkeep fallback failed for ${app.label} v${version}: ${apkeepErr.message}`);
+          }
+        }
       }
     }
 
     if (!downloadSucceeded) {
-      throw new Error(`Failed to download ${app.label} APK/APKM from both APKMirror and APKPure.`);
+      throw new Error(`Failed to download ${app.label} APK/APKM/XAPK from APKMirror, APKPure web, and APKPure apkeep.`);
     }
 
     console.log(`Using input file: ${actualInputPath}`);
@@ -1090,4 +1095,110 @@ function parseJsonArrayEnv(name) {
     console.warn(`Could not parse JSON array from environment variable ${name}: ${error.message}`);
     return [];
   }
+}
+
+function moveDownloadedInput(app, sourcePath) {
+  const ext = extname(sourcePath).toLowerCase() || ".apk";
+  const targetPath = app.input.slice(0, app.input.length - extname(app.input).length) + ext;
+  if (resolve(sourcePath) !== resolve(targetPath)) {
+    if (existsSync(targetPath)) {
+      rmSync(targetPath, { force: true });
+    }
+    renameSync(sourcePath, targetPath);
+  }
+  return targetPath;
+}
+
+function apkeepAssetName() {
+  if (process.platform === "win32" && process.arch === "x64") return "apkeep-x86_64-pc-windows-msvc.exe";
+  if (process.platform === "linux" && process.arch === "x64") return "apkeep-x86_64-unknown-linux-gnu";
+  if (process.platform === "linux" && process.arch === "arm64") return "apkeep-aarch64-unknown-linux-gnu";
+  throw new Error(`Unsupported platform for automatic apkeep download: ${process.platform}/${process.arch}`);
+}
+
+async function ensureApkeep() {
+  const apkeepPath = join(paths.tools, process.platform === "win32" ? "apkeep.exe" : "apkeep");
+  if (existsSync(apkeepPath) && statSync(apkeepPath).size > 0) {
+    if (process.platform !== "win32") {
+      chmodSync(apkeepPath, 0o755);
+    }
+    return apkeepPath;
+  }
+
+  const assetName = apkeepAssetName();
+  const release = await githubJson("https://api.github.com/repos/EFForg/apkeep/releases/latest");
+  const asset = release.assets?.find((a) => a.name === assetName);
+  if (!asset) {
+    throw new Error(`No ${assetName} release asset found for EFForg/apkeep ${release.tag_name}`);
+  }
+
+  console.log(`Downloading EFForg/apkeep ${release.tag_name}: ${asset.name}`);
+  await downloadFile(asset.browser_download_url, apkeepPath);
+  if (process.platform !== "win32") {
+    chmodSync(apkeepPath, 0o755);
+  }
+  if (!existsSync(apkeepPath) || statSync(apkeepPath).size === 0) {
+    throw new Error(`Downloaded apkeep binary at ${apkeepPath} is missing or empty.`);
+  }
+  return apkeepPath;
+}
+
+function findDownloadedPackage(directory) {
+  if (!existsSync(directory)) return "";
+  const entries = readdirSync(directory, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      const nested = findDownloadedPackage(fullPath);
+      if (nested) return nested;
+    } else if (entry.isFile()) {
+      const ext = extname(entry.name).toLowerCase();
+      if ([".apk", ".apkm", ".xapk", ".apks"].includes(ext) && statSync(fullPath).size > 0) {
+        return fullPath;
+      }
+    }
+  }
+  return "";
+}
+
+async function downloadWithApkeep(app, version) {
+  const apkeep = await ensureApkeep();
+  const apkeepDir = join(paths.tmp, "apkeep", app.id);
+  const appId = `${app.packageName}@${version}`;
+  const arch = String(app.apkmirrorArch || "").split(/[\s,]+/).find(Boolean) || "";
+
+  const optionSets = arch
+    ? [
+        ["acknowledge_dangers=true", `arch=${arch}`],
+        ["acknowledge_dangers=true"],
+      ]
+    : [["acknowledge_dangers=true"]];
+
+  let lastError = "apkeep produced no APK/XAPK file";
+  for (const options of optionSets) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      rmSync(apkeepDir, { recursive: true, force: true });
+      mkdirSync(apkeepDir, { recursive: true });
+      const joinedOptions = options.join(",");
+      console.log(`Downloading ${app.label} ${version} with apkeep (${appId}, options=${joinedOptions}, attempt ${attempt}/2)...`);
+      const proc = spawnSync(
+        apkeep,
+        ["-a", appId, "-d", "apk-pure", "-o", joinedOptions, apkeepDir],
+        { stdio: "inherit" }
+      );
+      if (proc.error) {
+        lastError = proc.error.message;
+        continue;
+      }
+      const candidate = findDownloadedPackage(apkeepDir);
+      if (proc.status === 0 && candidate) {
+        return moveDownloadedInput(app, candidate);
+      }
+      lastError = proc.status !== 0
+        ? `apkeep exited with status ${proc.status} (options=${joinedOptions})`
+        : `apkeep exited 0 but no package file found (options=${joinedOptions})`;
+    }
+  }
+
+  throw new Error(lastError);
 }
