@@ -108,7 +108,7 @@ async function main() {
   }
 }
 
-async function githubJson(url) {
+async function githubJson(url, attempts = 3) {
   const headers = {
     Accept: "application/vnd.github+json",
     "User-Agent": "piko-builder",
@@ -118,11 +118,41 @@ async function githubJson(url) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, { headers });
-  if (!response.ok) {
-    throw new Error(`GitHub request failed (${response.status}) for ${url}`);
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const response = await fetch(url, { headers });
+      if (!response.ok) {
+        if ([408, 425, 429, 500, 502, 503, 504].includes(response.status) && attempt < attempts) {
+          lastError = new Error(`GitHub request failed (${response.status}) for ${url}`);
+          await new Promise((r) => setTimeout(r, 750 * attempt));
+          continue;
+        }
+        throw new Error(`GitHub request failed (${response.status}) for ${url}`);
+      }
+      return await response.json();
+    } catch (error) {
+      lastError = error;
+      if (attempt < attempts) {
+        await new Promise((r) => setTimeout(r, 750 * attempt));
+      }
+    }
   }
-  return response.json();
+
+  // Fallback to curl when Node fetch hits idle keep-alive/socket errors.
+  const curlCmd = process.platform === "win32" ? "curl.exe" : "curl";
+  const curlArgs = ["-sS", "-f", "-L", "-H", "Accept: application/vnd.github+json", "-H", "User-Agent: piko-builder"];
+  if (headers["Authorization"]) {
+    curlArgs.push("-H", `Authorization: ${headers["Authorization"]}`);
+  }
+  curlArgs.push(url);
+  const proc = spawnSync(curlCmd, curlArgs, { encoding: "utf8" });
+  if (proc.status === 0 && proc.stdout) {
+    return JSON.parse(proc.stdout);
+  }
+
+  const causeMsg = lastError?.cause?.message ? ` (${lastError.cause.message})` : "";
+  throw new Error(`${lastError?.message || `GitHub request failed for ${url}`}${causeMsg}`);
 }
 
 async function downloadFile(url, destination, extraHeaders = {}) {
