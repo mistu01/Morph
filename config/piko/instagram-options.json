@@ -174,9 +174,9 @@
     {
         "meta": {
             "created_at": "2026-06-24T13:02:42.905835300Z",
-            "updated_at": "2026-11-10T05:44:56.313164644Z",
+            "updated_at": "2026-11-11T04:25:15.584569028Z",
             "source": "piko-patches.mpp",
-            "sha256": "87e7ab20837bb0ae229113f66c83af0ae0cfbd09ff01941a563a299169f1844c"
+            "sha256": "dde8e119e2ab0d13f8245a63385581fc1a5eb8016d66f63c31ddd75f2729953b"
         },
         "patches": {
             "Disable ads": {
@@ -207,9 +207,6 @@
                 "enabled": true
             },
             "Hide like buttons": {
-                "enabled": true
-            },
-            "Disable analytics": {
                 "enabled": true
             },
             "Disable discover people": {
@@ -330,12 +327,6 @@
             "Unlock developer options": {
                 "enabled": true
             },
-            "Unlock employee options": {
-                "enabled": true
-            },
-            "Allow user network certificate": {
-                "enabled": true
-            },
             "More options on post": {
                 "enabled": true
             },
@@ -378,17 +369,11 @@
             "View story mentions": {
                 "enabled": true
             },
-            "Disable telemetry": {
-                "enabled": true
-            },
             "Theme": {
                 "enabled": true,
                 "options": {
                     "amoled": false
                 }
-            },
-            "Unlock Plus benefits": {
-                "enabled": true
             },
             "Friendship status indicator": {
                 "enabled": true
@@ -396,11 +381,8 @@
             "More options on profile": {
                 "enabled": true
             },
-            "Change version code": {
-                "enabled": true,
-                "options": {
-                    "versionCode": 2147483647
-                }
+            "Disable Play Store updates": {
+                "enabled": true
             }
         }
     }

@@ -239,9 +239,9 @@
     {
         "meta": {
             "created_at": "2026-06-24T13:02:39.783544600Z",
-            "updated_at": "2026-11-10T05:44:55.464675724Z",
+            "updated_at": "2026-11-11T04:25:14.518939114Z",
             "source": "piko-patches.mpp",
-            "sha256": "87e7ab20837bb0ae229113f66c83af0ae0cfbd09ff01941a563a299169f1844c"
+            "sha256": "dde8e119e2ab0d13f8245a63385581fc1a5eb8016d66f63c31ddd75f2729953b"
         },
         "patches": {
             "Remove Ads": {
@@ -474,14 +474,11 @@
             "Hide promote button": {
                 "enabled": true
             },
+            "Disable Play Store updates": {
+                "enabled": true
+            },
             "Export all activities": {
                 "enabled": false
-            },
-            "Change version code": {
-                "enabled": true,
-                "options": {
-                    "versionCode": 2147483647
-                }
             }
         }
     }
