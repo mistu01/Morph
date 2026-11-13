@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-11-07T04:21:32.517072632Z",
+            "updated_at": "2026-11-13T04:48:01.792060993Z",
             "source": "patches.mpp",
-            "sha256": "8c7a4f1cedd5f083db0029a427f4da5ed6c490efd7a4ddd5206c1bce6f7fa78e"
+            "sha256": "251bc89a21c27f94e78952160f836bc01959d50083f72f57c1f4b9fa01c77b23"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -58,6 +58,13 @@
             "Send chat photos and videos at original quality": {
                 "enabled": true
             },
+            "Clone install under another package name": {
+                "enabled": false,
+                "options": {
+                    "clonePackageName": "com.facebook.katana.hush",
+                    "cloneAppName": "Facebook Clone"
+                }
+            },
             "Install beside Meta's apps": {
                 "enabled": true
             },
@@ -103,6 +110,9 @@
             "Photo carousel": {
                 "enabled": true
             },
+            "Ask before a like": {
+                "enabled": true
+            },
             "Hide the Feeds header": {
                 "enabled": true
             },
@@ -122,6 +132,9 @@
                 "enabled": true
             },
             "Translate posts": {
+                "enabled": true
+            },
+            "Hide profile pictures": {
                 "enabled": true
             },
             "Hide Reels in the feed": {
@@ -335,6 +348,9 @@
             "Search posts tab": {
                 "enabled": true
             },
+            "Saved button in search": {
+                "enabled": true
+            },
             "Stop Story auto-advance": {
                 "enabled": false
             },
@@ -342,6 +358,9 @@
                 "enabled": true
             },
             "Longer music on photo stories": {
+                "enabled": true
+            },
+            "Hide story rings": {
                 "enabled": true
             },
             "View stories anonymously": {
