@@ -2,12 +2,15 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-11-13T04:48:07.808649695Z",
+            "updated_at": "2026-11-14T04:42:29.313390260Z",
             "source": "patches.mpp",
-            "sha256": "4923cb9d5ee121f38cdb3791623954103e9dd4212c858e9b78c4979a676442b9"
+            "sha256": "8bebfb673ec01aad027a64670335614e318439ebad24a92a0fc1a18bb0ede41e"
         },
         "patches": {
             "Hide ads": {
+                "enabled": true
+            },
+            "Hide Instagram Plus prompts": {
                 "enabled": true
             },
             "Install next to Instagram": {
@@ -24,6 +27,9 @@
             "Ask before a call": {
                 "enabled": true
             },
+            "Call blocker": {
+                "enabled": true
+            },
             "Glass in chats": {
                 "enabled": true
             },
@@ -37,6 +43,9 @@
                 "enabled": true
             },
             "Lock your messages": {
+                "enabled": true
+            },
+            "Swipe through a chat's photos and posts": {
                 "enabled": true
             },
             "Message box buttons": {
@@ -60,6 +69,9 @@
             "Swipe through a chat's reels": {
                 "enabled": true
             },
+            "Hide the Community Standards reminder": {
+                "enabled": true
+            },
             "Allow screenshots": {
                 "enabled": true
             },
@@ -76,6 +88,9 @@
                 "enabled": true
             },
             "Hide suggested accounts in DMs": {
+                "enabled": true
+            },
+            "Split the notes row": {
                 "enabled": true
             },
             "Hide that you're typing": {
@@ -129,6 +144,9 @@
             "Carousel arrows": {
                 "enabled": true
             },
+            "Hide GIFs in comments": {
+                "enabled": true
+            },
             "Open comments without the keyboard": {
                 "enabled": true
             },
@@ -141,6 +159,9 @@
             "Ask before a refresh": {
                 "enabled": true
             },
+            "Hide Made with Edits": {
+                "enabled": true
+            },
             "Hide the comment emoji row": {
                 "enabled": true
             },
@@ -149,6 +170,9 @@
             },
             "Start Home on Following": {
                 "enabled": false
+            },
+            "Hold for 2x on feed videos": {
+                "enabled": true
             },
             "Hide the home feed": {
                 "enabled": true
@@ -169,6 +193,9 @@
                 "enabled": false
             },
             "Rounded post corners": {
+                "enabled": true
+            },
+            "Save in the post menu": {
                 "enabled": true
             },
             "Skip the collections tray": {
@@ -196,6 +223,9 @@
                 "enabled": false
             },
             "Keep Home's top bar": {
+                "enabled": true
+            },
+            "Watch again in the feed": {
                 "enabled": true
             },
             "Long press to zoom": {
@@ -243,6 +273,9 @@
             "Save comment photo": {
                 "enabled": true
             },
+            "Search comments": {
+                "enabled": true
+            },
             "Skip the ad data reminder": {
                 "enabled": true
             },
@@ -271,6 +304,9 @@
                 "enabled": true
             },
             "Phone layout on big screens": {
+                "enabled": true
+            },
+            "Keep photo locations from Instagram": {
                 "enabled": true
             },
             "Saved on your profile": {
@@ -315,7 +351,16 @@
             "Change version code": {
                 "enabled": false
             },
+            "Hide profile banners": {
+                "enabled": true
+            },
+            "Ask before a follow": {
+                "enabled": true
+            },
             "Show if a profile follows you": {
+                "enabled": true
+            },
+            "Jump a profile's posts to a date": {
                 "enabled": true
             },
             "Hide highlights": {
@@ -354,7 +399,16 @@
             "Turn off double tap to like": {
                 "enabled": false
             },
+            "Hide the 2x popup on Reels": {
+                "enabled": true
+            },
             "Full screen Reels and Home": {
+                "enabled": true
+            },
+            "Open reel links on that reel": {
+                "enabled": true
+            },
+            "Hide lives in Reels": {
                 "enabled": true
             },
             "Hide reels with few views": {
@@ -366,10 +420,16 @@
             "Hide paid partnership Reels": {
                 "enabled": true
             },
+            "Keep the tab bar on a reel's profile": {
+                "enabled": true
+            },
             "Stop Reels scrolling": {
                 "enabled": false
             },
             "Keep a seek bar on Reels": {
+                "enabled": true
+            },
+            "Double tap to skip on Reels": {
                 "enabled": true
             },
             "Start reels with sound": {
@@ -416,6 +476,9 @@
             },
             "Stop Story auto-advance": {
                 "enabled": false
+            },
+            "Keep story buttons below the story": {
+                "enabled": true
             },
             "Hide Follow on stories": {
                 "enabled": true
