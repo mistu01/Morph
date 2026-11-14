@@ -60,7 +60,76 @@ DOWNLOAD_URL_RE = re.compile(
 
 TOKEN_CODE_RE = re.compile(r"^[A-Za-z0-9._]+_(\d{6,})_[0-9a-fA-F]+$")
 
+AEGON_UA = "Dalvik/2.1.0 (Linux; U; Android 13; Pixel 5 Build/TQ3A.230901.001); APKPure/3.20.34 (Aegon)"
 MIN_APK_BYTES = 100_000
+
+
+def fetch_tapi_variants(package_name: str, abis: str = "arm64-v8a") -> list[dict]:
+    """Query APKPure's native app API (tapi.pureapk.com) for recent version variants.
+
+    This API returns the full history of version codes (including Android 11+
+    splits), and provides signed, direct CDN download URLs on data.winudf.com.
+    """
+    url = f"https://tapi.pureapk.com/v3/get_app_his_version?package_name={urllib.parse.quote(package_name)}&hl=en"
+    abi_list = [a.strip() for a in abis.split(",") if a.strip()] or ["arm64-v8a", "armeabi-v7a", "armeabi"]
+    headers = {
+        "User-Agent": AEGON_UA,
+        "Ual-Access-Businessid": "projecta",
+        "Ual-Access-ProjectA": json.dumps({
+            "device_info": {
+                "abis": abi_list,
+                "android_id": "50f838123d9a9c94",
+                "brand": "google",
+                "country": "United States",
+                "country_code": "US",
+                "imei": "",
+                "language": "en-US",
+                "manufacturer": "Google",
+                "mode": "Pixel 5",
+                "os_ver": "33",
+                "os_ver_name": "13",
+                "platform": 1,
+                "product": "redfin",
+                "screen_height": 1080,
+                "screen_width": 1920,
+            },
+            "host_app_info": {
+                "build_no": "468",
+                "channel": "",
+                "md5": "6756e53158d6f6c013650a40d8f1147b",
+                "pkg_name": "com.apkpure.aegon",
+                "sdk_ver": "3.20.34",
+                "version_code": 3203427,
+                "version_name": "3.20.34",
+            },
+        }),
+    }
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            if resp.status == 200:
+                data = json.loads(resp.read().decode("utf-8", "replace"))
+                vlist = data.get("version_list") or data.get("data", {}).get("version_list", [])
+                variants = []
+                for item in vlist:
+                    code = str(item.get("version_code", "")).strip()
+                    ver_name = str(item.get("version_name", "")).strip()
+                    asset = item.get("asset", {})
+                    urls = asset.get("urls", [])
+                    file_type = asset.get("type", "APK")
+                    if urls and code:
+                        variants.append({
+                            "code": code,
+                            "version": ver_name,
+                            "fileType": file_type,
+                            "url": urls[0],
+                            "urls": urls,
+                            "abis": item.get("native_code", []),
+                        })
+                return variants
+    except Exception as e:
+        print(f"tapi.pureapk.com query notice: {e}", file=sys.stderr)
+    return []
 
 
 def api_headers_for(abis: str) -> dict:
@@ -265,20 +334,32 @@ def content_disposition_filename(header: str) -> str | None:
 
 
 def verify_apk(path: Path, expected_code: int) -> tuple[bool, str]:
-    """Check the file is a zip/APK whose manifest declares the expected code."""
+    """Check the file is a zip/APK/XAPK whose manifest declares the expected code."""
     try:
         size = path.stat().st_size
         if size < MIN_APK_BYTES:
             return False, f"file is only {size} bytes (likely an HTML error page)"
         with zipfile.ZipFile(path) as bundle:
-            # Messenger's binary manifest is ~380 KB, so scan the whole thing.
-            manifest = bundle.read("AndroidManifest.xml")
+            manifest = None
+            if "AndroidManifest.xml" in bundle.namelist():
+                manifest = bundle.read("AndroidManifest.xml")
+            else:
+                # XAPK / bundle archives have split APKs inside (base.apk, etc.)
+                for name in bundle.namelist():
+                    if name.lower().endswith(".apk"):
+                        try:
+                            with zipfile.ZipFile(io.BytesIO(bundle.read(name))) as inner_apk:
+                                if "AndroidManifest.xml" in inner_apk.namelist():
+                                    manifest = inner_apk.read("AndroidManifest.xml")
+                                    break
+                        except Exception:
+                            continue
+            if manifest is None:
+                return False, "APK/bundle has no AndroidManifest.xml"
             if struct.pack("<I", expected_code) not in manifest:
                 return False, f"manifest does not contain version code {expected_code}"
     except zipfile.BadZipFile:
         return False, "not a valid zip/APK (likely an HTML error page)"
-    except KeyError:
-        return False, "APK has no AndroidManifest.xml"
     except Exception as error:  # noqa: BLE001 - cannot verify; let the patcher decide
         return True, f"could not verify manifest ({error})"
     return True, "manifest verified"
@@ -286,10 +367,13 @@ def verify_apk(path: Path, expected_code: int) -> tuple[bool, str]:
 
 def download_file(url: str, user_agent: str, dest: Path, max_attempts: int = 2) -> Path:
     last_error: Exception | None = None
+    headers = {"User-Agent": user_agent}
+    if "winudf.com" in url or "pureapk.com" in url:
+        headers["Referer"] = "https://apkpure.com/"
     for attempt in range(1, max_attempts + 1):
         try:
-            request = urllib.request.Request(url, headers={"User-Agent": user_agent})
-            with urllib.request.urlopen(request, timeout=180) as response:
+            request = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(request, timeout=60) as response:
                 if response.status != 200:
                     raise RuntimeError(f"download URL returned HTTP {response.status}")
                 disposition = response.headers.get("content-disposition", "")
@@ -336,23 +420,27 @@ def download_exact(
     already-verified file from an earlier attempt/run is reused as-is.
     """
     mirror_url = MIRROR_URL_FORMAT.format(
-        file_type=variant["fileType"],
+        file_type=variant.get("fileType", "APK"),
         package_name=urllib.parse.quote(package_name),
         version_code=variant["code"],
     )
-    endpoints = [
-        ("cdn", variant["url"]),
-        ("mirror", mirror_url),
-    ]
+    endpoints = []
+    if variant.get("url"):
+        endpoints.append(("cdn", variant["url"]))
+    for u in variant.get("urls", [])[1:]:
+        endpoints.append(("cdn_alt", u))
+    endpoints.append(("mirror", mirror_url))
+
+    ext = ".xapk" if str(variant.get("fileType", "")).upper() == "XAPK" else ".apk"
     failures: list[str] = []
-    dest = out_dir / f"{package_name}_{variant['code']}.apk"
+    dest = out_dir / f"{package_name}_{variant['code']}{ext}"
     if dest.exists():
         ok, reason = verify_apk(dest, expected_code)
         if ok:
             print(f"Reusing previously verified download: {dest} ({reason}).", file=sys.stderr)
             return dest
     for label, url in endpoints:
-        for ua_label, user_agent in (("browser", BROWSER_UA), ("okhttp", OKHTTP_UA)):
+        for ua_label, user_agent in (("aegon", AEGON_UA), ("browser", BROWSER_UA), ("okhttp", OKHTTP_UA)):
             for attempt in range(1, max_attempts + 1):
                 try:
                     path = download_file(url, user_agent, dest)
@@ -417,19 +505,31 @@ def main() -> int:
 
     variant: dict | None = None
     if not args.skip_catalog_check:
-        print(f"Querying APKPure catalog API for {args.package_name}...", file=sys.stderr)
-        try:
-            body = fetch_catalog(args.package_name, args.abis)
-        except Exception as error:  # noqa: BLE001
-            print(
-                f"{args.app_name}: APKPure catalog API request failed ({error}); "
-                "falling back to the mirror endpoint.",
-                file=sys.stderr,
-            )
-        else:
-            variants = catalog_variants(body)
-            print(f"Catalog lists {len(variants)} downloadable variants.", file=sys.stderr)
-            variant = pick_variant(variants, args.version_code)
+        print(f"Querying APKPure tapi API for {args.package_name}...", file=sys.stderr)
+        tapi_variants = fetch_tapi_variants(args.package_name, args.abis)
+        if tapi_variants:
+            print(f"APKPure tapi API returned {len(tapi_variants)} variants.", file=sys.stderr)
+            variant = pick_variant(tapi_variants, args.version_code)
+            if variant:
+                print(
+                    f"{args.app_name}: found exact variant {variant['code']} ({variant['fileType']}) in APKPure tapi API.",
+                    file=sys.stderr,
+                )
+
+        if variant is None:
+            print(f"Querying APKPure catalog API for {args.package_name}...", file=sys.stderr)
+            try:
+                body = fetch_catalog(args.package_name, args.abis)
+            except Exception as error:  # noqa: BLE001
+                print(
+                    f"{args.app_name}: APKPure catalog API request failed ({error}); "
+                    "falling back to the mirror endpoint.",
+                    file=sys.stderr,
+                )
+            else:
+                variants = catalog_variants(body)
+                print(f"Catalog lists {len(variants)} downloadable variants.", file=sys.stderr)
+                variant = pick_variant(variants, args.version_code)
             if variant is None:
                 requested = int(args.version_code)
                 nearby = [v for v in variants if 0 < abs(int(v["code"]) - requested) <= 10_000]

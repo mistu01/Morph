@@ -279,6 +279,13 @@ for version_code in $version_codes; do
     apk_path="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$download_result" 2>/dev/null || true)"
     if [ -f "$apk_path" ]; then
       if try_patch_downloaded_apk "$apk_path" "$version_code"; then
+        if [ -n "${GITHUB_TOKEN:-}" ]; then
+          echo "Caching stock split bundle to hushfacebook-release for instant future builds..."
+          stock_cache_name="facebook-$compatible_version-arm64-v8a.${apk_path##*.}"
+          cp "$apk_path" "$stock_cache_name"
+          gh release upload "hushfacebook-release" "$stock_cache_name" --clobber >/dev/null 2>&1 || true
+          rm -f "$stock_cache_name"
+        fi
         exit 0
       fi
     fi

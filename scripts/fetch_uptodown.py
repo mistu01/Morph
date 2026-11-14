@@ -72,10 +72,7 @@ def pick_file_id(version):
     for fid, ver, sdk in rows:
         if ver == version and "+ 11" in sdk:
             return fid, sdk
-    for fid, ver, sdk in rows:
-        if ver == version:
-            log(f"::warning::no Android + 11 row for {version}, taking {sdk}")
-            return fid, sdk
+    log(f"::warning::no Android + 11 row found for {version} on Uptodown (only Android 9+ with .spo Superpack available)")
     return None, None
 
 
@@ -278,6 +275,66 @@ def download(file_id, version, out):
         browser.close()
 
 
+def download_via_api(file_id, out_path):
+    try:
+        import hashlib, hmac, random
+        identifier = "".join(f"{random.randint(0, 255):02x}" for _ in range(8))
+        timestamp = str(int(time.time()))
+        signature = hmac.new(b"MDGMXUMdvHJBG/vjdFgmqX6LUdy7ecfwvYNd0gyfOCs=", timestamp.encode("utf-8"), hashlib.sha256).hexdigest()
+        auth_url = f"https://www.uptodown.app/eapi/auth/token?identifier={identifier}"
+        auth_data = urllib.parse.urlencode({
+            "identifier": identifier,
+            "id_plataforma": "13",
+            "lang": "en",
+            "unixtime": timestamp,
+            "hmac": signature,
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            auth_url,
+            data=auth_data,
+            headers={
+                "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; Pixel 8 Pro Build/BP4A.260205.001)",
+                "Identificador": "Uptodown_Android",
+                "Identificador-Version": "739",
+                "Content-Type": "application/x-www-form-urlencoded",
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            token = json.loads(resp.read().decode("utf-8")).get("token")
+        if not token:
+            return False
+
+        dl_req = urllib.request.Request(
+            f"https://www.uptodown.app/eapi/apps/16791/file/{file_id}/downloadUrl",
+            headers={
+                "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 16; Pixel 8 Pro Build/BP4A.260205.001)",
+                "Identificador": "Uptodown_Android",
+                "Identificador-Version": "739",
+                "Authorization": f"Bearer {token}",
+            }
+        )
+        with urllib.request.urlopen(dl_req, timeout=15) as resp:
+            dl_url = json.loads(resp.read().decode("utf-8")).get("data", {}).get("downloadURL")
+        if not dl_url:
+            return False
+
+        log(f"Downloading from direct Uptodown CDN: {dl_url[:60]}...")
+        file_req = urllib.request.Request(dl_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(file_req, timeout=180) as stream_resp:
+            if stream_resp.status == 200:
+                with open(out_path, "wb") as fh:
+                    while True:
+                        chunk = stream_resp.read(1024 * 512)
+                        if not chunk:
+                            break
+                        fh.write(chunk)
+                log(f"direct Uptodown CDN download complete: {os.path.getsize(out_path)} bytes")
+                return True
+    except Exception as e:
+        log(f"::warning::Uptodown API download failed: {e}")
+    return False
+
+
 def main():
     if len(sys.argv) < 3:
         log("usage: fetch_uptodown.py <version> <outdir> [--version-code <code>]")
@@ -293,10 +350,11 @@ def main():
         log(f"== Picking {version} (Android + 11) from Uptodown version history")
         file_id, sdk = pick_file_id(version)
         if not file_id:
-            log(f"::error::Version {version} not found on Uptodown")
+            log(f"::error::Version {version} (Android + 11) not found on Uptodown")
             sys.exit(1)
         log(f"selected file {file_id} ({sdk})")
-        download(file_id, version, out)
+        if not download_via_api(file_id, out):
+            download(file_id, version, out)
         size = os.path.getsize(out)
         if size < 10 * 1024 * 1024:
             log(f"::error::Downloaded file too small ({size} bytes)")
