@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-11-16T04:29:56.986214041Z",
+            "updated_at": "2026-11-17T06:17:30.739836965Z",
             "source": "patches.mpp",
-            "sha256": "6ca368de24d475404257611cf03c2a82062a00ab9d60ddd220badaa332a68f2e"
+            "sha256": "1c37549274a2b6cf7f2e3e099d9b8cb641880b8a7dac323a95638a06bb4509a9"
         },
         "patches": {
             "Clone app": {
@@ -189,6 +189,9 @@
             "Hide ads": {
                 "enabled": true
             },
+            "Disable audio ducking": {
+                "enabled": true
+            },
             "Crossfade": {
                 "enabled": true
             },
@@ -202,6 +205,12 @@
                 "enabled": true
             },
             "Jam queue sharing": {
+                "enabled": true
+            },
+            "A-B loop": {
+                "enabled": true
+            },
+            "Pause when muted": {
                 "enabled": true
             },
             "Playlist track tap action": {
@@ -240,6 +249,9 @@
                 "enabled": true
             },
             "Navigation bar": {
+                "enabled": true
+            },
+            "Disable auto captions": {
                 "enabled": true
             },
             "Custom font": {
@@ -338,6 +350,9 @@
             "App refresh rate": {
                 "enabled": true
             },
+            "Open system share sheet": {
+                "enabled": true
+            },
             "Spoof video streams": {
                 "enabled": true
             },
@@ -345,6 +360,9 @@
                 "enabled": true
             },
             "Skip silence": {
+                "enabled": true
+            },
+            "Remember video quality": {
                 "enabled": true
             },
             "Playback speed": {
