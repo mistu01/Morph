@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-11-15T04:32:25.237709845Z",
+            "updated_at": "2026-11-18T05:42:11.255529952Z",
             "source": "patches.mpp",
-            "sha256": "251bc89a21c27f94e78952160f836bc01959d50083f72f57c1f4b9fa01c77b23"
+            "sha256": "7dbf50dc1d4113293e54b0f26018433a1503801a760f2b46dd48e93edb67ab1f"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -61,8 +61,9 @@
             "Clone install under another package name": {
                 "enabled": false,
                 "options": {
-                    "clonePackageName": "com.facebook.katana.hush",
-                    "cloneAppName": "Facebook Clone"
+                    "packageName": "com.facebook.katana.hush",
+                    "cloneAppName": "Facebook Clone",
+                    "clonePackageName": "com.facebook.katana.hush"
                 }
             },
             "Install beside Meta's apps": {
@@ -116,6 +117,9 @@
             "Hide the Feeds header": {
                 "enabled": true
             },
+            "Fold long text": {
+                "enabled": true
+            },
             "Following feed on Home": {
                 "enabled": true
             },
@@ -123,6 +127,9 @@
                 "enabled": true
             },
             "Keep post dates": {
+                "enabled": true
+            },
+            "Post menu items": {
                 "enabled": true
             },
             "Hide post prompts": {
@@ -178,6 +185,9 @@
             },
             "Material You theme": {
                 "enabled": false
+            },
+            "Keep playing in the background": {
+                "enabled": true
             },
             "Keep feed videos muted": {
                 "enabled": true
@@ -239,6 +249,9 @@
             "Home header text": {
                 "enabled": true
             },
+            "Skip location prompts": {
+                "enabled": true
+            },
             "Open in Facebook from the share menu": {
                 "enabled": true
             },
@@ -255,7 +268,8 @@
                 "enabled": true,
                 "options": {
                     "appName": null,
-                    "iconStyle": "facebook"
+                    "iconStyle": "facebook",
+                    "notificationIcon": "facebook"
                 }
             },
             "Sanitize sharing links": {
