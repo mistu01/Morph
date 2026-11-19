@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-10-02T23:02:47.221630+00:00",
-            "updated_at": "2026-11-18T05:42:16.273615553Z",
+            "updated_at": "2026-11-19T05:41:02.256188171Z",
             "source": "patches.mpp",
-            "sha256": "8bebfb673ec01aad027a64670335614e318439ebad24a92a0fc1a18bb0ede41e"
+            "sha256": "9d3def43dce94c60d3abd53381b756d23c82ed29a8ce997682a488211ab4e5da"
         },
         "patches": {
             "Hide ads": {
@@ -60,6 +60,12 @@
             "Hide your active status": {
                 "enabled": true
             },
+            "Keep online history": {
+                "enabled": true
+            },
+            "Shorter Active now": {
+                "enabled": true
+            },
             "Show when someone was last active": {
                 "enabled": true
             },
@@ -108,6 +114,9 @@
             "Download any story": {
                 "enabled": true
             },
+            "Ask for VP9 instead of AV1": {
+                "enabled": true
+            },
             "Download any video": {
                 "enabled": true
             },
@@ -130,6 +139,9 @@
                 "enabled": true
             },
             "Hide the audio icon on posts": {
+                "enabled": true
+            },
+            "Auto scroll in Home": {
                 "enabled": true
             },
             "Back leaves Home": {
@@ -183,6 +195,9 @@
             "Show hidden like counts": {
                 "enabled": true
             },
+            "Three-dot menu items": {
+                "enabled": true
+            },
             "Full resolution photos": {
                 "enabled": true
             },
@@ -225,6 +240,9 @@
             "Keep Home's top bar": {
                 "enabled": true
             },
+            "Don't send feed view history": {
+                "enabled": true
+            },
             "Watch again in the feed": {
                 "enabled": true
             },
@@ -256,6 +274,9 @@
                 "enabled": true
             },
             "Remove the advertising ID": {
+                "enabled": true
+            },
+            "Search blocked accounts": {
                 "enabled": true
             },
             "Remove the empty space at the bottom": {
@@ -357,6 +378,9 @@
             "Ask before a follow": {
                 "enabled": true
             },
+            "Sent follow requests": {
+                "enabled": true
+            },
             "Show if a profile follows you": {
                 "enabled": true
             },
@@ -372,6 +396,9 @@
             "Profile posts as a list": {
                 "enabled": true
             },
+            "Sort reels on profiles": {
+                "enabled": true
+            },
             "Hide suggested people on profiles": {
                 "enabled": false
             },
@@ -379,6 +406,9 @@
                 "enabled": true
             },
             "Hide the Threads button": {
+                "enabled": true
+            },
+            "Control the reel above comments": {
                 "enabled": true
             },
             "Hide AI-labeled reels": {
@@ -532,6 +562,9 @@
                 "enabled": false
             },
             "Hide suggested stories": {
+                "enabled": true
+            },
+            "Keep story viewers": {
                 "enabled": true
             },
             "Keep stories playing while zooming": {
