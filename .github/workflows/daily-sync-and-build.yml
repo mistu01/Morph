@@ -349,57 +349,61 @@ jobs:
               if (checkApkReleases) {
                 latestGooglePhotosApk = (await getLatestGooglePhotosVersion()) || "";
               }
-              const recordedGooglePhotosApk = (state.devanced_google_photos_apk || process.env.DEVANCED_ASSET_APK || "").trim();
+              const availableGooglePhotosApk = (process.env.DEVANCED_ASSET_APK || "").trim();
+              const recordedGooglePhotosApk = (state.devanced_google_photos_apk || availableGooglePhotosApk).trim();
 
               let latestFacebookApk = "";
               if (checkApkReleases) {
                 latestFacebookApk = (await getRecommendedPatchVersion("SysAdminDoc/HushFacebook", hushfacebook || state.hushfacebook, "v0.6.0", "com.facebook.katana")) || "";
               }
-              const recordedFacebookApk = (state.hushfacebook_facebook_apk || process.env.HUSHFACEBOOK_ASSET_APK || "").trim();
+              const availableFacebookApk = (process.env.HUSHFACEBOOK_ASSET_APK || "").trim();
+              const recordedFacebookApk = (state.hushfacebook_facebook_apk || availableFacebookApk).trim();
               const hushfacebookApkChanged = Boolean(
                 checkApkReleases &&
                 latestFacebookApk &&
-                recordedFacebookApk &&
-                latestFacebookApk !== recordedFacebookApk
+                availableFacebookApk &&
+                latestFacebookApk !== availableFacebookApk
               );
               const hushfacebookApkMissing = Boolean(
                 checkApkReleases &&
                 latestFacebookApk &&
-                !recordedFacebookApk
+                !availableFacebookApk
               );
 
               let latestThreadsApk = "";
               if (checkApkReleases) {
                 latestThreadsApk = (await getRecommendedPatchVersion("SysAdminDoc/HushThreads", hushthreads || state.hushthreads, "v0.0.3", "com.instagram.barcelona")) || "";
               }
-              const recordedThreadsApk = (state.hushfacebook_threads_apk || process.env.HUSHTHREADS_ASSET_APK || "").trim();
+              const availableThreadsApk = (process.env.HUSHTHREADS_ASSET_APK || "").trim();
+              const recordedThreadsApk = (state.hushfacebook_threads_apk || availableThreadsApk).trim();
               const hushthreadsApkChanged = Boolean(
                 checkApkReleases &&
                 latestThreadsApk &&
-                recordedThreadsApk &&
-                latestThreadsApk !== recordedThreadsApk
+                availableThreadsApk &&
+                latestThreadsApk !== availableThreadsApk
               );
               const hushthreadsApkMissing = Boolean(
                 checkApkReleases &&
                 latestThreadsApk &&
-                !recordedThreadsApk
+                !availableThreadsApk
               );
 
               let latestInstagramApk = "";
               if (checkApkReleases) {
                 latestInstagramApk = (await getRecommendedPatchVersion("SysAdminDoc/HushGram", hushgram || state.hushgram, "v0.0.3", "com.instagram.android")) || "";
               }
-              const recordedInstagramApk = (state.hushfacebook_instagram_apk || process.env.HUSHGRAM_ASSET_APK || "").trim();
+              const availableInstagramApk = (process.env.HUSHGRAM_ASSET_APK || "").trim();
+              const recordedInstagramApk = (state.hushfacebook_instagram_apk || availableInstagramApk).trim();
               const hushgramApkChanged = Boolean(
                 checkApkReleases &&
                 latestInstagramApk &&
-                recordedInstagramApk &&
-                latestInstagramApk !== recordedInstagramApk
+                availableInstagramApk &&
+                latestInstagramApk !== availableInstagramApk
               );
               const hushgramApkMissing = Boolean(
                 checkApkReleases &&
                 latestInstagramApk &&
-                !recordedInstagramApk
+                !availableInstagramApk
               );
 
               const releaseMode = process.env.RELEASE_MODE || "separate";
@@ -436,13 +440,13 @@ jobs:
               const devancedApkChanged = Boolean(
                 checkApkReleases &&
                 latestGooglePhotosApk &&
-                recordedGooglePhotosApk &&
-                latestGooglePhotosApk !== recordedGooglePhotosApk
+                availableGooglePhotosApk &&
+                latestGooglePhotosApk !== availableGooglePhotosApk
               );
               const devancedApkMissing = Boolean(
                 checkApkReleases &&
                 latestGooglePhotosApk &&
-                !recordedGooglePhotosApk
+                !availableGooglePhotosApk
               );
 
               const isSchedule = process.env.EVENT_NAME === "schedule";
