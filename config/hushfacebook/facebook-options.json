@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-11-22T04:47:51.772683277Z",
+            "updated_at": "2026-11-23T05:26:50.677030872Z",
             "source": "patches.mpp",
-            "sha256": "7dbf50dc1d4113293e54b0f26018433a1503801a760f2b46dd48e93edb67ab1f"
+            "sha256": "30e0325e3e620b2ebdd8abe0f2ed9bd3e230b8a89fd2abf2b9398718836322e0"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -187,6 +187,9 @@
                 "enabled": false
             },
             "Keep playing in the background": {
+                "enabled": true
+            },
+            "Video buffer": {
                 "enabled": true
             },
             "Keep feed videos muted": {
