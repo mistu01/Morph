@@ -2,9 +2,9 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:41.143322671Z",
-            "updated_at": "2026-11-25T06:44:07.692279906Z",
+            "updated_at": "2026-11-26T06:35:29.521910707Z",
             "source": "patches.mpp",
-            "sha256": "30e0325e3e620b2ebdd8abe0f2ed9bd3e230b8a89fd2abf2b9398718836322e0"
+            "sha256": "6f68ec2b9e4a569c97f45f22b09f05a26cec673026ce920a7edacd742abd29ae"
         },
         "patches": {
             "Hide affiliate product links": {
@@ -40,6 +40,9 @@
             "Block ad telemetry": {
                 "enabled": true
             },
+            "Chat background": {
+                "enabled": true
+            },
             "Clean up Facebook's chat list": {
                 "enabled": true
             },
@@ -56,6 +59,9 @@
                 "enabled": true
             },
             "Send chat photos and videos at original quality": {
+                "enabled": true
+            },
+            "Share to Facebook chats": {
                 "enabled": true
             },
             "Clone install under another package name": {
@@ -233,9 +239,6 @@
             },
             "Hold back analytics uploads": {
                 "enabled": false
-            },
-            "Unlock app icons": {
-                "enabled": true
             },
             "Hide carrier data banners": {
                 "enabled": true

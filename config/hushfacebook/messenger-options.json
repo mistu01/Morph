@@ -2,20 +2,24 @@
     {
         "meta": {
             "created_at": "2026-09-29T05:22:42.984448941Z",
-            "updated_at": "2026-11-25T06:44:09.302066904Z",
+            "updated_at": "2026-11-26T06:35:31.335249912Z",
             "source": "patches.mpp",
-            "sha256": "de5870f82a4aa0bcf2b9808e66ae8839b95f2168582ffba8024604d71b758e4a"
+            "sha256": "5775c565323bd6e4464132f71c05ea34e6eae7fdef2ea4a986957ee5400999bd"
         },
         "patches": {
             "Clone install under another package name": {
                 "enabled": false,
                 "options": {
-                    "clonePackageName": "com.facebook.orca.hush",
+                    "packageName": "com.facebook.orca.hush",
                     "cloneAppName": "Messenger Clone",
-                    "cloneFacebookPackage": "com.facebook.katana"
+                    "cloneFacebookPackage": "com.facebook.katana",
+                    "clonePackageName": "com.facebook.orca.hush"
                 }
             },
             "Install beside Meta apps": {
+                "enabled": true
+            },
+            "Keep a renamed copy working": {
                 "enabled": true
             },
             "Restore screens on re-signed builds": {
@@ -54,7 +58,13 @@
             "Hide inbox tabs": {
                 "enabled": true
             },
+            "Typing in your chat list": {
+                "enabled": true
+            },
             "Keep the search bar": {
+                "enabled": true
+            },
+            "Write longer notes": {
                 "enabled": true
             },
             "Hide Mark as read": {
@@ -78,6 +88,9 @@
             "Hide chat menu items": {
                 "enabled": true
             },
+            "Hide profile menu items": {
+                "enabled": true
+            },
             "Hide Facebook shortcuts": {
                 "enabled": true
             },
@@ -96,10 +109,22 @@
             "Show People tab": {
                 "enabled": true
             },
+            "Show settings tab": {
+                "enabled": true
+            },
+            "Show Instants tab": {
+                "enabled": true
+            },
             "Hide Notifications tab": {
                 "enabled": true
             },
             "Hide Stories tab": {
+                "enabled": true
+            },
+            "Hide tab labels": {
+                "enabled": true
+            },
+            "Your own tab icons": {
                 "enabled": true
             },
             "Hide tab badges": {
@@ -109,6 +134,9 @@
                 "enabled": true
             },
             "Floating tab bar": {
+                "enabled": true
+            },
+            "Swipe between tabs": {
                 "enabled": true
             },
             "Hold stories at the end": {
@@ -147,6 +175,9 @@
             "Open web links externally": {
                 "enabled": true
             },
+            "Play video links in the chat": {
+                "enabled": true
+            },
             "Allow chat bubbles": {
                 "enabled": true
             },
@@ -166,6 +197,9 @@
                 "enabled": true
             },
             "Customize message actions": {
+                "enabled": true
+            },
+            "Put your words above the photo": {
                 "enabled": true
             },
             "Hide the recent photo card": {
@@ -189,6 +223,9 @@
             "Quiet incoming calls": {
                 "enabled": true
             },
+            "Quiet mode": {
+                "enabled": true
+            },
             "Android Auto messages": {
                 "enabled": true
             },
@@ -199,6 +236,9 @@
                 "enabled": true
             },
             "Allow landscape": {
+                "enabled": true
+            },
+            "Chat bar buttons in the + menu": {
                 "enabled": true
             },
             "Record calls": {
@@ -222,7 +262,13 @@
             "Put gallery picks in the chat": {
                 "enabled": true
             },
+            "Paste a photo into the chat": {
+                "enabled": true
+            },
             "Send Instants from your gallery": {
+                "enabled": true
+            },
+            "Offer View once in every chat": {
                 "enabled": true
             },
             "Stop analytics uploads": {
@@ -232,6 +278,9 @@
                 "enabled": true
             },
             "Stop inbox and ad link logging": {
+                "enabled": true
+            },
+            "Stop attention time logging": {
                 "enabled": true
             },
             "Stop live connection logging": {
@@ -246,7 +295,19 @@
             "Allow screenshots": {
                 "enabled": true
             },
+            "Block screenshots in chats": {
+                "enabled": true
+            },
+            "Skip passkey sign-in": {
+                "enabled": true
+            },
+            "Show the 40-character code option": {
+                "enabled": true
+            },
             "Hide read receipts": {
+                "enabled": true
+            },
+            "Mark chats read on this phone": {
                 "enabled": true
             },
             "Mark as read button": {
@@ -255,19 +316,40 @@
             "Keep unsent messages": {
                 "enabled": true
             },
+            "Hide messages with your words": {
+                "enabled": true
+            },
+            "Appear offline": {
+                "enabled": true
+            },
             "Hide pictures on the Blocked list": {
                 "enabled": true
             },
             "Notify for restricted chats": {
                 "enabled": true
             },
-            "Unlock app icons": {
-                "enabled": true
-            },
-            "Unlock app themes": {
+            "Sound in the open chat": {
                 "enabled": true
             },
             "Square profile pictures": {
+                "enabled": true
+            },
+            "Thin story rings": {
+                "enabled": true
+            },
+            "Hide Suggested in search": {
+                "enabled": true
+            },
+            "Hide recent reels in search": {
+                "enabled": true
+            },
+            "Block Meta AI chats": {
+                "enabled": true
+            },
+            "Hide Create story": {
+                "enabled": true
+            },
+            "Show pinned messages": {
                 "enabled": true
             },
             "Your own home header": {
@@ -277,6 +359,15 @@
                 "enabled": true
             },
             "Blur behind menus": {
+                "enabled": true
+            },
+            "Invisible buttons": {
+                "enabled": true
+            },
+            "Translucent chat bars": {
+                "enabled": true
+            },
+            "Screen refresh rate": {
                 "enabled": true
             },
             "View stories anonymously": {
@@ -304,6 +395,14 @@
                 "enabled": false,
                 "options": {
                     "soundFile": null
+                }
+            },
+            "Custom chat sounds": {
+                "enabled": false,
+                "options": {
+                    "sendSoundFile": null,
+                    "sentSoundFile": null,
+                    "inAppSoundFile": null
                 }
             },
             "GmsCore support": {
