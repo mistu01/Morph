@@ -14,8 +14,6 @@ set -euo pipefail
 #   2. GitHub Release stock bundle cache (apk-cache-facebook-<version>) for instant 2s builds.
 #   3. Uptodown Playwright fetcher with Xvfb and Turnstile handling (with retry backoff).
 #   4. APKPure catalog API / APKMirror mirror fallback.
-#   5. Stable fallback: HushFacebook v0.21.0 / Facebook 585.0.0.47.54, whose
-#      Android 11+ xapk is listed on Uptodown when the latest version is not.
 # Once fetched, the stock bundle is cached to the GitHub Release for instant future runs.
 
 build_log=".cache/hushfacebook-build.log"
@@ -293,72 +291,6 @@ for version_code in $version_codes; do
     fi
   fi
 done
-
-# Tier 5: Fallback to proven stable HushFacebook v0.21.0 (Facebook 585.0.0.47.54).
-# Mirrors build-hushmessenger.sh's v0.28.0 fallback. The latest HushFacebook
-# tag can target a Facebook version no mirror lists yet — e.g. v0.24.0 targets
-# 588.0.0.42.55 (arm64 code 707615136), which Uptodown does not list at all
-# and APKPure only lists as the Android 9+ Superpack variant (707615134).
-# v0.21.0 targets 585.0.0.47.54 (arm64 code 476015655), which Uptodown does
-# list as an Android 11+ xapk, so this fallback publishes an older patched
-# Facebook instead of none. The daily sync regenerates the patches version,
-# so a later run returns to the latest tag once its APK is mirrored.
-current_patch_version="${HUSHFACEBOOK_PATCHES_VERSION:-stable}"
-if [ "$current_patch_version" != "v0.21.0" ] && [ "$compatible_version" != "585.0.0.47.54" ]; then
-  echo ""
-  echo "=========================================================================================="
-  echo "Facebook $compatible_version (code $version_codes) is not available on any mirror."
-  echo "Falling back to proven stable HushFacebook v0.21.0 (Facebook 585.0.0.47.54, code 476015655)..."
-  echo "=========================================================================================="
-  clear_facebook_outputs
-  rm -f .cache/tools/patches-facebook.* .cache/tools/patches.*
-  export HUSHFACEBOOK_PATCHES_VERSION="v0.21.0"
-  export FACEBOOK_APK_VERSION="585.0.0.47.54"
-
-  # Re-download patch tools for v0.21.0, so the builder uses the 585 patches.
-  node scripts/hushfacebook-builder.mjs tools || true
-  cp .cache/tools/patches.json .cache/tools/patches-facebook.json 2>/dev/null || true
-
-  # Retry via Uptodown, which lists 585.0.0.47.54 as an Android 11+ xapk.
-  fallback_dir=".cache/facebook-uptodown-585.0.0.47.54"
-  mkdir -p "$fallback_dir"
-  fallback_bundle=""
-  fallback_expected="$fallback_dir/facebook-585.0.0.47.54-arm64-v8a.xapk"
-  set +e
-  python scripts/fetch_uptodown.py "585.0.0.47.54" "$fallback_dir" > ".cache/uptodown_stdout.json" 2> ".cache/uptodown_stderr.log"
-  set -e
-  cat ".cache/uptodown_stderr.log" 2>/dev/null || true
-  if [ -f "$fallback_expected" ] && [ "$(wc -c < "$fallback_expected")" -gt 10000000 ]; then
-    fallback_bundle="$fallback_expected"
-  fi
-
-  # If Uptodown did not deliver 585, try APKPure for its exact arm64 code.
-  if [ -z "$fallback_bundle" ]; then
-    echo "Uptodown did not deliver Facebook 585.0.0.47.54; trying APKPure for code 476015655..."
-    fallback_api_dir=".cache/hushfacebook-apkpure-api-476015655"
-    rm -rf "$fallback_api_dir"
-    mkdir -p "$fallback_api_dir"
-    if fallback_result="$(python scripts/apkpure_api_download.py \
-      --app-name Facebook \
-      --package-name com.facebook.katana \
-      --out-dir "$fallback_api_dir" \
-      --version "585.0.0.47.54" \
-      --version-code "476015655" \
-      --expect-arch arm64-v8a 2>/dev/null)"; then
-      fallback_bundle="$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).path)' "$fallback_result" 2>/dev/null || true)"
-    fi
-  fi
-
-  if [ -n "$fallback_bundle" ] && [ -f "$fallback_bundle" ]; then
-    if try_patch_downloaded_apk "$fallback_bundle" "fallback-585.0.0.47.54"; then
-      if [ -n "${GITHUB_TOKEN:-}" ]; then
-        echo "Caching stock split bundle to hushfacebook-release for instant future builds..."
-        gh release upload "hushfacebook-release" "$fallback_bundle" --clobber >/dev/null 2>&1 || true
-      fi
-      exit 0
-    fi
-  fi
-fi
 
 echo ""
 echo "=========================================================================================="
