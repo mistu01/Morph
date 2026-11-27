@@ -88,9 +88,9 @@
     {
         "meta": {
             "created_at": "2026-06-23T20:14:18.557516300Z",
-            "updated_at": "2026-11-26T06:35:22.231745828Z",
+            "updated_at": "2026-11-27T06:25:37.997996023Z",
             "source": "patches.mpp",
-            "sha256": "1c37549274a2b6cf7f2e3e099d9b8cb641880b8a7dac323a95638a06bb4509a9"
+            "sha256": "880d559a3a09846d729b6801638c84a7de446918198d590fa557b68c27a17cd2"
         },
         "patches": {
             "Clone app": {
@@ -125,10 +125,25 @@
             "Force system font": {
                 "enabled": true
             },
+            "Hide Answers preview": {
+                "enabled": true
+            },
             "Hide Ask button": {
                 "enabled": true
             },
+            "AutoModerator comments": {
+                "enabled": true
+            },
+            "Feed auto-scroll": {
+                "enabled": true
+            },
             "High quality avatars": {
+                "enabled": true
+            },
+            "Disable refresh on back to exit": {
+                "enabled": true
+            },
+            "Disable bottom bar auto-hide": {
                 "enabled": true
             },
             "Custom branding name for Reddit": {
@@ -137,7 +152,22 @@
                     "appName": "Reddit Morphe"
                 }
             },
+            "Collapse all comments": {
+                "enabled": true
+            },
+            "Hide comment flairs and badges": {
+                "enabled": true
+            },
+            "Colorize comment indent lines": {
+                "enabled": true
+            },
             "Hide communities shelf": {
+                "enabled": true
+            },
+            "Hide community highlights": {
+                "enabled": true
+            },
+            "Hide community menu badge": {
                 "enabled": true
             },
             "Copy text": {
@@ -146,10 +176,25 @@
             "Keep feed position": {
                 "enabled": true
             },
+            "Flair filters": {
+                "enabled": true
+            },
             "Show flairs in home feed": {
                 "enabled": true
             },
             "Full width feed media": {
+                "enabled": true
+            },
+            "Glass navigation bar": {
+                "enabled": true
+            },
+            "Always show Hide": {
+                "enabled": true
+            },
+            "Hide interactive posts": {
+                "enabled": true
+            },
+            "Keyword filters": {
                 "enabled": true
             },
             "Feed media max height": {
@@ -158,19 +203,52 @@
             "Hide media viewer components": {
                 "enabled": true
             },
+            "Keep media viewer in subreddit": {
+                "enabled": true
+            },
             "Media viewer black background": {
                 "enabled": true
             },
             "Media viewer fade": {
                 "enabled": true
             },
+            "Swipe up for comments": {
+                "enabled": true
+            },
             "Disable modern home": {
+                "enabled": true
+            },
+            "Hide home tabs": {
+                "enabled": true
+            },
+            "Home feed tabs": {
                 "enabled": true
             },
             "Hide navigation buttons": {
                 "enabled": true
             },
+            "Hide People also search for section": {
+                "enabled": true
+            },
+            "Video playback speed": {
+                "enabled": true
+            },
             "Customize post layout": {
+                "enabled": true
+            },
+            "Hide post buttons": {
+                "enabled": true
+            },
+            "Disable post detail swipe": {
+                "enabled": true
+            },
+            "Search hidden profiles": {
+                "enabled": true
+            },
+            "Hide Related Posts section": {
+                "enabled": true
+            },
+            "Full-screen reply": {
                 "enabled": true
             },
             "Disable screenshot popup": {
@@ -182,16 +260,40 @@
             "Hide sidebar components": {
                 "enabled": true
             },
+            "Settings in sidebar": {
+                "enabled": true
+            },
+            "Post side panel": {
+                "enabled": true
+            },
+            "See-through status bar": {
+                "enabled": true
+            },
             "Remove subreddit dialog": {
+                "enabled": true
+            },
+            "Tablet grid feed": {
                 "enabled": true
             },
             "Hide Trending shelves": {
                 "enabled": true
             },
+            "Hide Videos for you shelf": {
+                "enabled": true
+            },
             "App icon": {
                 "enabled": true
             },
+            "Disable home feed auto-refresh": {
+                "enabled": true
+            },
             "Remember collapsed comments": {
+                "enabled": true
+            },
+            "Enable debugging": {
+                "enabled": true
+            },
+            "Download all from gallery": {
                 "enabled": true
             },
             "Download location": {
@@ -209,7 +311,16 @@
             "Sanitize sharing links": {
                 "enabled": true
             },
+            "Private browsing mode": {
+                "enabled": true
+            },
             "Redgifs audio": {
+                "enabled": true
+            },
+            "Share post content": {
+                "enabled": true
+            },
+            "Open system share sheet": {
                 "enabled": true
             }
         }

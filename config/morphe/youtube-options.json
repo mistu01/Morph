@@ -271,9 +271,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:19.597922Z",
-            "updated_at": "2026-11-26T06:35:17.712297589Z",
+            "updated_at": "2026-11-27T06:25:33.519766813Z",
             "source": "patches.mpp",
-            "sha256": "1c37549274a2b6cf7f2e3e099d9b8cb641880b8a7dac323a95638a06bb4509a9"
+            "sha256": "880d559a3a09846d729b6801638c84a7de446918198d590fa557b68c27a17cd2"
         },
         "patches": {
             "Clone app": {
@@ -311,6 +311,9 @@
             "Channel search": {
                 "enabled": true
             },
+            "Comment search": {
+                "enabled": true
+            },
             "Disable continue watching prompt": {
                 "enabled": true
             },
@@ -338,6 +341,9 @@
             "Disable haptic feedback": {
                 "enabled": true
             },
+            "Hold gesture": {
+                "enabled": true
+            },
             "Loop count": {
                 "enabled": true
             },
@@ -362,6 +368,12 @@
             "Playlist button": {
                 "enabled": true
             },
+            "Playlist search": {
+                "enabled": true
+            },
+            "Open post images in fullscreen": {
+                "enabled": true
+            },
             "Download post images": {
                 "enabled": true
             },
@@ -372,9 +384,6 @@
                 "enabled": true
             },
             "Save to Watch later": {
-                "enabled": true
-            },
-            "Search comments": {
                 "enabled": true
             },
             "Seekbar": {
@@ -443,6 +452,9 @@
             "Change form factor": {
                 "enabled": true
             },
+            "Glass menus": {
+                "enabled": true
+            },
             "Ambient mode": {
                 "enabled": true
             },
@@ -507,6 +519,9 @@
             "Niconico comments": {
                 "enabled": true
             },
+            "Ungroup notifications": {
+                "enabled": true
+            },
             "Restore original titles": {
                 "enabled": true
             },
@@ -546,7 +561,13 @@
             "Disable playlist autoplay": {
                 "enabled": true
             },
+            "Reverse playlist autoplay": {
+                "enabled": true
+            },
             "Return YouTube Dislike": {
+                "enabled": true
+            },
+            "Return YouTube Username": {
                 "enabled": true
             },
             "Disable scrolling speed limit": {
@@ -619,10 +640,16 @@
             "Media notification controls": {
                 "enabled": true
             },
+            "Android Auto parked app mode": {
+                "enabled": true
+            },
             "PoToken provider": {
                 "enabled": true
             },
             "Sanitize sharing links": {
+                "enabled": true
+            },
+            "Ghost mode": {
                 "enabled": true
             },
             "Network proxy": {
@@ -664,6 +691,9 @@
             "Video delay": {
                 "enabled": true
             },
+            "Video effects": {
+                "enabled": true
+            },
             "Remember live stream playback position": {
                 "enabled": true
             },
@@ -674,6 +704,9 @@
                 "enabled": true
             },
             "Playback speed": {
+                "enabled": true
+            },
+            "Replay slower button": {
                 "enabled": true
             },
             "Voice over translation": {

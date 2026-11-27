@@ -158,9 +158,9 @@
     {
         "meta": {
             "created_at": "2026-06-27T13:53:26.727410800Z",
-            "updated_at": "2026-11-26T06:35:20.736993058Z",
+            "updated_at": "2026-11-27T06:25:36.524584837Z",
             "source": "patches.mpp",
-            "sha256": "1c37549274a2b6cf7f2e3e099d9b8cb641880b8a7dac323a95638a06bb4509a9"
+            "sha256": "880d559a3a09846d729b6801638c84a7de446918198d590fa557b68c27a17cd2"
         },
         "patches": {
             "Clone app": {
@@ -207,6 +207,9 @@
             "Jam queue sharing": {
                 "enabled": true
             },
+            "Queue likes filter": {
+                "enabled": true
+            },
             "A-B loop": {
                 "enabled": true
             },
@@ -225,7 +228,16 @@
             "Scrobbling": {
                 "enabled": false
             },
+            "Sonos Cast": {
+                "enabled": true
+            },
             "SoundProof": {
+                "enabled": true
+            },
+            "Disable swipe to change track": {
+                "enabled": true
+            },
+            "Apple Music animated artwork": {
                 "enabled": true
             },
             "Custom branding": {
@@ -242,9 +254,6 @@
                     "custom": null
                 }
             },
-            "Hide buttons": {
-                "enabled": true
-            },
             "Hide music action buttons": {
                 "enabled": true
             },
@@ -255,6 +264,9 @@
                 "enabled": true
             },
             "Custom font": {
+                "enabled": true
+            },
+            "Glass menus": {
                 "enabled": true
             },
             "Hide flyout menu components": {
@@ -302,19 +314,16 @@
                     "darkThemeColor": "in-app"
                 }
             },
-            "Play albums songs": {
+            "Play album songs": {
                 "enabled": true
             },
             "Android Auto": {
                 "enabled": true
             },
-            "Disable DRC audio": {
+            "Android Auto third-party apps": {
                 "enabled": true
             },
             "Enable exclusive audio playback": {
-                "enabled": true
-            },
-            "Force original audio": {
                 "enabled": true
             },
             "Enable audio/video switch": {
@@ -359,7 +368,16 @@
             "Spoof app version": {
                 "enabled": true
             },
+            "Disable DRC audio": {
+                "enabled": true
+            },
+            "Force original audio": {
+                "enabled": true
+            },
             "Skip silence": {
+                "enabled": true
+            },
+            "Video effects": {
                 "enabled": true
             },
             "Remember video quality": {
